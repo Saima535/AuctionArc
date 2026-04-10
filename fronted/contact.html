@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Contact - AuctionArc</title>
+
+  <style>
+    body {
+      background: #0a0a0a;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px 50px;
+      background: #111;
+    }
+
+    nav h2 { color: gold; }
+
+    nav ul {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+    }
+
+    nav a:hover { color: gold; }
+
+    .container {
+      padding: 80px;
+      text-align: center;
+    }
+
+    h1 {
+      color: gold;
+      margin-bottom: 30px;
+    }
+
+    input, textarea {
+      width: 300px;
+      padding: 12px;
+      margin: 10px;
+      background: #111;
+      border: 1px solid gold;
+      color: white;
+      border-radius: 8px;
+    }
+
+    textarea {
+      height: 100px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 12px 25px;
+      background: gold;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+
+<body>
+
+<nav>
+  <h2>AuctionArc</h2>
+
+  <ul>
+    <li><a href="landingpage.html">Home</a></li>
+    <li><a href="auctions.html">Auctions</a></li>
+    <li><a href="how.html">How It Works</a></li>
+    <li><a href="contact.html">Contact</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+
+  <h1>Contact Us</h1>
+
+  <input type="text" id="name" placeholder="Your Name"><br>
+  <input type="email" id="email" placeholder="Your Email"><br>
+  <textarea id="msg" placeholder="Your Message"></textarea><br>
+
+  <button onclick="sendMsg()">Send Message</button>
+
+</div>
+
+<script>
+function sendMsg(){
+  let name = document.getElementById("name").value;
+  let email = document.getElementById("email").value;
+  let msg = document.getElementById("msg").value;
+
+  if(name === "" || email === "" || msg === ""){
+    alert("Please fill all fields!");
+    return;
+  }
+
+  alert("Message sent successfully ✅");
+}
+</script>
+
+</body>
+</html>

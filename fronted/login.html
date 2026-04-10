@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - AuctionArc</title>
+    <script src="https://kit.fontawesome.com/4aa05a145e.js" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: #d4af37;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #999;
+            margin-bottom: 30px;
+        }
+
+        .subtitle a {
+            color: #d4af37;
+            text-decoration: none;
+        }
+
+        .subtitle a:hover {
+            text-decoration: underline;
+        }
+
+        .role-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 15px;
+            background-color: transparent;
+            border: 1px solid #444;
+            color: #d4af37;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .role-btn i {
+            font-size: 1.5rem;
+        }
+
+        .role-btn.active {
+            background-color: rgba(212, 175, 55, 0.1);
+            border-color: #d4af37;
+        }
+
+        .role-btn:hover {
+            background-color: rgba(212, 175, 55, 0.05);
+        }
+
+        .form-container {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            padding: 40px;
+            border-radius: 4px;
+        }
+
+        .form-label {
+            color: #d4af37;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            display: block;
+            width: 90%;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #d4af37;
+        }
+
+        .form-control {
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            color: #d4af37;
+            padding: 12px 15px 12px 45px;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 0.95rem;
+        }
+
+        .form-control::placeholder {
+            color: #666;
+        }
+
+        .form-control:focus {
+            background-color: #1a1a1a;
+            border-color: #d4af37;
+            color: #d4af37;
+            outline: none;
+            box-shadow: none;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #d4af37;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-check-input {
+            width: 18px;
+            height: 18px;
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            cursor: pointer;
+        }
+
+        .form-check-input:checked {
+            background-color: #d4af37;
+            border-color: #d4af37;
+        }
+
+        .form-check-label {
+            color: #d4af37;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .forgot-link {
+            color: #d4af37;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-signin {
+            width: 100%;
+            padding: 15px;
+            background-color: #d4af37;
+            color: #1a1a1a;
+            border: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn-signin:hover {
+            background-color: #c19b2e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 30px;
+            color: #999;
+        }
+
+        .footer-text a {
+            color: #d4af37;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 576px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .form-container {
+                padding: 25px;
+            }
+
+            .role-tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Header -->
+        <h1>Sign In</h1>
+        <p class="subtitle">Don't have an account? <a href="reg.html">Create one →</a></p>
+
+        <!-- Role Selection Tabs -->
+        <div class="role-tabs">
+            <button class="role-btn active" data-role="buyer">
+                <i class="fas fa-user"></i>
+                <span>BUYER</span>
+            </button>
+            <button class="role-btn" data-role="seller">
+                <i class="fas fa-tag"></i>
+                <span>SELLER</span>
+            </button>
+            <button class="role-btn" data-role="admin">
+                <i class="fas fa-shield-alt"></i>
+                <span>ADMIN</span>
+            </button>
+        </div>
+
+        <!-- Login Form -->
+        <div class="form-container">
+            <form id="loginForm">
+                <!-- Email Input -->
+                <div class="input-group">
+                    <label class="form-label">Email Address</label>
+                    <i class="fa-regular fa-envelope"></i>
+                    <input type="email" class="form-control" placeholder="you@example.com" required>
+                </div>
+
+                <!-- Password Input -->
+                <div class="input-group">
+                    <label class="form-label">Password</label>
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" class="form-control" id="passwordInput" placeholder="Enter your password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+
+                <!-- Remember Me & Forgot Password -->
+                <div class="remember-forgot">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+                    <a href="recover.html" class="forgot-link">Forgot password?</a>
+                </div>
+
+                <!-- Sign In Button -->
+                <button type="submit" class="btn-signin">Sign In</button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <p class="footer-text">
+            New to AuctionArc?<br>
+            <a href="reg.html">Create a free account →</a>
+        </p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Role tab switching
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('passwordInput');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const activeRole = document.querySelector('.role-btn.active').dataset.role;
+            console.log('Signing in as:', activeRole);
+            alert('Sign in functionality would go here!');
+        });
+    </script>
+</body>
+</html>

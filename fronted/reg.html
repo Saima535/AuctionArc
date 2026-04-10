@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account - AuctionArc</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #1a1a1a;
+    color: #d4af37;
+    font-family: 'Segoe UI';
+    padding: 40px 20px;
+}
+
+.register-container {
+    max-width: 600px;
+    margin: auto;
+}
+
+h1 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+/* ROLE BUTTONS */
+.role-tabs {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.role-btn {
+    flex: 1;
+    padding: 15px;
+    border: 1px solid #444;
+    background: transparent;
+    color: #d4af37;
+    cursor: pointer;
+}
+
+.role-btn.active {
+    border: 2px solid #d4af37;
+    background: rgba(212,175,55,0.2);
+}
+
+/* FORM */
+.form-container {
+    background: #2a2a2a;
+    padding: 30px;
+}
+
+.form-label {
+    margin-bottom: 8px;
+    display: block;
+}
+
+.form-field {
+    margin-bottom: 20px;
+}
+
+/* INPUT */
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #d4af37;
+    pointer-events: none;
+}
+
+input {
+    width: 100%;
+    padding: 12px 15px;
+    padding-left: 40px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #d4af37;
+}
+
+input:focus {
+    outline: none;
+    border-color: #d4af37;
+}
+
+/* PASSWORD BUTTON */
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #d4af37;
+    cursor: pointer;
+}
+
+/* ROW */
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+.col-half {
+    flex: 1;
+}
+
+/* BUTTON */
+.btn-signup {
+    width: 100%;
+    padding: 12px;
+    background: #d4af37;
+    border: none;
+    color: black;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+/* MOBILE */
+@media(max-width:576px){
+    .row {
+        flex-direction: column;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="register-container">
+
+<h1>Create Account</h1>
+
+<!-- ROLE -->
+<div class="role-tabs">
+    <button class="role-btn active">BUYER</button>
+    <button class="role-btn">SELLER</button>
+</div>
+
+<div class="form-container">
+<form>
+
+<!-- NAME -->
+<div class="row">
+    <div class="col-half form-field">
+        <label class="form-label">First Name</label>
+        <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" placeholder="Ummay">
+        </div>
+    </div>
+
+    <div class="col-half form-field">
+        <label class="form-label">Last Name</label>
+        <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" placeholder="Saima">
+        </div>
+    </div>
+</div>
+
+<!-- EMAIL -->
+<div class="form-field">
+    <label class="form-label">Email</label>
+    <div class="input-wrapper">
+        <i class="fas fa-envelope input-icon"></i>
+        <input type="email" placeholder="usaima@example.com">
+    </div>
+</div>
+
+<!-- PHONE -->
+<div class="form-field">
+    <label class="form-label">Phone</label>
+    <div class="input-wrapper">
+        <i class="fas fa-phone input-icon"></i>
+        <input type="text" placeholder="+880123456">
+    </div>
+</div>
+
+<!-- PASSWORD -->
+<div class="form-field">
+    <label class="form-label">Password</label>
+    <div class="input-wrapper">
+        <i class="fas fa-lock input-icon"></i>
+        <input type="password" id="passwordInput" placeholder="Enter password">
+        <button type="button" class="toggle-password" onclick="togglePassword()">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+        </button>
+    </div>
+</div>
+
+<button class="btn-signup">Create Account</button>
+
+</form>
+</div>
+
+</div>
+
+<script>
+// ROLE SWITCH
+document.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+// PASSWORD TOGGLE
+function togglePassword() {
+    const input = document.getElementById("passwordInput");
+    const icon = document.getElementById("eyeIcon");
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace("fa-eye", "fa-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.replace("fa-eye-slash", "fa-eye");
+    }
+}
+</script>
+
+</body>
+</html>
