@@ -1,17 +1,17 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: #fffaf3;
+  --color-surface: rgba(255, 255, 255, 0.72);
+  --color-text: #1c1917;
+  --color-muted: #6b6258;
+  --color-border: rgba(138, 116, 94, 0.18);
+  --color-border-strong: rgba(107, 98, 88, 0.34);
+  --color-accent-deep: #b45309;
+  --shadow-soft: 0 20px 45px rgba(110, 82, 54, 0.09);
 }
 
 html {
   height: 100%;
+  scroll-behavior: smooth;
 }
 
 html,
@@ -24,9 +24,11 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at top, rgba(255, 183, 77, 0.14), transparent 25%),
+    linear-gradient(180deg, #fffaf3 0%, #fff6ea 100%);
+  font-family: var(--font-geist-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -42,8 +44,12 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.site-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-main {
+  flex: 1;
 }
