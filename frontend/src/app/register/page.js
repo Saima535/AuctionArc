@@ -25,21 +25,70 @@ export default function RegisterPage() {
 
       <section className={styles.authCard}>
         <form className={styles.authForm}>
-          <div className={styles.field}>
-            <label htmlFor="register-name">Full name</label>
-            <input id="register-name" name="name" type="text" placeholder="Enter your full name" />
+          <div className={styles.fieldGrid}>
+            <div className={styles.field}>
+              <label htmlFor="register-name">Full name</label>
+              <input id="register-name" name="name" type="text" placeholder="Enter your full name" />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="register-email">Email address</label>
+              <input id="register-email" name="email" type="email" placeholder="Enter your email" />
+            </div>
           </div>
-          <div className={styles.field}>
-            <label htmlFor="register-email">Email address</label>
-            <input id="register-email" name="email" type="email" placeholder="Enter your email" />
+
+          <div className={styles.fieldGrid}>
+            <div className={styles.field}>
+              <label htmlFor="register-role">Account role</label>
+              <select id="register-role" name="role" defaultValue="Bidder">
+                <option>Seller</option>
+                <option>Bidder</option>
+              </select>
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="register-gender">Gender</label>
+              <select id="register-gender" name="gender" defaultValue="">
+                <option value="" disabled>
+                  Select gender
+                </option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
           </div>
-          <div className={styles.field}>
-            <label htmlFor="register-role">Account role</label>
-            <select id="register-role" name="role" defaultValue="Bidder">
-              <option>Seller</option>
-              <option>Bidder</option>
-            </select>
+
+          <div className={styles.fieldGrid}>
+            <div className={styles.field}>
+              <label htmlFor="register-nid">NID</label>
+              <input id="register-nid" name="nid" type="text" placeholder="Enter NID number" />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="register-birthdate">Birthdate</label>
+              <input id="register-birthdate" name="birthdate" type="date" />
+            </div>
           </div>
+
+          <div className={styles.fieldGrid}>
+            <div className={styles.field}>
+              <label htmlFor="register-country">Country</label>
+              <input id="register-country" name="country" type="text" placeholder="Enter your country" />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="register-contact">Contact</label>
+              <input id="register-contact" name="contact" type="tel" placeholder="Enter phone number" />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="register-wallet">Add wallet</label>
+            <input
+              id="register-wallet"
+              name="wallet"
+              type="text"
+              placeholder="Enter wallet number or wallet ID"
+            />
+          </div>
+
           <div className={styles.field}>
             <label htmlFor="register-password">Password</label>
             <input
@@ -49,6 +98,17 @@ export default function RegisterPage() {
               placeholder="Create a strong password"
             />
           </div>
+
+          <div className={styles.field}>
+            <label htmlFor="register-human-verification">Human verification</label>
+            <input
+              id="register-human-verification"
+              name="humanVerification"
+              type="text"
+              placeholder="Type: I am human"
+            />
+          </div>
+
           <div className={styles.buttonRow}>
             <button type="submit" className={styles.submitButton}>
               Create Account
@@ -58,8 +118,8 @@ export default function RegisterPage() {
             </Link>
           </div>
           <p className={styles.helperText}>
-            This is a frontend-only form for now. Submission handling will come
-            when we build the backend.
+            This is a frontend-only form for now. Validation, secure identity
+            checks, and real verification handling will come with the backend.
           </p>
         </form>
       </section>
