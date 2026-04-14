@@ -24,3 +24,12 @@ export const featureHighlights = [
   "Streamlined auction creation, participation, and oversight flows",
   "A homepage foundation ready for authentication and dashboards",
 ];
+
+export const locationDetails = {
+  title: "Project location",
+  description:
+    "Use the embedded map to anchor the platform's contact presence and future meeting or support location.",
+  address: "Dhaka, Bangladesh",
+  mapEmbedUrl:
+    "https://www.google.com/maps?q=Dhaka%2C%20Bangladesh&z=12&output=embed",
+};

@@ -1,5 +1,9 @@
 import styles from "./page.module.css";
-import { featureHighlights, roleCards } from "@/data/homepage-content";
+import {
+  featureHighlights,
+  locationDetails,
+  roleCards,
+} from "@/data/homepage-content";
 
 export default function Home() {
   return (
@@ -79,6 +83,38 @@ export default function Home() {
               role dashboards, auction listings, and admin controls.
             </p>
           </article>
+        </div>
+      </section>
+
+      <section className={styles.mapSection} id="location">
+        <div className={styles.sectionHeading}>
+          <span>{locationDetails.title}</span>
+          <h2>Find AuctionArc on the map.</h2>
+        </div>
+
+        <div className={styles.mapGrid}>
+          <article className={styles.mapCard}>
+            <h3>{locationDetails.address}</h3>
+            <p>{locationDetails.description}</p>
+            <div className={styles.mapMeta}>
+              <a href="/contact-us" className={styles.secondaryAction}>
+                Contact Us
+              </a>
+              <a href="/support" className={styles.primaryAction}>
+                Support
+              </a>
+            </div>
+          </article>
+
+          <div className={styles.mapEmbedWrap}>
+            <iframe
+              title="AuctionArc location map"
+              src={locationDetails.mapEmbedUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className={styles.mapEmbed}
+            />
+          </div>
         </div>
       </section>
     </div>

@@ -1,11 +1,6 @@
 import Link from "next/link";
 import styles from "./Navbar.module.css";
-
-const navLinks = [
-  { href: "#features", label: "Features" },
-  { href: "#roles", label: "Roles" },
-  { href: "#how-it-works", label: "How It Works" },
-];
+import { navLinks } from "@/data/site-content";
 
 export function Navbar() {
   return (
@@ -21,19 +16,19 @@ export function Navbar() {
 
         <nav className={styles.nav} aria-label="Primary">
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className={styles.link}>
+            <Link key={link.href} href={link.href} className={styles.link}>
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
         <div className={styles.actions}>
-          <a href="#roles" className={styles.secondaryAction}>
-            Explore Roles
-          </a>
-          <a href="#hero" className={styles.primaryAction}>
-            Get Started
-          </a>
+          <Link href="/login" className={styles.secondaryAction}>
+            Login
+          </Link>
+          <Link href="/register" className={styles.primaryAction}>
+            Register
+          </Link>
         </div>
       </div>
     </header>

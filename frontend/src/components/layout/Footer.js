@@ -1,7 +1,6 @@
 import Link from "next/link";
 import styles from "./Footer.module.css";
-
-const roleLinks = ["Seller", "Bidder", "Admin"];
+import { footerSections } from "@/data/site-content";
 
 export function Footer() {
   return (
@@ -17,29 +16,18 @@ export function Footer() {
           </p>
         </div>
 
-        <div className={styles.column}>
-          <h2>Audience</h2>
-          <ul>
-            {roleLinks.map((role) => (
-              <li key={role}>{role}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className={styles.column}>
-          <h2>Sections</h2>
-          <ul>
-            <li>
-              <a href="#features">Features</a>
-            </li>
-            <li>
-              <a href="#roles">Roles</a>
-            </li>
-            <li>
-              <a href="#how-it-works">How It Works</a>
-            </li>
-          </ul>
-        </div>
+        {footerSections.map((section) => (
+          <div key={section.title} className={styles.column}>
+            <h2>{section.title}</h2>
+            <ul>
+              {section.links.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href}>{link.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
 
       <div className={styles.bottomBar}>
