@@ -26,7 +26,7 @@ export const footerSections = [
 export const aboutHighlights = [
   "AuctionArc is designed as a role-aware auction management system with distinct journeys for sellers, bidders, and administrators.",
   "The frontend foundation emphasizes clarity, trust, and future expansion into dashboards, listings, and operational workflows.",
-  "The product direction supports structured auction participation instead of a generic marketplace experience.",
+  "The product direction supports structured auction participation instead of a generic marketplace experience, with admin access separated from public authentication.",
 ];
 
 export const contactCards = [

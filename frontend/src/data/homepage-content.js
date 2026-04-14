@@ -15,7 +15,7 @@ export const roleCards = [
     title: "Admin",
     label: "Oversee the marketplace",
     description:
-      "Maintain trust with platform controls, moderation tools, and visibility into the health of the auction ecosystem.",
+      "Maintain trust with platform controls, moderation tools, and visibility into the health of the auction ecosystem through a separate restricted access path.",
   },
 ];
 

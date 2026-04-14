@@ -3,7 +3,7 @@ import styles from "@/components/public/PublicPage.module.css";
 
 export const metadata = {
   title: "Login | AuctionArc",
-  description: "Sign in to AuctionArc as a seller, bidder, or admin.",
+  description: "Sign in to AuctionArc as a seller or bidder.",
 };
 
 export default function LoginPage() {
@@ -13,11 +13,11 @@ export default function LoginPage() {
         <span className={styles.eyebrow}>Welcome back</span>
         <h1>Login to AuctionArc</h1>
         <p>
-          Access the auction experience that matches your responsibilities,
-          whether you are listing items, bidding live, or managing the system.
+          Access the public auction experience for listing items or bidding on
+          active auctions.
         </p>
         <ul className={styles.bulletList}>
-          <li>Use a single sign-in entry point for all three actors.</li>
+          <li>This login page is for sellers and bidders only.</li>
           <li>Role-based dashboards can branch from this route later.</li>
           <li>The current page is ready for backend authentication wiring.</li>
         </ul>
@@ -42,8 +42,8 @@ export default function LoginPage() {
             </Link>
           </div>
           <p className={styles.helperText}>
-            Authentication behavior will be connected after the backend phase
-            begins.
+            Admin access is intentionally separated and should not use this
+            public login route.
           </p>
         </form>
       </section>

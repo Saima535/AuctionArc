@@ -3,7 +3,7 @@ import styles from "@/components/public/PublicPage.module.css";
 
 export const metadata = {
   title: "Register | AuctionArc",
-  description: "Create a seller, bidder, or admin-facing AuctionArc account.",
+  description: "Create a seller or bidder AuctionArc account.",
 };
 
 export default function RegisterPage() {
@@ -13,13 +13,13 @@ export default function RegisterPage() {
         <span className={styles.eyebrow}>Create account</span>
         <h1>Register for AuctionArc</h1>
         <p>
-          Choose the role that best matches your work in the platform. This
+          Public registration is available for sellers and bidders. This
           frontend form gives us the structure for later backend integration.
         </p>
         <ul className={styles.bulletList}>
           <li>Seller accounts will manage auction listings and inventory.</li>
           <li>Bidder accounts will follow listings and place bids.</li>
-          <li>Admin accounts will oversee platform activity and controls.</li>
+          <li>Admin accounts are provisioned separately through a private channel.</li>
         </ul>
       </section>
 
@@ -38,7 +38,6 @@ export default function RegisterPage() {
             <select id="register-role" name="role" defaultValue="Bidder">
               <option>Seller</option>
               <option>Bidder</option>
-              <option>Admin</option>
             </select>
           </div>
           <div className={styles.field}>
