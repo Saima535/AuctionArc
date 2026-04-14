@@ -1,0 +1,65 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.statGrid,
+.mainGrid,
+.secondaryGrid {
+  display: grid;
+  gap: 18px;
+}
+
+.statGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mainGrid,
+.secondaryGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.alertList,
+.compactList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alertCard,
+.compactCard {
+  border: 1px solid var(--admin-border);
+  border-radius: 18px;
+  background: var(--admin-panel);
+  padding: 16px;
+}
+
+.alertHeader,
+.compactCard {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.alertCard p,
+.compactCard p {
+  margin-top: 10px;
+  color: var(--admin-muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 1100px) {
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .mainGrid,
+  .secondaryGrid,
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+}

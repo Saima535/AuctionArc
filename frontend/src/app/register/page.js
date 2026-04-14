@@ -71,7 +71,20 @@ export default function RegisterPage() {
           <div className={styles.fieldGrid}>
             <div className={styles.field}>
               <label htmlFor="register-country">Country</label>
-              <input id="register-country" name="country" type="text" placeholder="Enter your country" />
+              <select id="register-country" name="country" defaultValue="">
+                <option value="" disabled>
+                  Select country
+                </option>
+                <option>Bangladesh</option>
+                <option>India</option>
+                <option>Pakistan</option>
+                <option>Nepal</option>
+                <option>Sri Lanka</option>
+                <option>United States</option>
+                <option>United Kingdom</option>
+                <option>Canada</option>
+                <option>Australia</option>
+              </select>
             </div>
             <div className={styles.field}>
               <label htmlFor="register-contact">Contact</label>
@@ -96,6 +109,16 @@ export default function RegisterPage() {
               name="password"
               type="password"
               placeholder="Create a strong password"
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="register-confirm-password">Confirm password</label>
+            <input
+              id="register-confirm-password"
+              name="confirmPassword"
+              type="password"
+              placeholder="Re-enter your password"
             />
           </div>
 
