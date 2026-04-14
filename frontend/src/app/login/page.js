@@ -1,5 +1,5 @@
-import Link from "next/link";
 import styles from "@/components/public/PublicPage.module.css";
+import { LoginForm } from "@/components/public/LoginForm";
 
 export const metadata = {
   title: "Login | AuctionArc",
@@ -18,34 +18,13 @@ export default function LoginPage() {
         </p>
         <ul className={styles.bulletList}>
           <li>This login page is for sellers and bidders only.</li>
-          <li>Role-based dashboards can branch from this route later.</li>
-          <li>The current page is ready for backend authentication wiring.</li>
+          <li>Seller login routes to the seller workspace.</li>
+          <li>Bidder login routes to the bidder workspace.</li>
         </ul>
       </section>
 
       <section className={styles.authCard}>
-        <form className={styles.authForm}>
-          <div className={styles.field}>
-            <label htmlFor="login-email">Email address</label>
-            <input id="login-email" name="email" type="email" placeholder="Enter your email" />
-          </div>
-          <div className={styles.field}>
-            <label htmlFor="login-password">Password</label>
-            <input id="login-password" name="password" type="password" placeholder="Enter your password" />
-          </div>
-          <div className={styles.buttonRow}>
-            <button type="submit" className={styles.submitButton}>
-              Sign In
-            </button>
-            <Link href="/register" className={styles.secondaryButton}>
-              Create account
-            </Link>
-          </div>
-          <p className={styles.helperText}>
-            Admin access is intentionally separated and should not use this
-            public login route.
-          </p>
-        </form>
+        <LoginForm />
       </section>
     </div>
   );
