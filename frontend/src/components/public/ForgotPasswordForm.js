@@ -9,7 +9,7 @@ export function ForgotPasswordForm() {
 
   function handleSubmit(event) {
     event.preventDefault();
-    router.push("/login");
+    router.push("/reset-password");
   }
 
   return (
@@ -34,8 +34,8 @@ export function ForgotPasswordForm() {
         </Link>
       </div>
       <p className={styles.helperText}>
-        Frontend flow: this currently simulates a reset request and returns the
-        user to `/login`. Real email delivery and token validation will come with the backend.
+        Frontend flow: this currently simulates a reset request and moves to
+        `/reset-password`. Real email delivery and token validation will come with the backend.
       </p>
     </form>
   );

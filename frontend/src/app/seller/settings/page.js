@@ -3,6 +3,7 @@ import {
   SectionIntro,
   SettingsGrid,
 } from "@/components/admin/AdminPrimitives";
+import { SettingsEditor } from "@/components/account/ProfileForms";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 const sellerSettings = [
@@ -39,6 +40,27 @@ export default function SellerSettingsPage() {
       <Panel title="Seller controls" description="Account and storefront settings prepared for backend integration.">
         <SettingsGrid sections={sellerSettings} />
       </Panel>
+
+      <section className={styles.secondaryGrid}>
+        <SettingsEditor
+          title="Notification settings"
+          description="Control how AuctionArc reaches you about bids, payouts, and buyer questions."
+          fields={[
+            { name: "seller-email-alerts", label: "Email alerts", type: "select", defaultValue: "Enabled", options: ["Enabled", "Disabled"] },
+            { name: "seller-payout-alerts", label: "Payout reminders", type: "select", defaultValue: "Enabled", options: ["Enabled", "Disabled"] },
+            { name: "seller-message-alerts", label: "Buyer message alerts", type: "select", defaultValue: "Instant", options: ["Instant", "Hourly", "Daily"] },
+          ]}
+        />
+        <SettingsEditor
+          title="Listing defaults"
+          description="Define the seller-side defaults used while creating new listings."
+          fields={[
+            { name: "seller-default-duration", label: "Default auction duration", defaultValue: "7 days" },
+            { name: "seller-default-shipping", label: "Shipping template", defaultValue: "Standard insured shipping" },
+            { name: "seller-default-reserve", label: "Reserve reminder", type: "select", defaultValue: "Enabled", options: ["Enabled", "Disabled"] },
+          ]}
+        />
+      </section>
     </div>
   );
 }

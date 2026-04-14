@@ -4,6 +4,7 @@ import {
   SettingsGrid,
   StatCard,
 } from "@/components/admin/AdminPrimitives";
+import { ProfileEditor, SettingsEditor } from "@/components/account/ProfileForms";
 import styles from "../page.module.css";
 import { adminProfile } from "@/data/admin/mock-data";
 
@@ -43,6 +44,28 @@ export default function AdminProfilePage() {
         <Panel title="Admin profile controls" description="Identity and security modules prepared for backend wiring.">
           <SettingsGrid sections={adminProfile.sections} />
         </Panel>
+      </section>
+
+      <section className={styles.secondaryGrid}>
+        <ProfileEditor
+          title="Edit admin identity"
+          description="Update the super-admin display identity, contact routing, and location details."
+          fields={[
+            { name: "admin-name", label: "Full name", defaultValue: adminProfile.name },
+            { name: "admin-email", label: "Email", type: "email", defaultValue: adminProfile.email },
+            { name: "admin-role", label: "Role title", defaultValue: adminProfile.role },
+            { name: "admin-location", label: "Location", defaultValue: adminProfile.location },
+          ]}
+        />
+        <SettingsEditor
+          title="Security preferences"
+          description="Configure admin-facing alerting and security placeholders."
+          fields={[
+            { name: "admin-2fa", label: "Two-factor mode", type: "select", defaultValue: "Enabled", options: ["Enabled", "Disabled"] },
+            { name: "admin-session-timeout", label: "Session timeout", defaultValue: "30 minutes" },
+            { name: "admin-audit-email", label: "Audit alert email", type: "email", defaultValue: adminProfile.email },
+          ]}
+        />
       </section>
     </div>
   );
