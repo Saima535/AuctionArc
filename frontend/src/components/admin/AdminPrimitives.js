@@ -117,11 +117,16 @@ export function TrendChart({ data, tone = "blue" }) {
     .join(" ");
 
   const areaPoints = `0,100 ${points} 100,100`;
-  const toneClass = tone === "orange" ? styles.chartOrange : tone === "green" ? styles.chartGreen : styles.chartBlue;
+  const toneClass =
+    tone === "orange" ? styles.chartOrange : tone === "green" ? styles.chartGreen : styles.chartBlue;
 
   return (
     <div className={styles.chartFrame}>
-      <svg viewBox="0 0 100 100" className={`${styles.chart} ${toneClass}`} preserveAspectRatio="none">
+      <svg
+        viewBox="0 0 100 100"
+        className={`${styles.chart} ${toneClass}`}
+        preserveAspectRatio="none"
+      >
         <polygon points={areaPoints} className={styles.chartArea} />
         <polyline points={points} className={styles.chartLine} />
       </svg>
@@ -183,14 +188,19 @@ export function ChatWorkspace({ threads }) {
     <div className={styles.chatLayout}>
       <div className={styles.chatList}>
         {threads.map((thread) => (
-          <article key={thread.id} className={thread.id === activeThread.id ? styles.chatItemActive : styles.chatItem}>
+          <article
+            key={thread.id}
+            className={thread.id === activeThread.id ? styles.chatItemActive : styles.chatItem}
+          >
             <div className={styles.chatItemTop}>
               <strong>{thread.subject}</strong>
-              <StatusBadge tone={thread.priority === "High" ? "danger" : "warn"}>{thread.priority}</StatusBadge>
+              <StatusBadge tone={thread.priority === "High" ? "danger" : "warn"}>
+                {thread.priority}
+              </StatusBadge>
             </div>
             <p>{thread.lastMessage}</p>
             <small>
-              {thread.id} · {thread.status}
+              {thread.id} | {thread.status}
             </small>
           </article>
         ))}
@@ -201,7 +211,7 @@ export function ChatWorkspace({ threads }) {
           <div>
             <h3>{activeThread.subject}</h3>
             <p>
-              {activeThread.participants} · {activeThread.status}
+              {activeThread.participants} | {activeThread.status}
             </p>
           </div>
           <div className={styles.actionRow}>

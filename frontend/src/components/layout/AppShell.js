@@ -6,9 +6,12 @@ import { Navbar } from "@/components/layout/Navbar";
 
 export function AppShell({ children }) {
   const pathname = usePathname();
-  const isAdminRoute = pathname?.startsWith("/admin");
+  const isDashboardRoute =
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/seller") ||
+    pathname?.startsWith("/bidder");
 
-  if (isAdminRoute) {
+  if (isDashboardRoute) {
     return children;
   }
 
