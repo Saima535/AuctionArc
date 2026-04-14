@@ -41,6 +41,9 @@ export function LoginForm() {
         <Link href="/register" className={styles.secondaryButton}>
           Create account
         </Link>
+        <Link href="/forgot-password" className={styles.secondaryButton}>
+          Forgot password
+        </Link>
       </div>
       <p className={styles.helperText}>
         Frontend flow: sellers are redirected to `/seller` and bidders are

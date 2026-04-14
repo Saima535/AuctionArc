@@ -1,5 +1,6 @@
 export const adminNavItems = [
   { href: "/admin", label: "Dashboard", caption: "Platform overview" },
+  { href: "/admin/profile", label: "Profile", caption: "Admin identity" },
   { href: "/admin/insights", label: "Insights", caption: "KPIs and trends" },
   { href: "/admin/users", label: "Users", caption: "Sellers and bidders" },
   { href: "/admin/products", label: "Products", caption: "Listings and inventory" },

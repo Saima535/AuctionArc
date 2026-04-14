@@ -1,5 +1,6 @@
 export const sellerNavItems = [
   { href: "/seller", label: "Overview", caption: "Business summary" },
+  { href: "/seller/profile", label: "Profile", caption: "Seller identity" },
   { href: "/seller/listings", label: "Listings", caption: "Inventory and status" },
   { href: "/seller/auctions", label: "Auctions", caption: "Live selling activity" },
   { href: "/seller/orders", label: "Orders", caption: "Sold items and settlements" },
@@ -11,6 +12,7 @@ export const sellerNavItems = [
 
 export const bidderNavItems = [
   { href: "/bidder", label: "Overview", caption: "Bidding snapshot" },
+  { href: "/bidder/profile", label: "Profile", caption: "Bidder identity" },
   { href: "/bidder/discover", label: "Discover", caption: "New auction opportunities" },
   { href: "/bidder/watchlist", label: "Watchlist", caption: "Tracked auctions" },
   { href: "/bidder/my-bids", label: "My Bids", caption: "Active bid positions" },

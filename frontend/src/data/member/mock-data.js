@@ -131,3 +131,73 @@ export const memberThreads = [
     ],
   },
 ];
+
+export const sellerProfile = {
+  name: "Prime Auto Gallery",
+  role: "Verified seller",
+  email: "seller@auctionarc.com",
+  location: "Dhaka, Bangladesh",
+  stats: [
+    { label: "Seller rating", value: "4.9/5", delta: "Trusted seller", tone: "good" },
+    { label: "Completed sales", value: "84", delta: "+9 this month", tone: "good" },
+    { label: "Buyer response time", value: "18m", delta: "-4m", tone: "good" },
+    { label: "Verification status", value: "100%", delta: "Complete", tone: "good" },
+  ],
+  sections: [
+    {
+      title: "Business profile",
+      description: "Public-facing storefront identity and trust markers.",
+      items: ["Store banner", "Business bio", "Verification badge"],
+    },
+    {
+      title: "Contact details",
+      description: "Internal and public communication settings for buyers.",
+      items: ["Support phone", "Public email", "Preferred response window"],
+    },
+    {
+      title: "Compliance documents",
+      description: "Seller identity and ownership proof placeholders.",
+      items: ["NID verification", "Business registration", "Ownership uploads"],
+    },
+    {
+      title: "Visibility controls",
+      description: "How your storefront and listings appear to bidders.",
+      items: ["Featured appearance", "Profile highlights", "Trust metrics display"],
+    },
+  ],
+};
+
+export const bidderProfile = {
+  name: "Avery Stone",
+  role: "Active bidder",
+  email: "bidder@auctionarc.com",
+  location: "New York, United States",
+  stats: [
+    { label: "Winning rate", value: "28%", delta: "+6%", tone: "good" },
+    { label: "Watchlist growth", value: "27", delta: "+6 items", tone: "good" },
+    { label: "Verification status", value: "Complete", delta: "Trusted bidder", tone: "good" },
+    { label: "Avg. bid response", value: "11m", delta: "Fast mover", tone: "neutral" },
+  ],
+  sections: [
+    {
+      title: "Personal profile",
+      description: "Bidder identity, visibility, and account trust details.",
+      items: ["Public bidder alias", "Verification badge", "Country and currency"],
+    },
+    {
+      title: "Communication preferences",
+      description: "How sellers and support teams can reach you.",
+      items: ["Email alerts", "Bid outbid alerts", "Support reply notifications"],
+    },
+    {
+      title: "Verification records",
+      description: "Identity, wallet, and payment trust placeholders.",
+      items: ["NID/ID record", "Wallet verification", "Payment method trust status"],
+    },
+    {
+      title: "Buying preferences",
+      description: "Auction discovery and category preference controls.",
+      items: ["Saved categories", "Price range interest", "Auto-reminder settings"],
+    },
+  ],
+};

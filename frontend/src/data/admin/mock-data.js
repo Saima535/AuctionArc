@@ -188,3 +188,38 @@ export const settingsSections = [
     items: ["Email/SMS templates", "Dispute routing", "Support escalation policy"],
   },
 ];
+
+export const adminProfile = {
+  name: "Super Admin",
+  role: "Platform owner",
+  email: "admin@auctionarc.com",
+  location: "Dhaka, Bangladesh",
+  stats: [
+    { label: "Cases handled", value: "214", delta: "+18 this month", tone: "good" },
+    { label: "Critical actions", value: "39", delta: "Audited", tone: "warn" },
+    { label: "Admin sessions", value: "128", delta: "Last 30 days", tone: "neutral" },
+    { label: "Risk reviews", value: "47", delta: "+6 this week", tone: "good" },
+  ],
+  sections: [
+    {
+      title: "Identity",
+      description: "Primary admin profile and control authority details.",
+      items: ["Full control access", "Verified admin email", "Primary audit owner"],
+    },
+    {
+      title: "Security preferences",
+      description: "Operational protection settings prepared for backend integration.",
+      items: ["Two-factor placeholder", "Session review", "Recovery contact"],
+    },
+    {
+      title: "Notification routing",
+      description: "How critical marketplace alerts should reach the super admin.",
+      items: ["Fraud escalation alerts", "Dispute priority alerts", "Daily ops digest"],
+    },
+    {
+      title: "Audit preferences",
+      description: "Visibility and logging configuration for sensitive actions.",
+      items: ["Action log export", "Approval notes", "Incident timeline visibility"],
+    },
+  ],
+};
