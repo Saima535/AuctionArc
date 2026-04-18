@@ -1,11 +1,36 @@
+"use client";
+
+import { useState } from "react";
 import styles from "./AccountForms.module.css";
 
 export function ProfileEditor({
   title,
   description,
   fields,
-  helper = "Frontend-only editor for now. Save behavior will be connected during backend integration.",
+  onSubmit,
+  submitLabel = "Save Changes",
+  isSubmitting = false,
+  submitMessage = "",
+  submitError = "",
+  helper = "Profile values will update here after live account data is connected.",
 }) {
+  const [formValues, setFormValues] = useState(() =>
+    Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])),
+  );
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setFormValues((current) => ({ ...current, [name]: value }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    if (onSubmit) {
+      onSubmit(formValues);
+    }
+  }
+
   return (
     <section className={styles.formCard}>
       <div className={styles.header}>
@@ -13,14 +38,14 @@ export function ProfileEditor({
         <p>{description}</p>
       </div>
 
-      <form className={styles.form}>
+      <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.fieldGrid}>
           {fields.map((field) => {
             if (field.type === "select") {
               return (
                 <div key={field.name} className={styles.field}>
                   <label htmlFor={field.name}>{field.label}</label>
-                  <select id={field.name} name={field.name} defaultValue={field.defaultValue}>
+                  <select id={field.name} name={field.name} value={formValues[field.name] || ""} onChange={handleChange}>
                     {field.options.map((option) => (
                       <option key={option} value={option}>
                         {option}
@@ -35,7 +60,12 @@ export function ProfileEditor({
               return (
                 <div key={field.name} className={styles.field}>
                   <label htmlFor={field.name}>{field.label}</label>
-                  <textarea id={field.name} name={field.name} defaultValue={field.defaultValue} />
+                  <textarea
+                    id={field.name}
+                    name={field.name}
+                    value={formValues[field.name] || ""}
+                    onChange={handleChange}
+                  />
                 </div>
               );
             }
@@ -47,7 +77,8 @@ export function ProfileEditor({
                   id={field.name}
                   name={field.name}
                   type={field.type || "text"}
-                  defaultValue={field.defaultValue}
+                  value={formValues[field.name] || ""}
+                  onChange={handleChange}
                 />
               </div>
             );
@@ -55,13 +86,15 @@ export function ProfileEditor({
         </div>
 
         <div className={styles.actions}>
-          <button type="button" className={styles.primary}>
-            Save Changes
+          <button type="submit" className={styles.primary} disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : submitLabel}
           </button>
-          <button type="button" className={styles.secondary}>
+          <button type="reset" className={styles.secondary} onClick={() => setFormValues(Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])))}>
             Cancel
           </button>
         </div>
+        {submitError ? <p className={styles.error}>{submitError}</p> : null}
+        {submitMessage ? <p className={styles.success}>{submitMessage}</p> : null}
         <p className={styles.helper}>{helper}</p>
       </form>
     </section>
@@ -72,8 +105,30 @@ export function SettingsEditor({
   title,
   description,
   fields,
-  helper = "Prepared for real persistence and validation in the backend phase.",
+  onSubmit,
+  submitLabel = "Update Settings",
+  isSubmitting = false,
+  submitMessage = "",
+  submitError = "",
+  helper = "Settings will appear here when your live account data is available.",
 }) {
+  const [formValues, setFormValues] = useState(() =>
+    Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])),
+  );
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setFormValues((current) => ({ ...current, [name]: value }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    if (onSubmit) {
+      onSubmit(formValues);
+    }
+  }
+
   return (
     <section className={styles.formCard}>
       <div className={styles.header}>
@@ -81,13 +136,13 @@ export function SettingsEditor({
         <p>{description}</p>
       </div>
 
-      <form className={styles.form}>
+      <form className={styles.form} onSubmit={handleSubmit}>
         {fields.map((field) => {
           if (field.type === "select") {
             return (
               <div key={field.name} className={styles.field}>
                 <label htmlFor={field.name}>{field.label}</label>
-                <select id={field.name} name={field.name} defaultValue={field.defaultValue}>
+                <select id={field.name} name={field.name} value={formValues[field.name] || ""} onChange={handleChange}>
                   {field.options.map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -105,17 +160,20 @@ export function SettingsEditor({
                 id={field.name}
                 name={field.name}
                 type={field.type || "text"}
-                defaultValue={field.defaultValue}
+                value={formValues[field.name] || ""}
+                onChange={handleChange}
               />
             </div>
           );
         })}
 
         <div className={styles.actions}>
-          <button type="button" className={styles.primary}>
-            Update Settings
+          <button type="submit" className={styles.primary} disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : submitLabel}
           </button>
         </div>
+        {submitError ? <p className={styles.error}>{submitError}</p> : null}
+        {submitMessage ? <p className={styles.success}>{submitMessage}</p> : null}
         <p className={styles.helper}>{helper}</p>
       </form>
     </section>

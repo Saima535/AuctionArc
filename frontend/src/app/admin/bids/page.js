@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DataTable,
   FilterBar,
@@ -6,7 +8,7 @@ import {
   StatCard,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
-import { bidsData } from "@/data/admin/mock-data";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "../page.module.css";
 
 const bidColumns = [
@@ -18,7 +20,7 @@ const bidColumns = [
     key: "status",
     label: "Status",
     render: (value) => (
-      <StatusBadge tone={value === "Valid" ? "good" : value === "Held" || value === "Review" ? "warn" : "neutral"}>
+      <StatusBadge tone={value === "Valid" || value === "Top bid" ? "good" : value === "Held" || value === "Review" ? "warn" : "neutral"}>
         {value}
       </StatusBadge>
     ),
@@ -35,6 +37,10 @@ const bidColumns = [
 ];
 
 export default function AdminBidsPage() {
+  const { data, error } = useApiData("/admin/bids", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -43,15 +49,17 @@ export default function AdminBidsPage() {
         action={<FilterBar items={["All bids", "Valid", "Held", "Review", "Suspicious signals"]} />}
       />
 
+      {error ? <p>{error}</p> : null}
+
       <section className={styles.statGrid}>
-        <StatCard label="Bid approvals" value="91%" delta="+2.2%" tone="good" />
-        <StatCard label="Held bids" value="14" delta="+4 today" tone="warn" />
-        <StatCard label="Duplicate IP flags" value="6" delta="-1 from yesterday" tone="warn" />
-        <StatCard label="Resolved bid disputes" value="23" delta="+5 this week" tone="good" />
+        <StatCard label="Bid approvals" value={`${data.length ? Math.round((data.filter((item) => item.status === "Valid" || item.status === "Top bid").length / data.length) * 100) : 0}%`} delta="Live moderation" tone="good" />
+        <StatCard label="Held bids" value={String(data.filter((item) => item.status === "Held").length)} delta="Requires review" tone="warn" />
+        <StatCard label="Review flags" value={String(data.filter((item) => item.status === "Review").length)} delta="Manual checks" tone="warn" />
+        <StatCard label="Resolved flow" value={String(data.filter((item) => item.status === "Valid" || item.status === "Top bid").length)} delta="Clean bids" tone="good" />
       </section>
 
       <Panel title="Bid review table" description="Signal-heavy table for spotting suspicious patterns quickly.">
-        <DataTable columns={bidColumns} rows={bidsData} />
+        <DataTable columns={bidColumns} rows={data} />
       </Panel>
     </div>
   );

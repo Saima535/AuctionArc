@@ -12,7 +12,7 @@ export function AppShell({ children }) {
     pathname?.startsWith("/bidder");
 
   if (isDashboardRoute) {
-    return children;
+    return <>{children}</>;
   }
 
   return (

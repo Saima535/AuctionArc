@@ -1,13 +1,19 @@
+"use client";
+
 import {
   FilterBar,
   Panel,
   SectionIntro,
   SettingsGrid,
 } from "@/components/admin/AdminPrimitives";
-import { settingsSections } from "@/data/admin/mock-data";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "../page.module.css";
 
 export default function AdminSettingsPage() {
+  const { data, error } = useApiData("/admin/settings", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -16,8 +22,8 @@ export default function AdminSettingsPage() {
         action={<FilterBar items={["Marketplace", "Auctions", "Payments", "Notifications", "Support"]} />}
       />
 
-      <Panel title="Platform control modules" description="Structured settings areas designed for future backend wiring and authorization rules.">
-        <SettingsGrid sections={settingsSections} />
+      <Panel title="Platform control modules" description="Structured settings areas loaded from the backend control center.">
+        {error ? <p>{error}</p> : <SettingsGrid sections={data} />}
       </Panel>
     </div>
   );

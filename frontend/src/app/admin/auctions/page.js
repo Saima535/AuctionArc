@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DataTable,
   FilterBar,
@@ -5,7 +7,7 @@ import {
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
-import { auctionsData } from "@/data/admin/mock-data";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "../page.module.css";
 
 const auctionColumns = [
@@ -26,6 +28,10 @@ const auctionColumns = [
 ];
 
 export default function AdminAuctionsPage() {
+  const { data, error } = useApiData("/admin/auctions", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -34,8 +40,10 @@ export default function AdminAuctionsPage() {
         action={<FilterBar items={["Live", "Scheduled", "Extended", "Paused", "Under review"]} />}
       />
 
+      {error ? <p>{error}</p> : null}
+
       <Panel title="Auction operations board" description="Reserve state, countdown state, and intervention controls in one place.">
-        <DataTable columns={auctionColumns} rows={auctionsData} />
+        <DataTable columns={auctionColumns} rows={data} />
       </Panel>
 
       <Panel title="Recommended admin actions" description="Common interventions that should be readily accessible here.">
@@ -43,7 +51,7 @@ export default function AdminAuctionsPage() {
           {["Pause auction", "Cancel auction", "Extend auction", "Mark reviewed", "Notify participants"].map((item) => (
             <article key={item} className={styles.compactCard}>
               <strong>{item}</strong>
-              <p>Frontend control placeholder ready for backend action wiring.</p>
+              <p>Use these actions alongside the live auction table above.</p>
             </article>
           ))}
         </div>

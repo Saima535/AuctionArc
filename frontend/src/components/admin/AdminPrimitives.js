@@ -77,15 +77,23 @@ export function DataTable({ columns, rows }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              {columns.map((column) => (
-                <td key={column.key}>
-                  {column.render ? column.render(row[column.key], row) : row[column.key]}
-                </td>
-              ))}
+          {rows.length ? (
+            rows.map((row) => (
+              <tr key={row.id}>
+                {columns.map((column) => (
+                  <td key={column.key}>
+                    {column.render ? column.render(row[column.key], row) : row[column.key]}
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={columns.length} className={styles.emptyCell}>
+                No records available.
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
@@ -181,8 +189,33 @@ export function DetailPanel({ title, subtitle, notes, actions }) {
   );
 }
 
-export function ChatWorkspace({ threads }) {
-  const activeThread = threads[0];
+export function ChatWorkspace({
+  threads,
+  activeThreadId,
+  onThreadSelect,
+  composerLabel = "Send message",
+  composerPlaceholder = "Write your message",
+  onSendMessage,
+  isSending = false,
+}) {
+  const activeThread =
+    threads.find((thread) => thread.id === activeThreadId) || threads[0];
+
+  if (!activeThread) {
+    return <p>No conversations are available yet.</p>;
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const body = formData.get("body");
+
+    if (typeof body === "string" && body.trim() && onSendMessage) {
+      await onSendMessage(activeThread.id, body.trim());
+      event.currentTarget.reset();
+    }
+  }
 
   return (
     <div className={styles.chatLayout}>
@@ -191,6 +224,7 @@ export function ChatWorkspace({ threads }) {
           <article
             key={thread.id}
             className={thread.id === activeThread.id ? styles.chatItemActive : styles.chatItem}
+            onClick={() => onThreadSelect?.(thread.id)}
           >
             <div className={styles.chatItemTop}>
               <strong>{thread.subject}</strong>
@@ -214,14 +248,6 @@ export function ChatWorkspace({ threads }) {
               {activeThread.participants} | {activeThread.status}
             </p>
           </div>
-          <div className={styles.actionRow}>
-            <button type="button" className={styles.actionButton}>
-              Mark Resolved
-            </button>
-            <button type="button" className={styles.actionButton}>
-              Escalate
-            </button>
-          </div>
         </div>
 
         <div className={styles.messageList}>
@@ -233,17 +259,23 @@ export function ChatWorkspace({ threads }) {
           ))}
         </div>
 
-        <div className={styles.noteComposer}>
-          <p>Admin quick actions</p>
-          <div className={styles.actionRow}>
-            <button type="button" className={styles.actionButton}>
-              Send canned response
-            </button>
-            <button type="button" className={styles.actionButton}>
-              Add internal note
-            </button>
-          </div>
-        </div>
+        {onSendMessage ? (
+          <form className={styles.noteComposer} onSubmit={handleSubmit}>
+            <p>{composerLabel}</p>
+            <textarea
+              name="body"
+              className={styles.composerInput}
+              placeholder={composerPlaceholder}
+              rows={4}
+              required
+            />
+            <div className={styles.actionRow}>
+              <button type="submit" className={styles.actionButton} disabled={isSending}>
+                {isSending ? "Sending..." : "Send"}
+              </button>
+            </div>
+          </form>
+        ) : null}
       </div>
     </div>
   );

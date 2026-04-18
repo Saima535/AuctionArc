@@ -1,12 +1,16 @@
 :root {
-  --color-background: #fffaf3;
-  --color-surface: rgba(255, 255, 255, 0.72);
-  --color-text: #1c1917;
-  --color-muted: #6b6258;
-  --color-border: rgba(138, 116, 94, 0.18);
-  --color-border-strong: rgba(107, 98, 88, 0.34);
-  --color-accent-deep: #b45309;
-  --shadow-soft: 0 20px 45px rgba(110, 82, 54, 0.09);
+  --color-background: #070707;
+  --color-surface: rgba(24, 24, 24, 0.92);
+  --color-surface-strong: #1a1a1a;
+  --color-panel: #232323;
+  --color-text: #f6f3eb;
+  --color-muted: #c0b59c;
+  --color-border: rgba(255, 208, 31, 0.16);
+  --color-border-strong: rgba(255, 208, 31, 0.45);
+  --color-accent: #ffd21f;
+  --color-accent-deep: #d8af22;
+  --color-input: #171717;
+  --shadow-soft: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
 html {
@@ -26,11 +30,23 @@ body {
   flex-direction: column;
   color: var(--color-text);
   background:
-    radial-gradient(circle at top, rgba(255, 183, 77, 0.14), transparent 25%),
-    linear-gradient(180deg, #fffaf3 0%, #fff6ea 100%);
+    radial-gradient(circle at top center, rgba(255, 210, 31, 0.12), transparent 24%),
+    linear-gradient(180deg, #090909 0%, #050505 100%);
   font-family: var(--font-geist-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(255, 210, 31, 0.28);
+  color: var(--color-text);
 }
 
 * {

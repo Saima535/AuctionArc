@@ -105,6 +105,20 @@
   line-height: 1.7;
 }
 
+.error,
+.success {
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.error {
+  color: #c03f3f;
+}
+
+.success {
+  color: #21774a;
+}
+
 @media (max-width: 980px) {
   .grid,
   .fieldGrid {

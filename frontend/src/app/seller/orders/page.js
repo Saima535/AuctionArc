@@ -1,11 +1,13 @@
+"use client";
+
 import {
   DataTable,
   Panel,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "@/components/member/MemberDashboard.module.css";
-import { sellerOrders } from "@/data/member/mock-data";
 
 const orderColumns = [
   { key: "id", label: "Order ID" },
@@ -24,6 +26,10 @@ const orderColumns = [
 ];
 
 export default function SellerOrdersPage() {
+  const { data, error } = useApiData("/dashboard/seller/orders", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -32,7 +38,7 @@ export default function SellerOrdersPage() {
       />
 
       <Panel title="Order pipeline" description="Commercial status for completed or nearly completed sales.">
-        <DataTable columns={orderColumns} rows={sellerOrders} />
+        {error ? <p>{error}</p> : <DataTable columns={orderColumns} rows={data} />}
       </Panel>
     </div>
   );

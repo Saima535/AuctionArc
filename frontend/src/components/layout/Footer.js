@@ -3,6 +3,8 @@ import styles from "./Footer.module.css";
 import { footerSections } from "@/data/site-content";
 
 export function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
@@ -10,9 +12,10 @@ export function Footer() {
           <Link href="/" className={styles.brand}>
             AuctionArc
           </Link>
-          <p>
-            A focused auction management experience built to support listings,
-            bidding activity, and platform oversight in one place.
+          <p className={styles.brandCopy}>
+            The premier destination for online auctions, helping buyers and
+            sellers connect through secure listings, transparent bidding, and
+            reliable marketplace tools.
           </p>
         </div>
 
@@ -21,7 +24,7 @@ export function Footer() {
             <h2>{section.title}</h2>
             <ul>
               {section.links.map((link) => (
-                <li key={link.href}>
+                <li key={`${section.title}-${link.href}-${link.label}`}>
                   <Link href={link.href}>{link.label}</Link>
                 </li>
               ))}
@@ -31,7 +34,10 @@ export function Footer() {
       </div>
 
       <div className={styles.bottomBar}>
-        <p>(c) 2026 AuctionArc. Crafted for structured, transparent auctions.</p>
+        <div className={styles.bottomInner}>
+          <span>© {currentYear} AuctionArc. All rights reserved.</span>
+          <span>Designed for high-value auctions and secure marketplace operations.</span>
+        </div>
       </div>
     </footer>
   );

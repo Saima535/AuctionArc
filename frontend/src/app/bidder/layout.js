@@ -1,16 +1,10 @@
-import { MemberShell } from "@/components/member/MemberShell";
-import { bidderNavItems } from "@/data/member/navigation";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { BuyerShell } from "@/components/bidder/BuyerShell";
 
 export default function BidderLayout({ children }) {
   return (
-    <MemberShell
-      role="Bidder"
-      navItems={bidderNavItems}
-      badge="Bidder workspace"
-      homeHref="/bidder"
-      eyebrow="Bidder command center"
-    >
-      {children}
-    </MemberShell>
+    <ProtectedRoute allowedRoles={["Bidder"]}>
+      <BuyerShell>{children}</BuyerShell>
+    </ProtectedRoute>
   );
 }

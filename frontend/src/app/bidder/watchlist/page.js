@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DataTable,
   FilterBar,
@@ -5,8 +7,8 @@ import {
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "@/components/member/MemberDashboard.module.css";
-import { bidderOverview } from "@/data/member/mock-data";
 
 const watchlistColumns = [
   { key: "id", label: "Watch ID" },
@@ -25,6 +27,10 @@ const watchlistColumns = [
 ];
 
 export default function BidderWatchlistPage() {
+  const { data, error } = useApiData("/dashboard/bidder/watchlist", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -34,7 +40,7 @@ export default function BidderWatchlistPage() {
       />
 
       <Panel title="Tracked auctions" description="A cleaner view of your watched opportunities and seller context.">
-        <DataTable columns={watchlistColumns} rows={bidderOverview.watchlist} />
+        {error ? <p>{error}</p> : <DataTable columns={watchlistColumns} rows={data} />}
       </Panel>
     </div>
   );

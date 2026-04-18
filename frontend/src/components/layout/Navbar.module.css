@@ -3,7 +3,7 @@
   top: 0;
   z-index: 10;
   backdrop-filter: blur(18px);
-  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  background: rgba(5, 5, 5, 0.92);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -30,8 +30,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: linear-gradient(135deg, #ff7a18, #ffb347);
-  color: #171717;
+  background: linear-gradient(135deg, #ffd21f, #c99700);
+  color: #111;
   font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -44,7 +44,7 @@
 }
 
 .brandText strong {
-  color: var(--color-text);
+  color: var(--color-accent);
   font-size: 1rem;
 }
 
@@ -57,22 +57,24 @@
   display: inline-flex;
   align-items: center;
   gap: 24px;
+  margin-left: auto;
 }
 
 .link {
-  color: var(--color-muted);
+  color: #f1efe9;
   font-size: 0.96rem;
   transition: color 160ms ease;
 }
 
 .link:hover {
-  color: var(--color-text);
+  color: var(--color-accent);
 }
 
 .actions {
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  margin-left: 20px;
 }
 
 .primaryAction,
@@ -91,13 +93,15 @@
 }
 
 .primaryAction {
-  background: var(--color-text);
-  color: var(--color-background);
+  background: var(--color-accent);
+  color: #141414;
+  font-weight: 700;
 }
 
 .secondaryAction {
   border: 1px solid var(--color-border-strong);
   color: var(--color-text);
+  background: rgba(255, 210, 31, 0.06);
 }
 
 .primaryAction:hover,

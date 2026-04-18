@@ -1,24 +1,33 @@
 export const navLinks = [
-  { href: "/about", label: "About" },
-  { href: "/support", label: "Support" },
-  { href: "/contact-us", label: "Contact Us" },
+  { href: "/", label: "Home" },
+  { href: "/#auctions", label: "Auctions" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/contact-us", label: "Contact" },
 ];
 
 export const footerSections = [
   {
-    title: "Platform",
+    title: "Explore",
     links: [
-      { href: "/about", label: "About" },
-      { href: "/support", label: "Support" },
+      { href: "/#auctions", label: "Browse Auctions" },
+      { href: "/#how-it-works", label: "Categories" },
+      { href: "/#about", label: "Sell an Item" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { href: "/support", label: "Help Center" },
+      { href: "/contact-us", label: "Buyer Protection" },
       { href: "/contact-us", label: "Contact Us" },
     ],
   },
   {
-    title: "Access",
+    title: "Legal",
     links: [
-      { href: "/register", label: "Register" },
-      { href: "/login", label: "Login" },
-      { href: "/logout", label: "Logout" },
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/cookies", label: "Cookie Policy" },
     ],
   },
 ];

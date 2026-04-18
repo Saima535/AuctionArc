@@ -88,6 +88,9 @@ export function MemberShell({
             <button type="button" className={styles.utilityButton}>
               Quick Action
             </button>
+            <Link href="/logout" className={styles.signoutButton}>
+              Sign out
+            </Link>
             <div className={styles.profilePill}>
               <span>{role.slice(0, 1)}</span>
               <div>

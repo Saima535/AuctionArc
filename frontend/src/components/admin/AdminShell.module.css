@@ -162,6 +162,24 @@
   cursor: pointer;
 }
 
+.signoutButton {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(209, 57, 57, 0.2);
+  background: #fff0f0;
+  color: #b62b2b;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signoutButton:hover {
+  background: #ffe3e3;
+}
+
 .profilePill {
   display: flex;
   align-items: center;

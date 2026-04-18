@@ -168,6 +168,11 @@
   letter-spacing: 0.08em;
 }
 
+.emptyCell {
+  text-align: center;
+  padding: 24px 10px;
+}
+
 .feed {
   display: flex;
   flex-direction: column;
@@ -323,6 +328,7 @@
 .chatItem,
 .chatItemActive {
   padding: 16px;
+  cursor: pointer;
 }
 
 .chatItemActive {
@@ -367,6 +373,19 @@
 .messageCard,
 .noteComposer {
   padding: 16px;
+}
+
+.composerInput {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 110px;
+  border-radius: 16px;
+  border: 1px solid var(--admin-border-strong);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--admin-text);
+  resize: vertical;
 }
 
 .messageCard strong {

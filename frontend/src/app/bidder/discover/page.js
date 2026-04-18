@@ -1,13 +1,18 @@
+"use client";
+
 import {
   FilterBar,
-  Panel,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "@/components/member/MemberDashboard.module.css";
-import { bidderDiscover } from "@/data/member/mock-data";
 
 export default function BidderDiscoverPage() {
+  const { data, error } = useApiData("/dashboard/bidder/discover", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -16,8 +21,10 @@ export default function BidderDiscoverPage() {
         action={<FilterBar items={["All", "Vehicles", "Collectibles", "Industrial", "Trending"]} />}
       />
 
+      {error ? <p>{error}</p> : null}
+
       <div className={styles.compactList}>
-        {bidderDiscover.map((item) => (
+        {data.map((item) => (
           <article key={item.id} className={styles.compactCard}>
             <div>
               <strong>{item.title}</strong>

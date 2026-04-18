@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DataTable,
   FilterBar,
@@ -5,8 +7,8 @@ import {
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "@/components/member/MemberDashboard.module.css";
-import { bidderBids } from "@/data/member/mock-data";
 
 const bidColumns = [
   { key: "id", label: "Bid ID" },
@@ -25,6 +27,10 @@ const bidColumns = [
 ];
 
 export default function BidderMyBidsPage() {
+  const { data, error } = useApiData("/dashboard/bidder/bids", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -34,7 +40,7 @@ export default function BidderMyBidsPage() {
       />
 
       <Panel title="Bid positions" description="Current standing across auctions you are participating in.">
-        <DataTable columns={bidColumns} rows={bidderBids} />
+        {error ? <p>{error}</p> : <DataTable columns={bidColumns} rows={data} />}
       </Panel>
     </div>
   );

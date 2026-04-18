@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DataTable,
   FilterBar,
@@ -5,8 +7,8 @@ import {
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "@/components/member/MemberDashboard.module.css";
-import { sellerAuctions } from "@/data/member/mock-data";
 
 const auctionColumns = [
   { key: "id", label: "Auction ID" },
@@ -26,6 +28,10 @@ const auctionColumns = [
 ];
 
 export default function SellerAuctionsPage() {
+  const { data, error } = useApiData("/dashboard/seller/auctions", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -35,7 +41,7 @@ export default function SellerAuctionsPage() {
       />
 
       <Panel title="Selling activity" description="A focused view of auctions tied to your inventory.">
-        <DataTable columns={auctionColumns} rows={sellerAuctions} />
+        {error ? <p>{error}</p> : <DataTable columns={auctionColumns} rows={data} />}
       </Panel>
     </div>
   );

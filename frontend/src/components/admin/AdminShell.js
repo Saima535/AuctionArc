@@ -21,7 +21,7 @@ export function AdminShell({ children }) {
             <span className={styles.brandMark}>AA</span>
             <span>
               <strong>AuctionArc</strong>
-              <small>Super admin panel</small>
+              <small>Admin panel</small>
             </span>
           </Link>
         </div>
@@ -60,11 +60,14 @@ export function AdminShell({ children }) {
             <button type="button" className={styles.utilityButton}>
               Audit Queue
             </button>
+            <Link href="/logout" className={styles.signoutButton}>
+              Sign out
+            </Link>
             <div className={styles.profilePill}>
-              <span>SA</span>
+              <span>AD</span>
               <div>
-                <strong>Super Admin</strong>
-                <small>Full control</small>
+                <strong>Admin</strong>
+                <small>Control panel</small>
               </div>
             </div>
           </div>

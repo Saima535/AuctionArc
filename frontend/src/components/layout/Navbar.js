@@ -23,11 +23,11 @@ export function Navbar() {
         </nav>
 
         <div className={styles.actions}>
-          <Link href="/login" className={styles.secondaryAction}>
-            Login
-          </Link>
-          <Link href="/register" className={styles.primaryAction}>
+          <Link href="/register" className={styles.secondaryAction}>
             Register
+          </Link>
+          <Link href="/login" className={styles.primaryAction}>
+            Sign In
           </Link>
         </div>
       </div>

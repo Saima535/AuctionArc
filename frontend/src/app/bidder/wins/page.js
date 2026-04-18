@@ -1,11 +1,13 @@
+"use client";
+
 import {
   DataTable,
   Panel,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "@/components/member/MemberDashboard.module.css";
-import { bidderWins } from "@/data/member/mock-data";
 
 const winColumns = [
   { key: "id", label: "Win ID" },
@@ -24,6 +26,10 @@ const winColumns = [
 ];
 
 export default function BidderWinsPage() {
+  const { data, error } = useApiData("/dashboard/bidder/wins", {
+    initialData: [],
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -32,7 +38,7 @@ export default function BidderWinsPage() {
       />
 
       <Panel title="Won auctions" description="Commercial follow-through after successful bidding.">
-        <DataTable columns={winColumns} rows={bidderWins} />
+        {error ? <p>{error}</p> : <DataTable columns={winColumns} rows={data} />}
       </Panel>
     </div>
   );

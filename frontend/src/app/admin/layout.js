@@ -1,5 +1,10 @@
-import { AdminShell } from "@/components/admin/AdminShell";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminWorkspace } from "@/components/admin-custom/AdminWorkspace";
 
 export default function AdminLayout({ children }) {
-  return <AdminShell>{children}</AdminShell>;
+  return (
+    <ProtectedRoute allowedRoles={["Admin"]}>
+      <AdminWorkspace>{children}</AdminWorkspace>
+    </ProtectedRoute>
+  );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DataTable,
   DetailPanel,
@@ -6,7 +8,7 @@ import {
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
-import { featuredProduct, productsData } from "@/data/admin/mock-data";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "../page.module.css";
 
 const productColumns = [
@@ -28,6 +30,11 @@ const productColumns = [
 ];
 
 export default function AdminProductsPage() {
+  const { data, error } = useApiData("/admin/products", {
+    initialData: [],
+  });
+  const featuredProduct = data[0];
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -36,17 +43,25 @@ export default function AdminProductsPage() {
         action={<FilterBar items={["Pending approval", "Live", "Featured", "Rejected", "Archived"]} />}
       />
 
+      {error ? <p>{error}</p> : null}
+
       <section className={styles.mainGrid}>
         <Panel title="Listing control center" description="A moderation-first view of inventory entering the marketplace.">
-          <DataTable columns={productColumns} rows={productsData} />
+          <DataTable columns={productColumns} rows={data} />
         </Panel>
 
-        <DetailPanel
-          title={featuredProduct.title}
-          subtitle={`${featuredProduct.seller} · ${featuredProduct.status}`}
-          notes={featuredProduct.notes}
-          actions={["Approve", "Reject", "Feature", "Unlist", "Inspect seller"]}
-        />
+        {featuredProduct ? (
+          <DetailPanel
+            title={featuredProduct.title}
+            subtitle={`${featuredProduct.seller} · ${featuredProduct.status}`}
+            notes={[
+              `${featuredProduct.category} listing`,
+              `${featuredProduct.price} current price`,
+              `${featuredProduct.bids} bids recorded`,
+            ]}
+            actions={["Approve", "Reject", "Feature", "Unlist", "Inspect seller"]}
+          />
+        ) : null}
       </section>
     </div>
   );

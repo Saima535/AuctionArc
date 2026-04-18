@@ -1,12 +1,27 @@
+"use client";
+
 import {
+  DataTable,
   Panel,
   SectionIntro,
   StatCard,
 } from "@/components/admin/AdminPrimitives";
+import { useApiData } from "@/hooks/useApiData";
 import styles from "@/components/member/MemberDashboard.module.css";
-import { sellerWallet } from "@/data/member/mock-data";
+
+const transactionColumns = [
+  { key: "id", label: "Transaction ID" },
+  { key: "type", label: "Type" },
+  { key: "status", label: "Status" },
+  { key: "amount", label: "Amount" },
+  { key: "channel", label: "Channel" },
+];
 
 export default function SellerWalletPage() {
+  const { data, error } = useApiData("/dashboard/wallet", {
+    initialData: { stats: [], transactions: [] },
+  });
+
   return (
     <div className={styles.page}>
       <SectionIntro
@@ -14,33 +29,26 @@ export default function SellerWalletPage() {
         description="Review available earnings, escrow holds, fees, and payout readiness."
       />
 
+      {error ? <p>{error}</p> : null}
+
       <section className={styles.statGrid}>
-        {sellerWallet.stats.map((metric) => (
+        {data.stats.map((metric) => (
           <StatCard key={metric.label} {...metric} />
         ))}
       </section>
 
       <section className={styles.secondaryGrid}>
-        <Panel title="Payout schedule" description="Upcoming payout cycles and readiness checks.">
-          <div className={styles.compactList}>
-            {["Next payout run: Friday 10:00 AM", "Bank verification: Complete", "Escrow release pending: 1 order"].map((item) => (
-              <article key={item} className={styles.compactCard}>
-                <div>
-                  <strong>{item}</strong>
-                  <p>Frontend-ready summary block for seller settlement visibility.</p>
-                </div>
-              </article>
-            ))}
-          </div>
+        <Panel title="Recent transactions" description="Latest wallet and payout-related activity.">
+          <DataTable columns={transactionColumns} rows={data.transactions} />
         </Panel>
 
         <Panel title="Fee visibility" description="Platform charges and deductions at a glance.">
           <div className={styles.compactList}>
-            {["Commission rate: 6%", "Current month platform fees: $2.3K", "Refund hold exposure: $480"].map((item) => (
+            {["Pending payout visibility", "Platform fee tracking", "Escrow balance awareness"].map((item) => (
               <article key={item} className={styles.compactCard}>
                 <div>
                   <strong>{item}</strong>
-                  <p>Prepared for later backend wallet and commission integration.</p>
+                  <p>The live wallet summary above now reflects your real backend balances.</p>
                 </div>
               </article>
             ))}
