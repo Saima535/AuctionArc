@@ -1,112 +1,180 @@
 "use client";
 
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import shared from "@/components/seller/SellerShared.module.css";
-import { ClipIcon, DotsIcon, SearchIcon, SendIcon } from "@/components/seller/SellerIcons";
-
-const threads = [
-  {
-    name: "Sarah Johnson",
-    product: 'MacBook Pro 16" M3',
-    preview: "Is the laptop still available?",
-    time: "2m ago",
-    unread: 2,
-    image: "/chat-sarah.svg",
-    active: true,
-  },
-  {
-    name: "Michael Chen",
-    product: "Vintage Leica M6 Camera",
-    preview: "Can you provide more photos of the camera?",
-    time: "1h ago",
-    unread: 0,
-    image: "/chat-michael.svg",
-  },
-  {
-    name: "Emma Wilson",
-    product: "Rolex Submariner Watch",
-    preview: "Do you have the original papers?",
-    time: "3h ago",
-    unread: 1,
-    image: "/chat-emma.svg",
-  },
-];
-
-const messages = [
-  { body: "Hi! I'm interested in the MacBook Pro. Is it still available?", time: "10:30 AM", own: false },
-  { body: "Yes, it's still available! It's in excellent condition with original box and charger.", time: "10:32 AM", own: true },
-  { body: "Great! Can you tell me more about the battery health?", time: "10:35 AM", own: false },
-  { body: "The battery health is at 95%. It has only been used for about 6 months. I can provide a screenshot if you need.", time: "10:38 AM", own: true },
-  { body: "Is the laptop still available?", time: "11:45 AM", own: false },
-];
+import { useApiData } from "@/hooks/useApiData";
+import { apiRequest } from "@/lib/api";
+import { DotsIcon, SearchIcon, SendIcon } from "@/components/seller/SellerIcons";
 
 export default function SellerMessagesPage() {
+  const { data, setData, error } = useApiData("/messages", {
+    initialData: [],
+  });
+  const { data: profile } = useApiData("/users/me/profile", {
+    initialData: null,
+  });
+  const [activeThreadId, setActiveThreadId] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [messageBody, setMessageBody] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [pageError, setPageError] = useState("");
+
+  const filteredThreads = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    if (!query) {
+      return data;
+    }
+
+    return data.filter(
+      (thread) =>
+        thread.subject.toLowerCase().includes(query) ||
+        thread.lastMessage.toLowerCase().includes(query) ||
+        thread.participants.toLowerCase().includes(query),
+    );
+  }, [data, searchTerm]);
+
+  useEffect(() => {
+    if (!filteredThreads.length) {
+      setActiveThreadId("");
+      return;
+    }
+
+    if (!activeThreadId || !filteredThreads.some((thread) => thread.id === activeThreadId)) {
+      setActiveThreadId(filteredThreads[0].id);
+    }
+  }, [activeThreadId, filteredThreads]);
+
+  const activeThread = filteredThreads.find((thread) => thread.id === activeThreadId) || filteredThreads[0];
+
+  async function handleSendMessage(event) {
+    event.preventDefault();
+
+    if (!activeThread || !messageBody.trim()) {
+      return;
+    }
+
+    setPageError("");
+    setIsSending(true);
+
+    try {
+      const result = await apiRequest(`/messages/${activeThread.id}/messages`, {
+        method: "POST",
+        body: { body: messageBody.trim() },
+      });
+
+      setData((current) =>
+        current.map((thread) => (thread.id === activeThread.id ? result.data : thread)),
+      );
+      setMessageBody("");
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not send your message.");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
   return (
     <div className={shared.page}>
+      {error ? <p className={shared.errorText}>{error}</p> : null}
+      {pageError ? <p className={shared.errorText}>{pageError}</p> : null}
+
       <section className={shared.chatGrid}>
         <aside className={`${shared.panel} ${shared.chatSidebar}`}>
           <div className={shared.searchBar}>
             <div className={shared.searchInput}>
               <SearchIcon />
-              <input placeholder="Search conversations..." />
+              <input
+                placeholder="Search conversations..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
             </div>
           </div>
 
           <div className={shared.threadList}>
-            {threads.map((thread) => (
-              <article key={thread.name} className={thread.active ? shared.threadItemActive : shared.threadItem}>
+            {!filteredThreads.length ? (
+              <article className={shared.threadItem}>
                 <div className={shared.threadAvatar}>
-                  <Image src={thread.image} alt={thread.name} fill sizes="54px" />
-                  {thread.unread ? <span className={shared.threadBadge}>{thread.unread}</span> : null}
+                  <span>NA</span>
                 </div>
                 <div className={shared.threadContent}>
-                  <strong>{thread.name}</strong>
-                  <span>{thread.product}</span>
-                  <p>{thread.preview}</p>
+                  <strong>No conversations found</strong>
+                  <p>Seller and buyer threads will appear here once someone starts a conversation.</p>
                 </div>
-                <span className={shared.threadTime}>{thread.time}</span>
+              </article>
+            ) : null}
+
+            {filteredThreads.map((thread) => (
+              <article
+                key={thread.id}
+                className={thread.id === activeThread?.id ? shared.threadItemActive : shared.threadItem}
+                onClick={() => setActiveThreadId(thread.id)}
+              >
+                <div className={shared.threadAvatar}>
+                  <span>{thread.subject.slice(0, 2).toUpperCase()}</span>
+                </div>
+                <div className={shared.threadContent}>
+                  <strong>{thread.subject}</strong>
+                  <span>{thread.participants}</span>
+                  <p>{thread.lastMessage}</p>
+                </div>
+                <span className={shared.threadTime}>{thread.status}</span>
               </article>
             ))}
           </div>
         </aside>
 
         <section className={`${shared.panel} ${shared.chatPanel}`}>
-          <header className={shared.chatHeader}>
-            <div className={shared.chatHeaderLeft}>
-              <div className={shared.threadAvatar} style={{ width: 56, height: 56 }}>
-                <Image src="/chat-sarah.svg" alt="Sarah Johnson" fill sizes="56px" />
-              </div>
-              <div className={shared.chatHeaderTitle}>
-                <strong>Sarah Johnson</strong>
-                <span>MacBook Pro 16&quot; M3</span>
-              </div>
+          {!activeThread ? (
+            <div className={shared.emptyChatState}>
+              <strong>No active conversation selected</strong>
+              <p>Choose a thread from the left to review buyer questions and respond.</p>
             </div>
+          ) : (
+            <>
+              <header className={shared.chatHeader}>
+                <div className={shared.chatHeaderLeft}>
+                  <div className={shared.threadAvatar} style={{ width: 56, height: 56 }}>
+                    <span>{activeThread.subject.slice(0, 2).toUpperCase()}</span>
+                  </div>
+                  <div className={shared.chatHeaderTitle}>
+                    <strong>{activeThread.subject}</strong>
+                    <span>{activeThread.participants}</span>
+                  </div>
+                </div>
 
-            <span className={shared.chatAction}>
-              <DotsIcon />
-            </span>
-          </header>
+                <span className={shared.chatAction}>
+                  <DotsIcon />
+                </span>
+              </header>
 
-          <div className={shared.messagesArea}>
-            {messages.map((message, index) => (
-              <article key={`${message.time}-${index}`} className={message.own ? shared.messageBubbleOwn : shared.messageBubble}>
-                <p>{message.body}</p>
-                <span>{message.time}</span>
-              </article>
-            ))}
-          </div>
+              <div className={shared.messagesArea}>
+                {activeThread.messages.map((message, index) => (
+                  <article
+                    key={`${activeThread.id}-${message.from}-${index}`}
+                    className={message.from === profile?.name ? shared.messageBubbleOwn : shared.messageBubble}
+                  >
+                    <p>{message.body}</p>
+                    <span>{message.from}</span>
+                  </article>
+                ))}
+              </div>
 
-          <footer className={shared.chatComposer}>
-            <button type="button" className={shared.composerClip} aria-label="Attach file">
-              <ClipIcon />
-            </button>
-            <div className={shared.searchInput}>
-              <input placeholder="Type your message..." />
-            </div>
-            <button type="button" className={shared.composerSend} aria-label="Send message">
-              <SendIcon />
-            </button>
-          </footer>
+              <form className={shared.chatComposer} onSubmit={handleSendMessage}>
+                <div className={shared.searchInput}>
+                  <input
+                    placeholder="Type your message..."
+                    value={messageBody}
+                    onChange={(event) => setMessageBody(event.target.value)}
+                  />
+                </div>
+                <button type="submit" className={shared.composerSend} aria-label="Send message" disabled={isSending}>
+                  <SendIcon />
+                </button>
+              </form>
+            </>
+          )}
         </section>
       </section>
     </div>

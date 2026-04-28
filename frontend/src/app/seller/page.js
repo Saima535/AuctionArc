@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 import shared from "@/components/seller/SellerShared.module.css";
+import { useApiData } from "@/hooks/useApiData";
 import {
   BoxIcon,
-  CloseIcon,
   ClockIcon,
   CurrencyIcon,
   DollarIcon,
@@ -14,93 +14,76 @@ import {
   MessageIcon,
   PlusIcon,
   SparklesIcon,
-  StarIcon,
   TrendIcon,
   UsersIcon,
 } from "@/components/seller/SellerIcons";
 
-const stats = [
-  { value: "12", label: "Active Listings", icon: <BoxIcon /> },
-  { value: "$24,580", label: "Total Sales", icon: <DollarIcon /> },
-  { value: "8", label: "Pending Orders", icon: <ClockIcon /> },
-  { value: "+23%", label: "Revenue", icon: <TrendIcon /> },
+const statIcons = [<BoxIcon key="box" />, <UsersIcon key="users" />, <DollarIcon key="dollar" />, <ClockIcon key="clock" />];
+const performanceIcons = [<EyeIcon key="eye" />, <UsersIcon key="users" />, <HeartIcon key="heart" />, <TrendIcon key="trend" />];
+const activityVisuals = [
+  { icon: <CurrencyIcon />, className: shared.activityGreen },
+  { icon: <MessageIcon />, className: shared.activityBlue },
+  { icon: <EyeIcon />, className: shared.activityAmber },
+  { icon: <TrendIcon />, className: shared.activityAmber },
 ];
 
-const miniStats = [
-  { value: "12,546", label: "Total Views", delta: "+12.5%", icon: <EyeIcon /> },
-  { value: "156", label: "Watchers", delta: "+8.2%", icon: <UsersIcon /> },
-  { value: "89", label: "Favorites", delta: "+15.3%", icon: <HeartIcon /> },
-  { value: "23.4%", label: "Conversion", delta: "+4.1%", icon: <TrendIcon /> },
-];
+function formatEndTime(value) {
+  if (!value) {
+    return "Not scheduled";
+  }
 
-const activityItems = [
-  {
-    icon: <CurrencyIcon />,
-    iconClass: shared.activityGreen,
-    title: 'New bid of $2,500 on MacBook Pro 16" M3',
-    time: "5 minutes ago",
-  },
-  {
-    icon: <MessageIcon />,
-    iconClass: shared.activityBlue,
-    title: "New message from Sarah Johnson",
-    time: "12 minutes ago",
-  },
-  {
-    icon: <EyeIcon />,
-    iconClass: shared.activityAmber,
-    title: "Vintage Leica M6 Camera viewed 15 times",
-    time: "1 hour ago",
-  },
-  {
-    icon: <StarIcon />,
-    iconClass: shared.activityAmber,
-    title: "You received a 5-star review",
-    time: "2 hours ago",
-  },
-];
+  const date = new Date(value);
 
-const activeProducts = [
-  {
-    title: 'MacBook Pro 16" M3',
-    description: "Powerful laptop with M3 chip, 32GB RAM, 1TB SSD",
-    price: "$2,400",
-    time: "2 Hours",
-    endTime: "Apr 17, 2026 8:00 PM",
-    delivery: "AuctionArc Delivery",
-    views: "156",
-    rating: "4.8",
-    image: "/seller-laptop.svg",
-  },
-  {
-    title: "Vintage Leica M6 Camera",
-    description: "Classic film camera in excellent condition with 50mm lens",
-    price: "$1,850",
-    time: "1 Day",
-    endTime: "Apr 18, 2026 3:00 PM",
-    delivery: "Seller Delivery",
-    views: "89",
-    rating: "4.9",
-    image: "/seller-camera.svg",
-  },
-];
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
-const salesHistory = [
-  {
-    title: "iPhone 15 Pro Max",
-    price: "$1,200",
-    rating: "4.9",
-    image: "/seller-phone.svg",
-  },
-  {
-    title: "Carbon Road Bike",
-    price: "$2,850",
-    rating: "5",
-    image: "/seller-bike.svg",
-  },
-];
+  return date.toLocaleString();
+}
 
 export default function SellerDashboardPage() {
+  const { data, isLoading, error } = useApiData("/dashboard/seller", {
+    initialData: {
+      kpis: [],
+      performance: [],
+      activity: [],
+      spotlight: {
+        greeting: "Welcome back!",
+        message: "We are loading your seller workspace.",
+      },
+      currentListings: [],
+      salesHistory: [],
+    },
+  });
+
+  const stats = useMemo(
+    () =>
+      data.kpis.map((item, index) => ({
+        ...item,
+        icon: statIcons[index] || <TrendIcon />,
+      })),
+    [data.kpis],
+  );
+
+  const performance = useMemo(
+    () =>
+      data.performance.map((item, index) => ({
+        ...item,
+        icon: performanceIcons[index] || <TrendIcon />,
+      })),
+    [data.performance],
+  );
+
+  const activityItems = useMemo(
+    () =>
+      data.activity.map((item, index) => ({
+        ...item,
+        icon: activityVisuals[index % activityVisuals.length].icon,
+        iconClass: activityVisuals[index % activityVisuals.length].className,
+      })),
+    [data.activity],
+  );
+
   return (
     <div className={shared.page}>
       <section className={`${shared.panel} ${shared.heroPanel}`}>
@@ -110,11 +93,8 @@ export default function SellerDashboardPage() {
               <SparklesIcon />
             </span>
             <div className={shared.heroText}>
-              <h2>Welcome back, John! 👋</h2>
-              <p>
-                You have 2 new bids and 3 new messages waiting for you. Your active
-                listings are performing well!
-              </p>
+              <h2>{data.spotlight?.greeting || "Welcome back!"}</h2>
+              <p>{data.spotlight?.message || "Your seller activity will appear here shortly."}</p>
               <div className={shared.heroActions}>
                 <Link href="/seller/messages" className={shared.primaryCta}>
                   View Messages
@@ -125,10 +105,6 @@ export default function SellerDashboardPage() {
               </div>
             </div>
           </div>
-
-          <button type="button" className={shared.closeButton} aria-label="Dismiss welcome">
-            <CloseIcon />
-          </button>
         </div>
       </section>
 
@@ -140,6 +116,9 @@ export default function SellerDashboardPage() {
           </div>
         </div>
       </section>
+
+      {error ? <p className={shared.errorText}>{error}</p> : null}
+      {isLoading ? <p className={shared.mutedText}>Loading seller performance...</p> : null}
 
       <section className={shared.statGrid}>
         {stats.map((item) => (
@@ -156,7 +135,7 @@ export default function SellerDashboardPage() {
       <section className={shared.dashboardGrid}>
         <div className={shared.page}>
           <div className={shared.miniStats}>
-            {miniStats.map((item) => (
+            {performance.map((item) => (
               <article key={item.label} className={`${shared.panel} ${shared.miniStatCard}`}>
                 <div className={shared.miniStatTop}>
                   <span className={shared.miniStatIcon}>{item.icon}</span>
@@ -178,11 +157,22 @@ export default function SellerDashboardPage() {
             </div>
 
             <div className={shared.productGrid}>
-              {activeProducts.map((product) => (
-                <article key={product.title} className={`${shared.panel} ${shared.productCard}`}>
+              {!data.currentListings.length ? (
+                <article className={`${shared.panel} ${shared.productCard}`}>
+                  <div className={shared.productBody}>
+                    <h3>No live listings yet</h3>
+                    <p>Create a listing or submit a draft for approval to start tracking bidding performance here.</p>
+                  </div>
+                </article>
+              ) : null}
+
+              {data.currentListings.map((product) => (
+                <article key={product.id} className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productMedia}>
-                    <Image src={product.image} alt={product.title} fill sizes="(max-width: 920px) 100vw, 50vw" />
-                    <span className={shared.statusTag}>Active</span>
+                    <div className={shared.mediaPlaceholder}>
+                      <span>{product.code}</span>
+                    </div>
+                    <span className={shared.statusTag}>{product.status}</span>
                   </div>
 
                   <div className={shared.productBody}>
@@ -192,18 +182,18 @@ export default function SellerDashboardPage() {
                     <div className={shared.productMeta}>
                       <div>
                         <div className={shared.productMetaLabel}>Current Bid</div>
-                        <div className={`${shared.productMetaValue} ${shared.moneyValue}`}>{product.price}</div>
+                        <div className={`${shared.productMetaValue} ${shared.moneyValue}`}>{product.currentBid}</div>
                       </div>
                       <div>
-                        <div className={shared.productMetaLabel}>Time Left</div>
-                        <div className={shared.productMetaValue}>{product.time}</div>
+                        <div className={shared.productMetaLabel}>Watchers</div>
+                        <div className={shared.productMetaValue}>{product.watchers}</div>
                       </div>
                     </div>
 
                     <div className={shared.detailStrip}>
                       <div className={shared.detailRow}>
                         <span>End Time:</span>
-                        <span>{product.endTime}</span>
+                        <span>{formatEndTime(product.endTime)}</span>
                       </div>
                       <div className={shared.detailRow}>
                         <span>Delivery:</span>
@@ -217,12 +207,12 @@ export default function SellerDashboardPage() {
 
                     <div className={shared.productFooter}>
                       <span className={shared.rating}>
-                        <StarIcon />
-                        <span>{product.rating}</span>
+                        <EyeIcon />
+                        <span>{product.views} views</span>
                       </span>
-                      <button type="button" className={shared.darkButton}>
-                        View History
-                      </button>
+                      <Link href="/seller/listings" className={shared.darkButton}>
+                        Manage Listing
+                      </Link>
                     </div>
                   </div>
                 </article>
@@ -236,11 +226,22 @@ export default function SellerDashboardPage() {
             </div>
 
             <div className={shared.productGrid}>
-              {salesHistory.map((item) => (
-                <article key={item.title} className={`${shared.panel} ${shared.productCard}`}>
+              {!data.salesHistory.length ? (
+                <article className={`${shared.panel} ${shared.productCard}`}>
+                  <div className={shared.productBody}>
+                    <h3>No completed sales yet</h3>
+                    <p>Completed and delivered orders will show up here once your current auctions close successfully.</p>
+                  </div>
+                </article>
+              ) : null}
+
+              {data.salesHistory.map((item) => (
+                <article key={item.id} className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productMedia}>
-                    <Image src={item.image} alt={item.title} fill sizes="(max-width: 920px) 100vw, 50vw" />
-                    <span className={`${shared.statusTag} ${shared.soldTag}`}>Sold</span>
+                    <div className={shared.mediaPlaceholder}>
+                      <span>{item.id}</span>
+                    </div>
+                    <span className={`${shared.statusTag} ${shared.soldTag}`}>{item.status}</span>
                   </div>
 
                   <div className={shared.productBody}>
@@ -251,15 +252,15 @@ export default function SellerDashboardPage() {
                         <div className={`${shared.productMetaValue} ${shared.moneyValue}`}>{item.price}</div>
                       </div>
                       <span className={shared.rating}>
-                        <StarIcon />
-                        <span>{item.rating}</span>
+                        <DollarIcon />
+                        <span>{item.status}</span>
                       </span>
                     </div>
 
                     <div style={{ marginTop: 22 }}>
-                      <button type="button" className={shared.darkButton} style={{ width: "100%" }}>
-                        View Details
-                      </button>
+                      <Link href="/seller/orders" className={shared.darkButton} style={{ width: "100%" }}>
+                        View Order
+                      </Link>
                     </div>
                   </div>
                 </article>
@@ -276,7 +277,7 @@ export default function SellerDashboardPage() {
                 <span className={`${shared.activityIcon} ${item.iconClass}`}>{item.icon}</span>
                 <div>
                   <strong>{item.title}</strong>
-                  <p>{item.time}</p>
+                  <p>{item.meta}</p>
                 </div>
               </article>
             ))}

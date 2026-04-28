@@ -1,5 +1,6 @@
 import { sendMail } from "../config/mailer.js";
 import { PUBLIC_ROLES } from "../constants/enums.js";
+import { assertUserCanAccess } from "../middleware/auth.js";
 import { User } from "../models/User.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { ApiError } from "../utils/apiError.js";
@@ -11,6 +12,12 @@ import {
   hashPassword,
   signToken,
 } from "../utils/security.js";
+import {
+  assertEmail,
+  assertOptionalText,
+  assertPassword,
+  assertRequiredText,
+} from "../utils/validation.js";
 
 function isAdult(birthdate) {
   const today = new Date();
@@ -61,6 +68,13 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Please complete all required registration fields.");
   }
 
+  const normalizedName = assertRequiredText(name, "Name", { maxLength: 120 });
+  const normalizedEmail = assertEmail(email);
+  const normalizedCountry = assertOptionalText(country, "Country", { maxLength: 120 });
+  const normalizedContact = assertOptionalText(contact, "Contact number", { maxLength: 40 });
+  const normalizedWalletLabel = assertOptionalText(wallet, "Wallet label", { maxLength: 120 });
+  assertPassword(password);
+
   if (!PUBLIC_ROLES.includes(role)) {
     throw new ApiError(400, "Only seller and bidder public registrations are allowed.");
   }
@@ -77,7 +91,7 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Human verification failed.");
   }
 
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  const existingUser = await User.findOne({ email: normalizedEmail });
 
   if (existingUser) {
     throw new ApiError(409, "An account with that email already exists.");
@@ -87,13 +101,13 @@ export const register = asyncHandler(async (req, res) => {
     ? await uploadImageBuffer(
         req.file.buffer,
         "auctionarc/profile-pictures",
-        `${email.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now()}`,
+        `${normalizedEmail.replace(/[^a-z0-9]/g, "-")}-${Date.now()}`,
       )
     : null;
 
   const user = await User.create({
-    name,
-    email: email.toLowerCase(),
+    name: normalizedName,
+    email: normalizedEmail,
     password: await hashPassword(password),
     role,
     publicRoleLabel: role === "Seller" ? "Verified seller" : "Active bidder",
@@ -101,15 +115,15 @@ export const register = asyncHandler(async (req, res) => {
     gender,
     nid,
     birthdate,
-    country,
-    location: country,
-    contact,
+    country: normalizedCountry,
+    location: normalizedCountry,
+    contact: normalizedContact,
     wallet: {
       availableBalance: 0,
       heldBalance: 0,
       pendingPayout: 0,
       platformFees: 0,
-      walletLabel: wallet,
+      walletLabel: normalizedWalletLabel,
     },
     profilePicture,
     verification: {
@@ -139,7 +153,9 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Email, password, and role are required.");
   }
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+  const normalizedEmail = assertEmail(email);
+  assertPassword(password);
+  const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
   if (!user) {
     throw new ApiError(401, "Invalid email or password.");
@@ -154,6 +170,8 @@ export const login = asyncHandler(async (req, res) => {
   if (!passwordMatches) {
     throw new ApiError(401, "Invalid email or password.");
   }
+
+  assertUserCanAccess(user);
 
   user.lastSeenAt = new Date();
   await user.save();
@@ -173,7 +191,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findOne({
-    email: email.toLowerCase(),
+    email: assertEmail(email),
     role,
   });
 
@@ -211,6 +229,8 @@ export const resetPassword = asyncHandler(async (req, res) => {
   if (!code || !password || !confirmPassword) {
     throw new ApiError(400, "Reset code and new password are required.");
   }
+
+  assertPassword(password);
 
   if (password !== confirmPassword) {
     throw new ApiError(400, "Password confirmation does not match.");

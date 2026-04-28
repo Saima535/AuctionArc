@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import {
   DataTable,
   Panel,
@@ -7,6 +9,7 @@ import {
   StatCard,
 } from "@/components/admin/AdminPrimitives";
 import { useApiData } from "@/hooks/useApiData";
+import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 const transactionColumns = [
@@ -18,9 +21,37 @@ const transactionColumns = [
 ];
 
 export default function BidderWalletPage() {
+  const searchParams = useSearchParams();
   const { data, error } = useApiData("/dashboard/wallet", {
     initialData: { stats: [], transactions: [] },
   });
+  const [amount, setAmount] = useState("100");
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [pageError, setPageError] = useState("");
+
+  async function handleTopUp(event) {
+    event.preventDefault();
+    setPageError("");
+    setIsCreatingSession(true);
+
+    try {
+      const result = await apiRequest("/payments/checkout-session", {
+        method: "POST",
+        body: { amount: Number(amount) },
+      });
+
+      if (result.data?.url) {
+        window.location.href = result.data.url;
+        return;
+      }
+
+      setPageError("The payment session could not be started.");
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not start the payment flow.");
+    } finally {
+      setIsCreatingSession(false);
+    }
+  }
 
   return (
     <div className={styles.page}>
@@ -30,6 +61,9 @@ export default function BidderWalletPage() {
       />
 
       {error ? <p>{error}</p> : null}
+      {searchParams.get("status") === "success" ? <p className={styles.successText}>Payment completed. Your wallet will refresh once the confirmation is processed.</p> : null}
+      {searchParams.get("status") === "cancelled" ? <p className={styles.inlineNotice}>Payment was cancelled before completion.</p> : null}
+      {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
 
       <section className={styles.statGrid}>
         {data.stats.map((metric) => (
@@ -42,17 +76,34 @@ export default function BidderWalletPage() {
           <DataTable columns={transactionColumns} rows={data.transactions} />
         </Panel>
 
-        <Panel title="Payment visibility" description="Key reminders and settlement awareness for active bidders.">
-          <div className={styles.compactList}>
-            {["Available balance", "Funds on hold", "Refund and payout awareness"].map((item) => (
-              <article key={item} className={styles.compactCard}>
-                <div>
-                  <strong>{item}</strong>
-                  <p>The live wallet summary above is now connected to your backend account.</p>
-                </div>
-              </article>
-            ))}
-          </div>
+        <Panel title="Add funds" description="Top up your bidder wallet before entering competitive auctions.">
+          <form onSubmit={handleTopUp}>
+            <div className={styles.quickAmountRow}>
+              {["50", "100", "250", "500"].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={amount === value ? styles.actionButton : styles.secondaryAction}
+                  onClick={() => setAmount(value)}
+                >
+                  ${value}
+                </button>
+              ))}
+            </div>
+            <div className={styles.inlineForm}>
+              <input
+                className={styles.amountInput}
+                type="number"
+                min="1"
+                step="0.01"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+              <button type="submit" className={styles.actionButton} disabled={isCreatingSession}>
+                {isCreatingSession ? "Redirecting..." : "Pay with Card"}
+              </button>
+            </div>
+          </form>
         </Panel>
       </section>
     </div>

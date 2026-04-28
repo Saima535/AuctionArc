@@ -2,41 +2,205 @@ import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
 import { Watchlist } from "../models/Watchlist.js";
+import { BID_STATUSES, LISTING_STATUSES } from "../constants/enums.js";
+import { uploadImageBuffer } from "../services/uploadService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { formatCurrency } from "../utils/formatters.js";
+import {
+  assertNumber,
+  assertOptionalText,
+  assertRequiredText,
+} from "../utils/validation.js";
 
 export const createListing = asyncHandler(async (req, res) => {
   if (req.user.role !== "Seller") {
     throw new ApiError(403, "Only sellers can create listings.");
   }
 
-  const { title, category, description, price, reservePrice } = req.body;
+  const {
+    title,
+    category,
+    description,
+    price,
+    reservePrice,
+    buyNowPrice,
+    condition,
+    auctionDurationDays,
+    deliveryOption,
+    deliveryFee,
+    premiumHighlight,
+    status,
+  } = req.body;
 
-  if (!title || !category) {
-    throw new ApiError(400, "Title and category are required.");
+  const normalizedTitle = assertRequiredText(title, "Title", { maxLength: 160 });
+  const normalizedCategory = assertRequiredText(category, "Category", { maxLength: 80 });
+  const normalizedDescription = assertOptionalText(description, "Description", { maxLength: 3000 });
+  const parsedPrice = assertNumber(price || 0, "Price", { min: 0, max: 100000000 });
+  const parsedReservePrice = assertNumber(reservePrice || 0, "Reserve price", { min: 0, max: 100000000 });
+  const parsedBuyNowPrice = assertNumber(buyNowPrice || 0, "Buy now price", { min: 0, max: 100000000 });
+  const parsedDuration = assertNumber(auctionDurationDays || 5, "Auction duration", { min: 1, max: 30 });
+  const parsedDeliveryFee = assertNumber(deliveryFee || 0, "Delivery fee", { min: 0, max: 1000000 });
+
+  const requestedStatus = status === "Pending approval" ? "Pending approval" : "Draft";
+
+  if (requestedStatus === "Pending approval" && !req.files?.length) {
+    throw new ApiError(400, "Please upload at least one image before submitting for approval.");
   }
 
-  const count = await Listing.countDocuments();
-  const code = `SL-${String(count + 101).padStart(3, "0")}`;
+  if ((req.files || []).length > 3) {
+    throw new ApiError(400, "You can upload a maximum of 3 images.");
+  }
+
+  const code = await generateUniqueCode(Listing, "SL-", { digits: 3, min: 101 });
+  const uploadedImages = await Promise.all(
+    (req.files || []).map((file, index) =>
+      uploadImageBuffer(
+        file.buffer,
+        "auctionarc/listings",
+        `${code.toLowerCase()}-${index + 1}-${Date.now()}`,
+      ),
+    ),
+  );
 
   const listing = await Listing.create({
     code,
     seller: req.user._id,
-    title,
-    category,
-    description,
-    price: Number(price || 0),
-    reservePrice: Number(reservePrice || 0),
-    currentBid: Number(price || 0),
-    status: "Draft",
-    reserveStatus: reservePrice ? "Pending" : "Not set",
+    title: normalizedTitle,
+    category: normalizedCategory,
+    description: normalizedDescription,
+    price: parsedPrice,
+    reservePrice: parsedReservePrice,
+    buyNowPrice: parsedBuyNowPrice,
+    currentBid: parsedPrice,
+    status: requestedStatus,
+    reserveStatus: parsedReservePrice ? "Pending" : "Not set",
+    condition: assertOptionalText(condition, "Condition", { maxLength: 40 }) || "Good",
+    auctionDurationDays: parsedDuration,
+    deliveryOption: deliveryOption || "AuctionArc Delivery",
+    deliveryFee: parsedDeliveryFee,
+    premiumHighlight: premiumHighlight === "true" || premiumHighlight === true,
+    images: uploadedImages.filter(Boolean),
   });
 
   res.status(201).json({
     success: true,
     message: "Listing created successfully.",
     data: listing,
+  });
+});
+
+export const updateListing = asyncHandler(async (req, res) => {
+  if (req.user.role !== "Seller") {
+    throw new ApiError(403, "Only sellers can update listings.");
+  }
+
+  const listing = await Listing.findOne({
+    _id: req.params.listingId,
+    seller: req.user._id,
+  });
+
+  if (!listing) {
+    throw new ApiError(404, "Listing not found.");
+  }
+
+  const {
+    title,
+    category,
+    description,
+    price,
+    reservePrice,
+    buyNowPrice,
+    condition,
+    auctionDurationDays,
+    deliveryOption,
+    deliveryFee,
+    premiumHighlight,
+    status,
+  } = req.body;
+
+  if (title) {
+    listing.title = assertRequiredText(title, "Title", { maxLength: 160 });
+  }
+
+  if (category) {
+    listing.category = assertRequiredText(category, "Category", { maxLength: 80 });
+  }
+
+  if (typeof description === "string") {
+    listing.description = assertOptionalText(description, "Description", { maxLength: 3000 });
+  }
+
+  if (price !== undefined) {
+    listing.price = assertNumber(price, "Price", { min: 0, max: 100000000 });
+  }
+
+  if (reservePrice !== undefined) {
+    listing.reservePrice = assertNumber(reservePrice || 0, "Reserve price", { min: 0, max: 100000000 });
+    listing.reserveStatus = listing.reservePrice ? "Pending" : "Not set";
+  }
+
+  if (buyNowPrice !== undefined) {
+    listing.buyNowPrice = assertNumber(buyNowPrice || 0, "Buy now price", { min: 0, max: 100000000 });
+  }
+
+  if (condition) {
+    listing.condition = assertOptionalText(condition, "Condition", { maxLength: 40 }) || listing.condition;
+  }
+
+  if (auctionDurationDays !== undefined) {
+    listing.auctionDurationDays = assertNumber(auctionDurationDays || listing.auctionDurationDays, "Auction duration", { min: 1, max: 30 });
+  }
+
+  if (deliveryOption) {
+    listing.deliveryOption = assertOptionalText(deliveryOption, "Delivery option", { maxLength: 80 }) || listing.deliveryOption;
+  }
+
+  if (deliveryFee !== undefined) {
+    listing.deliveryFee = assertNumber(deliveryFee || 0, "Delivery fee", { min: 0, max: 1000000 });
+  }
+
+  if (premiumHighlight !== undefined) {
+    listing.premiumHighlight = premiumHighlight === true || premiumHighlight === "true";
+  }
+
+  if (status) {
+    if (!LISTING_STATUSES.includes(status)) {
+      throw new ApiError(400, "Invalid listing status.");
+    }
+
+    listing.status = status;
+  }
+
+  await listing.save();
+
+  res.json({
+    success: true,
+    message: "Listing updated successfully.",
+    data: listing,
+  });
+});
+
+export const deleteListing = asyncHandler(async (req, res) => {
+  if (req.user.role !== "Seller") {
+    throw new ApiError(403, "Only sellers can delete listings.");
+  }
+
+  const listing = await Listing.findOneAndDelete({
+    _id: req.params.listingId,
+    seller: req.user._id,
+  });
+
+  if (!listing) {
+    throw new ApiError(404, "Listing not found.");
+  }
+
+  await Auction.deleteMany({ listing: listing._id, seller: req.user._id });
+
+  res.json({
+    success: true,
+    message: "Listing deleted successfully.",
   });
 });
 
@@ -57,19 +221,23 @@ export const placeBid = asyncHandler(async (req, res) => {
 
   const amount = Number(req.body.amount);
 
-  if (!amount || amount <= auction.currentBid) {
+  if (!amount || Number.isNaN(amount) || amount <= auction.currentBid) {
     throw new ApiError(400, "Bid amount must be higher than the current bid.");
   }
 
-  const bidCount = await Bid.countDocuments();
+  if (amount > 100000000) {
+    throw new ApiError(400, "Bid amount is too large.");
+  }
+
+  const code = await generateUniqueCode(Bid, "BID-", { digits: 4, min: 7101 });
 
   const bid = await Bid.create({
-    code: `BID-${7101 + bidCount}`,
+    code,
     auction: auction._id,
     listing: auction.listing,
     bidder: req.user._id,
     amount,
-    status: "Top bid",
+    status: BID_STATUSES.includes("Top bid") ? "Top bid" : "Valid",
     signal: amount > auction.currentBid * 1.15 ? "High intent" : "Normal",
   });
 
@@ -115,17 +283,23 @@ export const addToWatchlist = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Auction not found.");
   }
 
-  await Watchlist.findOneAndUpdate(
-    {
-      user: req.user._id,
-      auction: auction._id,
-    },
-    {
-      user: req.user._id,
-      auction: auction._id,
-    },
-    { upsert: true, new: true },
-  );
+  const existingWatch = await Watchlist.findOne({
+    user: req.user._id,
+    auction: auction._id,
+  });
+
+  if (existingWatch) {
+    res.json({
+      success: true,
+      message: "Auction is already in your watchlist.",
+    });
+    return;
+  }
+
+  await Watchlist.create({
+    user: req.user._id,
+    auction: auction._id,
+  });
 
   auction.watcherCount += 1;
   await auction.save();

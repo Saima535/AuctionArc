@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import styles from "@/components/admin-custom/AdminCustom.module.css";
 import { PanelCard, StatusPill } from "@/components/admin-custom/AdminUi";
+import { useApiData } from "@/hooks/useApiData";
+import { apiRequest } from "@/lib/api";
 
 function ShieldIcon() {
   return (
@@ -56,40 +59,81 @@ function CheckIcon() {
   );
 }
 
-const users = [
-  { initials: "JA", name: "John Anderson", role: "Buyer", email: "john.anderson@email.com", id: "#1", status: "Active" },
-  { initials: "SM", name: "Sarah Mitchell", role: "Seller", email: "sarah.mitchell@email.com", id: "#2", status: "Active" },
-  { initials: "MC", name: "Michael Chen", role: "Buyer", email: "michael.chen@email.com", id: "#3", status: "Active" },
-  { initials: "ER", name: "Emma Rodriguez", role: "Seller", email: "emma.rodriguez@email.com", id: "#4", status: "Suspended" },
-  { initials: "DT", name: "David Thompson", role: "Buyer", email: "david.thompson@email.com", id: "#5", status: "Active" },
-  { initials: "LW", name: "Lisa Wang", role: "Seller", email: "lisa.wang@email.com", id: "#6", status: "Active" },
-];
+function toneForStatus(status) {
+  return status === "Active" ? "green" : "red";
+}
+
+function initialsForName(name) {
+  return String(name || "AA")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
 
 export default function AdminUsersPage() {
+  const { data, setData, error } = useApiData("/admin/users", {
+    initialData: [],
+  });
+  const [expandedUserId, setExpandedUserId] = useState("");
+  const [busyUserId, setBusyUserId] = useState("");
+  const [pageError, setPageError] = useState("");
+  const [pageMessage, setPageMessage] = useState("");
+
+  async function handleStatusToggle(user) {
+    const nextStatus = user.status === "Active" ? "Suspended" : "Active";
+
+    setBusyUserId(user.userId);
+    setPageError("");
+    setPageMessage("");
+
+    try {
+      const result = await apiRequest(`/admin/users/${user.userId}/status`, {
+        method: "PATCH",
+        body: { status: nextStatus },
+      });
+
+      setData((current) =>
+        current.map((item) => (item.userId === user.userId ? result.data : item)),
+      );
+      setPageMessage(`${user.name} is now ${nextStatus.toLowerCase()}.`);
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not update the user status.");
+    } finally {
+      setBusyUserId("");
+    }
+  }
+
   return (
     <div className={styles.page}>
+      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+      {pageError ? <p className={styles.inlineNotice}>{pageError}</p> : null}
+      {pageMessage ? <p className={styles.successNotice}>{pageMessage}</p> : null}
+
       <div className={styles.userGrid}>
-        {users.map((user) => (
-          <PanelCard key={user.id} className={styles.userCard}>
+        {data.map((user) => (
+          <PanelCard key={user.userId} className={styles.userCard}>
             <div className={styles.userHeader}>
               <div className={styles.userIdentity}>
-                <span className={styles.userAvatar}>{user.initials}</span>
+                <span className={styles.userAvatar}>{initialsForName(user.name)}</span>
                 <div className={styles.userInfo}>
                   <h3>{user.name}</h3>
-                  <span className={`${styles.roleMeta} ${user.role === "Buyer" ? styles.buyerMeta : styles.sellerMeta}`}>
+                  <span className={`${styles.roleMeta} ${user.role === "Bidder" ? styles.buyerMeta : styles.sellerMeta}`}>
                     <ShieldIcon />
-                    <span>{user.role}</span>
+                    <span>{user.role === "Bidder" ? "Buyer" : user.role}</span>
                   </span>
                 </div>
               </div>
 
-              <StatusPill tone={user.status === "Active" ? "green" : "red"}>{user.status}</StatusPill>
+              <StatusPill tone={toneForStatus(user.status)}>{user.status}</StatusPill>
             </div>
 
             <div className={styles.userDetails}>
               <div className={styles.infoRow}>
                 <MailIcon />
-                <span>{user.email}</span>
+                <span>{user.contact}</span>
               </div>
               <div className={styles.infoRow}>
                 <UserIcon />
@@ -97,21 +141,41 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
+            {expandedUserId === user.userId ? (
+              <p className={styles.helperText}>
+                Country: {user.country} | Joined: {user.joined} | Last seen: {user.lastSeen}
+              </p>
+            ) : null}
+
             <div className={styles.userActions}>
               {user.status === "Suspended" ? (
-                <button type="button" className={styles.activateButton}>
+                <button
+                  type="button"
+                  className={styles.activateButton}
+                  disabled={busyUserId === user.userId}
+                  onClick={() => handleStatusToggle(user)}
+                >
                   <CheckIcon />
-                  <span>Activate</span>
+                  <span>{busyUserId === user.userId ? "Updating..." : "Activate"}</span>
                 </button>
               ) : (
-                <button type="button" className={styles.suspendButton}>
+                <button
+                  type="button"
+                  className={styles.suspendButton}
+                  disabled={busyUserId === user.userId}
+                  onClick={() => handleStatusToggle(user)}
+                >
                   <BanIcon />
-                  <span>Suspend</span>
+                  <span>{busyUserId === user.userId ? "Updating..." : "Suspend"}</span>
                 </button>
               )}
-              <button type="button" className={styles.detailsButton}>
+              <button
+                type="button"
+                className={styles.detailsButton}
+                onClick={() => setExpandedUserId((current) => (current === user.userId ? "" : user.userId))}
+              >
                 <EyeIcon />
-                <span>Details</span>
+                <span>{expandedUserId === user.userId ? "Hide" : "Details"}</span>
               </button>
             </div>
           </PanelCard>

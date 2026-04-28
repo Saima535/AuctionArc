@@ -2,19 +2,17 @@ import Stripe from "stripe";
 import { env } from "../config/env.js";
 import { stripe } from "../config/stripe.js";
 import { Transaction } from "../models/Transaction.js";
+import { User } from "../models/User.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { assertNumber } from "../utils/validation.js";
 
 export const createCheckoutSession = asyncHandler(async (req, res) => {
   if (!stripe) {
     throw new ApiError(503, "Stripe is not configured yet.");
   }
 
-  const amount = Number(req.body.amount);
-
-  if (!amount || amount <= 0) {
-    throw new ApiError(400, "A positive amount is required.");
-  }
+  const amount = assertNumber(req.body.amount, "Amount", { min: 1, max: 50000 });
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
@@ -67,16 +65,29 @@ export async function handleStripeWebhook(req, res, next) {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-      const code = `TXN-WEB-${Date.now()}`;
+      const userId = session.metadata?.userId;
+      const amount = Number(session.amount_total || 0) / 100;
+      const code = `TXN-WEB-${session.id}`;
+      const existingTransaction = await Transaction.findOne({ code });
 
-      await Transaction.create({
-        code,
-        user: session.metadata.userId,
-        type: "Wallet top-up",
-        status: "Completed",
-        amount: Number(session.amount_total || 0) / 100,
-        channel: "Stripe",
-      });
+      if (!userId) {
+        throw new ApiError(400, "Stripe session is missing the wallet owner.");
+      }
+
+      if (!existingTransaction) {
+        await Transaction.create({
+          code,
+          user: userId,
+          type: "Wallet top-up",
+          status: "Completed",
+          amount,
+          channel: "Stripe",
+        });
+
+        await User.findByIdAndUpdate(userId, {
+          $inc: { "wallet.availableBalance": amount },
+        });
+      }
     }
 
     res.json({ received: true });

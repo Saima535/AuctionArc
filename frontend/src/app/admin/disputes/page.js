@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import styles from "@/components/admin-custom/AdminCustom.module.css";
 import { PanelCard, StatusPill } from "@/components/admin-custom/AdminUi";
+import { useApiData } from "@/hooks/useApiData";
+import { apiRequest } from "@/lib/api";
 
 function BoxIcon() {
   return (
@@ -30,57 +33,109 @@ function ResolveIcon() {
   );
 }
 
-const disputes = [
-  { title: "Vintage Rolex Watch", id: "#1", reason: "Not delivered", reporter: "John Anderson", against: "Sarah Mitchell", amount: "$15,000", date: "2024-04-16", reasonTone: "red" },
-  { title: "Antique Vase", id: "#2", reason: "Damaged", reporter: "Michael Chen", against: "Lisa Wang", amount: "$3,500", date: "2024-04-16", reasonTone: "orange" },
-  { title: "Designer Sunglasses", id: "#3", reason: "Wrong item", reporter: "Sarah Mitchell", against: "David Thompson", amount: "$850", date: "2024-04-17", reasonTone: "gold" },
-  { title: "Limited Edition Book", id: "#4", reason: "Not delivered", reporter: "Emma Rodriguez", against: "John Anderson", amount: "$650", date: "2024-04-18", reasonTone: "red" },
-];
+function toneForSeverity(severity) {
+  const value = String(severity || "").toLowerCase();
+  if (value.includes("high") || value.includes("critical")) {
+    return "red";
+  }
+  if (value.includes("medium")) {
+    return "orange";
+  }
+  return "gold";
+}
+
+function toneForStatus(status) {
+  return /resolved|closed/i.test(status) ? "green" : "red";
+}
 
 export default function AdminDisputesPage() {
+  const { data, setData, error } = useApiData("/admin/reports", {
+    initialData: [],
+  });
+  const [busyReportId, setBusyReportId] = useState("");
+  const [pageError, setPageError] = useState("");
+  const [pageMessage, setPageMessage] = useState("");
+
+  async function handleResolve(report) {
+    setBusyReportId(report.reportId);
+    setPageError("");
+    setPageMessage("");
+
+    try {
+      const result = await apiRequest(`/admin/reports/${report.reportId}/status`, {
+        method: "PATCH",
+        body: { status: "Resolved" },
+      });
+
+      setData((current) =>
+        current.map((item) => (item.reportId === report.reportId ? result.data : item)),
+      );
+      setPageMessage(`${report.id} marked as resolved.`);
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not resolve the dispute.");
+    } finally {
+      setBusyReportId("");
+    }
+  }
+
   return (
     <div className={styles.page}>
+      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+      {pageError ? <p className={styles.inlineNotice}>{pageError}</p> : null}
+      {pageMessage ? <p className={styles.successNotice}>{pageMessage}</p> : null}
+
       <div className={styles.disputesGrid}>
-        {disputes.map((item) => (
-          <PanelCard key={item.id} className={styles.disputeCard}>
+        {data.map((item) => (
+          <PanelCard key={item.reportId} className={styles.disputeCard}>
             <div className={styles.disputeHeader}>
               <div className={styles.disputeIdentity}>
                 <span className={styles.listIcon}>
                   <BoxIcon />
                 </span>
                 <div className={styles.disputeInfo}>
-                  <h3>{item.title}</h3>
+                  <h3>{item.target}</h3>
                   <p className={styles.disputeMeta}>Dispute ID: {item.id}</p>
                 </div>
               </div>
 
-              <StatusPill tone="red">Active</StatusPill>
+              <StatusPill tone={toneForStatus(item.status)}>{item.status}</StatusPill>
             </div>
 
             <div className={styles.disputeReason}>
-              <StatusPill tone={item.reasonTone}>
+              <StatusPill tone={toneForSeverity(item.severity)}>
                 <AlertIcon />
                 <span style={{ marginLeft: 10 }}>{item.reason}</span>
               </StatusPill>
             </div>
 
             <div className={styles.disputeRows}>
-              <span className={styles.labelCell}>Reported by:</span>
-              <span className={styles.valueCell}>{item.reporter}</span>
+              <span className={styles.labelCell}>Severity:</span>
+              <span className={styles.valueCell}>{item.severity}</span>
 
-              <span className={styles.labelCell}>Against:</span>
-              <span className={styles.valueCell}>{item.against}</span>
+              <span className={styles.labelCell}>Owner:</span>
+              <span className={styles.valueCell}>{item.owner}</span>
 
-              <span className={styles.labelCell}>Amount:</span>
-              <span className={`${styles.valueCell} ${styles.moneyText}`}>{item.amount}</span>
+              <span className={styles.labelCell}>Target:</span>
+              <span className={styles.valueCell}>{item.target}</span>
 
               <span className={styles.labelCell}>Date:</span>
               <span className={styles.valueCell} style={{ fontWeight: 500 }}>{item.date}</span>
             </div>
 
-            <button type="button" className={styles.disputeAction}>
+            <button
+              type="button"
+              className={styles.disputeAction}
+              disabled={busyReportId === item.reportId || /resolved|closed/i.test(item.status)}
+              onClick={() => handleResolve(item)}
+            >
               <ResolveIcon />
-              <span>Resolve Dispute</span>
+              <span>
+                {busyReportId === item.reportId
+                  ? "Resolving..."
+                  : /resolved|closed/i.test(item.status)
+                    ? "Resolved"
+                    : "Resolve Dispute"}
+              </span>
             </button>
           </PanelCard>
         ))}

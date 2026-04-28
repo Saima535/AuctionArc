@@ -3,6 +3,25 @@ import { env } from "../config/env.js";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/User.js";
 
+export function assertUserCanAccess(user) {
+  if (!user) {
+    throw new ApiError(401, "The authenticated user no longer exists.");
+  }
+
+  if (user.role === "Admin" && user.status !== "Active") {
+    throw new ApiError(403, "This administrator account is not allowed to access the platform.");
+  }
+
+  if (["Suspended", "Flagged"].includes(user.status)) {
+    throw new ApiError(
+      403,
+      user.status === "Suspended"
+        ? "This account has been suspended. Please contact support."
+        : "This account is under review and cannot access the platform right now.",
+    );
+  }
+}
+
 async function resolveUser(req) {
   const header = req.headers.authorization || "";
 
@@ -14,9 +33,7 @@ async function resolveUser(req) {
   const payload = jwt.verify(token, env.jwtSecret);
   const user = await User.findById(payload.userId);
 
-  if (!user) {
-    throw new ApiError(401, "The authenticated user no longer exists.");
-  }
+  assertUserCanAccess(user);
 
   req.user = user;
 }

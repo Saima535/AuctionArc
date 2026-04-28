@@ -3,6 +3,7 @@
 import Link from "next/link";
 import styles from "@/components/admin-custom/AdminCustom.module.css";
 import { PanelCard, SectionTitle } from "@/components/admin-custom/AdminUi";
+import { useApiData } from "@/hooks/useApiData";
 
 function PulseIcon() {
   return (
@@ -65,21 +66,41 @@ function DollarIcon() {
   );
 }
 
-const summary = [
-  { label: "Live Auctions", value: "20", icon: <PulseIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
-  { label: "Pending Auctions", value: "21", icon: <ClockIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
-  { label: "Closed Auctions", value: "10", icon: <CheckIcon />, iconClass: styles.blueIcon, cardClass: styles.blueLine },
-];
-
-const transactions = [
-  { label: "Package Transactions", value: "150", icon: <BoxIcon />, iconClass: styles.purpleIcon, cardClass: styles.purpleLine, fillClass: styles.purpleFill },
-  { label: "Bid Transactions", value: "20", icon: <TrendIcon />, iconClass: styles.purpleIcon, cardClass: styles.yellowLine, fillClass: styles.yellowFill },
-  { label: "Sold Transactions", value: "25", icon: <DollarIcon />, iconClass: styles.purpleIcon, cardClass: styles.greenLine, fillClass: styles.greenFill },
-];
-
 export default function AdminDashboardPage() {
+  const { data, isLoading, error } = useApiData("/dashboard/admin", {
+    initialData: {
+      dashboardSummary: {
+        auctions: {
+          live: 0,
+          pending: 0,
+          closed: 0,
+        },
+        transactions: {
+          packages: 0,
+          bids: 0,
+          sold: 0,
+        },
+      },
+    },
+  });
+
+  const auctionSummary = data.dashboardSummary?.auctions || {};
+  const transactionSummary = data.dashboardSummary?.transactions || {};
+  const summary = [
+    { label: "Live Auctions", value: String(auctionSummary.live || 0), icon: <PulseIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
+    { label: "Pending Auctions", value: String(auctionSummary.pending || 0), icon: <ClockIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
+    { label: "Closed Auctions", value: String(auctionSummary.closed || 0), icon: <CheckIcon />, iconClass: styles.blueIcon, cardClass: styles.blueLine },
+  ];
+  const transactions = [
+    { label: "Package Transactions", value: String(transactionSummary.packages || 0), icon: <BoxIcon />, iconClass: styles.purpleIcon, cardClass: styles.purpleLine, fillClass: styles.purpleFill },
+    { label: "Bid Transactions", value: String(transactionSummary.bids || 0), icon: <TrendIcon />, iconClass: styles.purpleIcon, cardClass: styles.yellowLine, fillClass: styles.yellowFill },
+    { label: "Sold Transactions", value: String(transactionSummary.sold || 0), icon: <DollarIcon />, iconClass: styles.purpleIcon, cardClass: styles.greenLine, fillClass: styles.greenFill },
+  ];
+
   return (
     <div className={styles.page}>
+      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+
       <section>
         <SectionTitle>Auction Summary</SectionTitle>
         <div className={styles.summaryGrid}>
@@ -87,7 +108,7 @@ export default function AdminDashboardPage() {
             <PanelCard key={item.label} className={`${styles.summaryCard} ${item.cardClass}`}>
               <div className={styles.summaryTop}>
                 <span className={`${styles.summaryIcon} ${item.iconClass}`}>{item.icon}</span>
-                <strong className={styles.summaryValue}>{item.value}</strong>
+                <strong className={styles.summaryValue}>{isLoading ? "..." : item.value}</strong>
               </div>
               <p className={styles.summaryLabel}>{item.label}</p>
             </PanelCard>
@@ -113,7 +134,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <div className={styles.transactionValueRow}>
-                  <strong className={styles.transactionValue}>{item.value}</strong>
+                  <strong className={styles.transactionValue}>{isLoading ? "..." : item.value}</strong>
                 </div>
                 <p className={styles.transactionLabel}>{item.label}</p>
               </div>

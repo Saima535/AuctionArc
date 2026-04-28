@@ -12,7 +12,7 @@ export function ProfileEditor({
   isSubmitting = false,
   submitMessage = "",
   submitError = "",
-  helper = "Profile values will update here after live account data is connected.",
+  helper = "Profile values sync with your live AuctionArc account.",
 }) {
   const [formValues, setFormValues] = useState(() =>
     Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])),
@@ -110,7 +110,7 @@ export function SettingsEditor({
   isSubmitting = false,
   submitMessage = "",
   submitError = "",
-  helper = "Settings will appear here when your live account data is available.",
+  helper = "Settings changes are saved directly to your live AuctionArc account.",
 }) {
   const [formValues, setFormValues] = useState(() =>
     Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])),

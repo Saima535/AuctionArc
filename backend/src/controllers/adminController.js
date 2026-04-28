@@ -1,4 +1,5 @@
 import { AppSettings } from "../models/AppSettings.js";
+import { AUCTION_STATUSES, BID_STATUSES, LISTING_STATUSES, USER_STATUSES } from "../constants/enums.js";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
@@ -18,13 +19,17 @@ import {
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
+import { assertOneOf, pickAllowedKeys } from "../utils/validation.js";
 
 export const getUsers = asyncHandler(async (req, res) => {
   const users = await User.find({ role: { $in: ["Seller", "Bidder"] } }).sort({ createdAt: -1 });
 
   res.json({
     success: true,
-    data: users.map(toTableUser),
+    data: users.map((user) => ({
+      userId: user._id,
+      ...toTableUser(user),
+    })),
   });
 });
 
@@ -35,13 +40,17 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found.");
   }
 
-  user.status = req.body.status || user.status;
+  const nextStatus = req.body.status || user.status;
+  user.status = assertOneOf(nextStatus, USER_STATUSES, "User status");
   await user.save();
 
   res.json({
     success: true,
     message: "User status updated successfully.",
-    data: toTableUser(user),
+    data: {
+      userId: user._id,
+      ...toTableUser(user),
+    },
   });
 });
 
@@ -51,6 +60,7 @@ export const getProducts = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: listings.map((listing) => ({
+      listingId: listing._id,
       id: listing.code,
       title: listing.title,
       seller: listing.seller?.name || "Unknown seller",
@@ -69,13 +79,16 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Listing not found.");
   }
 
-  listing.status = req.body.status || listing.status;
+  listing.status = assertOneOf(req.body.status || listing.status, LISTING_STATUSES, "Listing status");
   await listing.save();
 
   res.json({
     success: true,
     message: "Listing status updated successfully.",
-    data: toListingCard(listing),
+    data: {
+      listingId: listing._id,
+      ...toListingCard(listing),
+    },
   });
 });
 
@@ -95,7 +108,7 @@ export const updateAuctionStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Auction not found.");
   }
 
-  auction.status = req.body.status || auction.status;
+  auction.status = assertOneOf(req.body.status || auction.status, AUCTION_STATUSES, "Auction status");
   await auction.save();
 
   res.json({
@@ -121,7 +134,7 @@ export const updateBidStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Bid not found.");
   }
 
-  bid.status = req.body.status || bid.status;
+  bid.status = assertOneOf(req.body.status || bid.status, BID_STATUSES, "Bid status");
   await bid.save();
 
   res.json({
@@ -145,7 +158,16 @@ export const getReports = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: reports,
+    data: reports.map((report) => ({
+      reportId: report._id,
+      id: report.code,
+      target: report.target,
+      reason: report.type,
+      severity: report.severity,
+      status: report.status,
+      owner: report.owner,
+      date: report.createdAt?.toISOString().slice(0, 10) || "Unknown",
+    })),
   });
 });
 
@@ -156,13 +178,26 @@ export const updateReportStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Report not found.");
   }
 
-  report.status = req.body.status || report.status;
+  report.status = assertOneOf(
+    req.body.status || report.status,
+    ["Investigating", "Escalated", "Queued", "Resolved", "Closed"],
+    "Report status",
+  );
   await report.save();
 
   res.json({
     success: true,
     message: "Report status updated successfully.",
-    data: report,
+    data: {
+      reportId: report._id,
+      id: report.code,
+      target: report.target,
+      reason: report.type,
+      severity: report.severity,
+      status: report.status,
+      owner: report.owner,
+      date: report.createdAt?.toISOString().slice(0, 10) || "Unknown",
+    },
   });
 });
 
@@ -171,7 +206,10 @@ export const getTransactions = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: transactions.map(toTransactionRow),
+    data: transactions.map((transaction) => ({
+      ...toTransactionRow(transaction),
+      date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
+    })),
   });
 });
 
@@ -185,11 +223,17 @@ export const getSettings = asyncHandler(async (req, res) => {
 });
 
 export const updateSettings = asyncHandler(async (req, res) => {
+  const allowedSections = Array.isArray(req.body.sections) ? req.body.sections : [];
+  const sanitizedSections = allowedSections.map((section) => ({
+    ...pickAllowedKeys(section, ["title", "description", "items"]),
+    items: Array.isArray(section.items) ? section.items.slice(0, 12) : [],
+  }));
+
   const settings = await AppSettings.findOneAndUpdate(
     { key: "marketplace-settings" },
     {
       key: "marketplace-settings",
-      sections: req.body.sections || [],
+      sections: sanitizedSections,
     },
     { upsert: true, new: true },
   );

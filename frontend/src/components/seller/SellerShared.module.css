@@ -315,6 +315,21 @@
   background: #101010;
 }
 
+.mediaPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(245, 170, 0, 0.22), transparent 54%),
+    linear-gradient(180deg, #171717, #0d0d0d);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
 .productMedia img {
   width: 100%;
   height: 100%;
@@ -532,6 +547,7 @@
 }
 
 .uploadZone {
+  position: relative;
   min-height: 230px;
   border-radius: 18px;
   border: 2px dashed rgba(255, 255, 255, 0.08);
@@ -539,6 +555,21 @@
   align-items: center;
   justify-content: center;
   background: rgba(25, 25, 25, 0.76);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.uploadZone:hover {
+  border-color: rgba(240, 165, 0, 0.42);
+  background: rgba(31, 31, 31, 0.86);
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .uploadInner {
@@ -622,6 +653,7 @@
 }
 
 .inputWrap input,
+.inputWrap select,
 .textarea,
 .chatComposer input,
 .searchInput input {
@@ -631,6 +663,25 @@
   background: transparent;
   color: #fff;
   font: inherit;
+}
+
+.inputWrap select {
+  cursor: pointer;
+}
+
+.textarea {
+  min-height: 140px;
+  display: block;
+  resize: vertical;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #090909;
+  padding: 18px;
+}
+
+.textarea::placeholder,
+.inputWrap input::placeholder {
+  color: rgba(255, 255, 255, 0.36);
 }
 
 .premiumBox {
@@ -686,6 +737,27 @@
 
 .formActions .primaryCta {
   flex: 1;
+}
+
+.primaryCta:disabled,
+.secondaryCta:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
+.errorText,
+.successText {
+  margin-top: 24px;
+  font-weight: 700;
+}
+
+.errorText {
+  color: #ff8d8d;
+}
+
+.successText {
+  color: #63e6a5;
 }
 
 .chatGrid {
@@ -755,6 +827,17 @@
   border-radius: 50%;
   overflow: hidden;
   background: linear-gradient(180deg, #574d3d, #1e1e1e);
+}
+
+.threadAvatar span {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff4df;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 .threadAvatar img {
@@ -882,7 +965,7 @@
   min-height: 100px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 18px;
   padding: 18px 22px;
@@ -903,6 +986,23 @@
   border-radius: 16px;
   background: #ef9f00;
   color: #121212;
+}
+
+.emptyChatState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 40px 24px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.emptyChatState strong {
+  color: #fff7eb;
+  font-size: 1.2rem;
 }
 
 @media (max-width: 1280px) {

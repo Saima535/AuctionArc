@@ -2,6 +2,7 @@
 
 import styles from "@/components/admin-custom/AdminCustom.module.css";
 import { PanelCard, StatusPill } from "@/components/admin-custom/AdminUi";
+import { useApiData } from "@/hooks/useApiData";
 
 function DollarIcon() {
   return (
@@ -38,23 +39,29 @@ function BoxIcon() {
   );
 }
 
-const summary = [
-  { value: "$53,650", label: "Total Transaction Value", icon: <DollarIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
-  { value: "4", label: "Completed Transactions", icon: <CheckIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
-  { value: "3", label: "In Escrow", icon: <TrendIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
-];
-
-const rows = [
-  { id: "#1", item: "Vintage Rolex Watch", amount: "$15,000", status: "Completed", buyer: "John Anderson", seller: "Sarah Mitchell", date: "2024-04-15" },
-  { id: "#2", item: "Rare Pokemon Card Collection", amount: "$8,500", status: "Escrow", buyer: "Michael Chen", seller: "Lisa Wang", date: "2024-04-16" },
-  { id: "#3", item: "Antique Mahogany Desk", amount: "$3,200", status: "Completed", buyer: "David Thompson", seller: "Emma Rodriguez", date: "2024-04-16" },
-  { id: "#4", item: "Limited Edition Speakers", amount: "$950", status: "Escrow", buyer: "Sarah Mitchell", seller: "John Anderson", date: "2024-04-17" },
-  { id: "#5", item: "Classic Guitar Collection", amount: "$12,000", status: "Failed", buyer: "Lisa Wang", seller: "Michael Chen", date: "2024-04-17" },
-];
+function parseCurrency(value) {
+  return Number(String(value || "0").replace(/[^0-9.-]/g, "")) || 0;
+}
 
 export default function AdminTransactionsPage() {
+  const { data, error } = useApiData("/admin/transactions", {
+    initialData: [],
+  });
+
+  const totalValue = data.reduce((sum, item) => sum + parseCurrency(item.amount), 0);
+  const completedCount = data.filter((item) => /success|complete|paid/i.test(item.status)).length;
+  const inReviewCount = data.filter((item) => /escrow|pending|hold/i.test(item.status)).length;
+
+  const summary = [
+    { value: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(totalValue), label: "Total Transaction Value", icon: <DollarIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
+    { value: String(completedCount), label: "Completed Transactions", icon: <CheckIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
+    { value: String(inReviewCount), label: "In Review / Escrow", icon: <TrendIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
+  ];
+
   return (
     <div className={styles.page}>
+      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+
       <div className={styles.transactionSummaryGrid}>
         {summary.map((item) => (
           <PanelCard key={item.label} className={`${styles.summaryCard} ${item.cardClass}`}>
@@ -72,16 +79,21 @@ export default function AdminTransactionsPage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Item Name</th>
+              <th>User</th>
+              <th>Type</th>
               <th>Amount</th>
               <th>Status</th>
-              <th>Buyer</th>
-              <th>Seller</th>
+              <th>Channel</th>
               <th>Date</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {!data.length ? (
+              <tr>
+                <td colSpan={7}>No transactions found.</td>
+              </tr>
+            ) : null}
+            {data.map((row) => (
               <tr key={row.id}>
                 <td>{row.id}</td>
                 <td>
@@ -89,17 +101,17 @@ export default function AdminTransactionsPage() {
                     <span className={styles.listIcon}>
                       <BoxIcon />
                     </span>
-                    <span className={styles.itemName}>{row.item}</span>
+                    <span className={styles.itemName}>{row.user}</span>
                   </div>
                 </td>
+                <td>{row.type}</td>
                 <td className={styles.moneyText}>{row.amount}</td>
                 <td>
-                  <StatusPill tone={row.status === "Completed" ? "green" : row.status === "Escrow" ? "gold" : "red"}>
+                  <StatusPill tone={/success|complete|paid/i.test(row.status) ? "green" : /escrow|pending|hold/i.test(row.status) ? "gold" : "red"}>
                     {row.status}
                   </StatusPill>
                 </td>
-                <td>{row.buyer}</td>
-                <td>{row.seller}</td>
+                <td>{row.channel}</td>
                 <td>{row.date}</td>
               </tr>
             ))}

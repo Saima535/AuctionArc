@@ -4,6 +4,24 @@
   gap: 34px;
 }
 
+.inlineNotice {
+  margin: 0;
+  color: #ffb1b1;
+  font-weight: 700;
+}
+
+.successNotice {
+  margin: 0;
+  color: #78e4ae;
+  font-weight: 700;
+}
+
+.helperText {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.6;
+}
+
 .summaryGrid,
 .transactionSummaryGrid,
 .userGrid,
@@ -242,6 +260,10 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
+}
+
+.fullWidthAction {
+  grid-column: 1 / -1;
 }
 
 .suspendButton,
