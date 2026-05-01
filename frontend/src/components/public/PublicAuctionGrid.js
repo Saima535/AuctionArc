@@ -4,6 +4,7 @@ import styles from "./PublicAuctionGrid.module.css";
 export function PublicAuctionGrid({
   auctions,
   emptyMessage = "No public auction products are available right now.",
+  compact = false,
 }) {
   if (!auctions.length) {
     return <section className={styles.emptyState}>{emptyMessage}</section>;
@@ -43,16 +44,8 @@ export function PublicAuctionGrid({
                 <strong>{auction.currentBid}</strong>
               </div>
               <div className={styles.statCard}>
-                <span>{auction.secondaryLabel || "Countdown"}</span>
-                <strong>{auction.auctionWindow || auction.countdown}</strong>
-              </div>
-              <div className={styles.statCard}>
                 <span>Seller</span>
                 <strong>{auction.seller}</strong>
-              </div>
-              <div className={styles.statCard}>
-                <span>Watchers</span>
-                <strong>{auction.watchers}</strong>
               </div>
             </div>
 
@@ -60,14 +53,16 @@ export function PublicAuctionGrid({
               <p className={styles.note}>
                 Condition: {auction.condition} | Delivery: {auction.delivery}
               </p>
-              <div className={styles.ctaRow}>
-                <Link href="/register" className={styles.primaryAction}>
-                  Join to Participate
-                </Link>
-                <Link href="/login" className={styles.secondaryAction}>
-                  Sign In
-                </Link>
-              </div>
+              {!compact ? (
+                <div className={styles.ctaRow}>
+                  <Link href="/register" className={styles.primaryAction}>
+                    Join to Participate
+                  </Link>
+                  <Link href="/login" className={styles.secondaryAction}>
+                    Sign In
+                  </Link>
+                </div>
+              ) : null}
             </div>
           </div>
         </article>

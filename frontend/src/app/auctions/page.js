@@ -34,6 +34,7 @@ export default async function AuctionsPage() {
       <PublicAuctionGrid
         auctions={auctions}
         emptyMessage="No public auction products are available right now. Once approved listings are active, they will appear here automatically."
+        compact
       />
     </div>
   );

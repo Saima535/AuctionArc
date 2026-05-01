@@ -5,6 +5,7 @@ import { fetchPublicAuctions } from "@/lib/public-auctions";
 
 export default async function Home() {
   const auctions = await fetchPublicAuctions();
+  const latestAuctions = auctions.slice(0, 3);
 
   return (
     <div className={styles.page}>
@@ -56,8 +57,9 @@ export default async function Home() {
         </div>
 
         <PublicAuctionGrid
-          auctions={auctions}
+          auctions={latestAuctions}
           emptyMessage="No public auction products are available on the homepage right now."
+          compact
         />
 
         <div className={styles.sectionCtaRow}>
