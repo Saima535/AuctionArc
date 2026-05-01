@@ -6,11 +6,11 @@ import styles from "@/components/public/PublicPage.module.css";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 export function LogoutCard() {
-  const auth = useAuth();
+  const { logout } = useAuth();
 
   useEffect(() => {
-    auth.logout();
-  }, [auth]);
+    logout();
+  }, [logout]);
 
   return (
     <div className={styles.logoutWrap}>

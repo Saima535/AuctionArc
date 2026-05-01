@@ -37,8 +37,12 @@ export function clearStoredToken() {
     return;
   }
 
+  const hadToken = window.localStorage.getItem(AUTH_TOKEN_KEY);
   window.localStorage.removeItem(AUTH_TOKEN_KEY);
-  emitAuthChange();
+
+  if (hadToken) {
+    emitAuthChange();
+  }
 }
 
 export async function fetchCurrentUser(token) {

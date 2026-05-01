@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   AUTH_EVENT_NAME,
   clearStoredToken,
@@ -100,60 +100,64 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  const logout = useCallback(() => {
+    clearStoredToken();
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const token = getStoredToken();
+
+    if (!token) {
+      setAuthState({
+        status: "guest",
+        token: null,
+        user: null,
+        destination: null,
+        error: "",
+      });
+      return null;
+    }
+
+    setAuthState((current) => ({
+      ...current,
+      status: "checking",
+      token,
+      error: "",
+    }));
+
+    try {
+      const authData = await fetchCurrentUser(token);
+      const nextState = {
+        status: "authenticated",
+        error: "",
+        ...normalizeAuthData(authData, token),
+      };
+
+      setAuthState(nextState);
+      return nextState;
+    } catch (error) {
+      clearStoredToken();
+      setAuthState({
+        status: "guest",
+        token: null,
+        user: null,
+        destination: null,
+        error: error.message || "Your session could not be verified.",
+      });
+      return null;
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       ...authState,
       isReady: authState.status !== "checking",
       isAuthenticated: authState.status === "authenticated",
       role: authState.user?.role || null,
-      logout() {
-        clearStoredToken();
-      },
-      async refresh() {
-        const token = getStoredToken();
-
-        if (!token) {
-          setAuthState({
-            status: "guest",
-            token: null,
-            user: null,
-            destination: null,
-            error: "",
-          });
-          return null;
-        }
-
-        setAuthState((current) => ({
-          ...current,
-          status: "checking",
-          token,
-          error: "",
-        }));
-
-        try {
-          const authData = await fetchCurrentUser(token);
-          const nextState = {
-            status: "authenticated",
-            error: "",
-            ...normalizeAuthData(authData, token),
-          };
-
-          setAuthState(nextState);
-          return nextState;
-        } catch (error) {
-          clearStoredToken();
-          setAuthState({
-            status: "guest",
-            token: null,
-            user: null,
-            destination: null,
-            error: error.message || "Your session could not be verified.",
-          });
-          return null;
-        }
-      },
+      logout,
+      refresh,
     }),
-    [authState],
+    [authState, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
