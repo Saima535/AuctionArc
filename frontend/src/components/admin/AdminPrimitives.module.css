@@ -136,6 +136,44 @@
   gap: 10px;
 }
 
+.liveControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--admin-text, var(--color-text));
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.liveDot,
+.liveDotActive {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #1d9b5f;
+}
+
+.liveDotActive {
+  box-shadow: 0 0 0 6px rgba(29, 155, 95, 0.14);
+}
+
+.liveTimestamp {
+  color: var(--admin-muted, var(--color-muted));
+}
+
 .filterChip,
 .actionButton {
   min-height: 40px;
@@ -421,7 +459,8 @@
 @media (max-width: 720px) {
   .sectionIntro,
   .panelHeader,
-  .threadHeader {
+  .threadHeader,
+  .liveControls {
     flex-direction: column;
     align-items: flex-start;
   }

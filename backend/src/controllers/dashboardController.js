@@ -21,6 +21,7 @@ import {
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
+import { publishLiveEvent } from "../services/liveUpdateService.js";
 
 export const getSellerOverview = asyncHandler(async (req, res) => {
   const [listings, auctions, orders, threads, sellerAuctions] = await Promise.all([
@@ -418,6 +419,17 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
 
   order.status = req.body.status || order.status;
   await order.save();
+
+  publishLiveEvent({
+    event: "order.updated",
+    channels: ["market:orders"],
+    userIds: [order.seller, order.bidder],
+    roles: ["Admin"],
+    payload: {
+      orderId: order._id,
+      status: order.status,
+    },
+  });
 
   res.json({
     success: true,

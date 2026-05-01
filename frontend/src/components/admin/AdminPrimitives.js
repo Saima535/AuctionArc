@@ -65,6 +65,37 @@ export function FilterBar({ items }) {
   );
 }
 
+export function LiveRefreshControls({
+  onRefresh,
+  isRefreshing = false,
+  lastUpdated = null,
+  label = "Live refresh",
+  connectionState = "idle",
+}) {
+  const timestamp = lastUpdated
+    ? new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(lastUpdated)
+    : "Waiting for first sync";
+
+  return (
+    <div className={styles.liveControls}>
+      <span className={styles.liveBadge}>
+        <span className={connectionState === "connected" || isRefreshing ? styles.liveDotActive : styles.liveDot} />
+        {label}
+      </span>
+      <small className={styles.liveTimestamp}>
+        {connectionState === "connected" ? "Realtime connected" : connectionState === "reconnecting" ? "Reconnecting..." : "Polling fallback"} | Updated {timestamp}
+      </small>
+      <button type="button" className={styles.filterChip} onClick={() => onRefresh?.({ background: true })}>
+        {isRefreshing ? "Refreshing..." : "Refresh now"}
+      </button>
+    </div>
+  );
+}
+
 export function DataTable({ columns, rows }) {
   return (
     <div className={styles.tableWrap}>

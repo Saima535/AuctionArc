@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { ApiEmptyState, ApiErrorNotice, ApiLoadingNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
 import {
   ClockIcon,
@@ -76,8 +77,13 @@ export default function BidderDashboardPage() {
             ))}
           </div>
 
-          {!stats.length && isLoading ? <p className={styles.mutedCell}>Loading bidder snapshot...</p> : null}
-          {error ? <p className={styles.mutedCell}>{error}</p> : null}
+          {!stats.length && isLoading ? (
+            <ApiLoadingNotice
+              title="Loading bidder snapshot"
+              message="We are gathering your bidding activity, watchlist status, and wallet readiness."
+            />
+          ) : null}
+          {error ? <ApiErrorNotice title="Bidder dashboard unavailable" message={error} /> : null}
 
           <div className={styles.profileActions}>
             <Link href="/bidder/discover" className={styles.primaryButton}>
@@ -98,7 +104,12 @@ export default function BidderDashboardPage() {
           </div>
 
           <div className={styles.infoList}>
-            {!data.activity.length ? <p className={styles.mutedCell}>Your bid activity will appear here.</p> : null}
+            {!data.activity.length && !isLoading ? (
+              <ApiEmptyState
+                title="No bid activity yet"
+                message="Place a bid or follow an auction to start building your recent activity timeline."
+              />
+            ) : null}
             {data.activity.map((item) => (
               <article key={`${item.title}-${item.meta}`} className={styles.infoCard}>
                 <span className={styles.infoIcon}>
@@ -141,7 +152,12 @@ export default function BidderDashboardPage() {
           </div>
 
           <div className={styles.watchlist}>
-            {!data.watchlist.length ? <p className={styles.mutedCell}>No watched auctions yet.</p> : null}
+            {!data.watchlist.length && !isLoading ? (
+              <ApiEmptyState
+                title="No watched auctions yet"
+                message="Save auctions to your watchlist so you can compare sellers, prices, and closing times here."
+              />
+            ) : null}
             {data.watchlist.map((item) => (
               <article key={item.auctionId || item.id} className={styles.watchCard}>
                 <div className={styles.watchMeta}>

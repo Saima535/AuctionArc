@@ -1,22 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChatWorkspace,
   FilterBar,
+  LiveRefreshControls,
   Panel,
   SectionIntro,
 } from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 export default function BidderMessagesPage() {
-  const { data, setData, error } = useApiData("/messages", {
+  const { user } = useAuth();
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/messages", {
     initialData: [],
+    refreshIntervalMs: 6000,
+    revalidateOnWindowFocus: true,
   });
   const [activeThreadId, setActiveThreadId] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const live = useLiveRefresh({
+    channels: useMemo(() => ["market:messages", user?.id ? `user:${user.id}` : ""], [user?.id]),
+    enabled: Boolean(user?.id),
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
+  });
 
   useEffect(() => {
     if (!activeThreadId && data[0]?.id) {
@@ -36,6 +50,7 @@ export default function BidderMessagesPage() {
       setData((current) =>
         current.map((thread) => (thread.id === threadId ? result.data : thread)),
       );
+      refresh({ background: true });
     } finally {
       setIsSending(false);
     }
@@ -46,12 +61,22 @@ export default function BidderMessagesPage() {
       <SectionIntro
         title="Messages"
         description="Stay aligned with sellers and support teams on questions, proofs, and payment issues."
-        action={<FilterBar items={["All", "Sellers", "Support", "Open", "Urgent"]} />}
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime inbox + 6s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
+
+      <FilterBar items={["All", "Sellers", "Support", "Open", "Urgent"]} />
 
       <Panel title="Conversation workspace" description="A single inbox for seller communication and support handling.">
         {error ? (
-          <p>{error}</p>
+          <ApiErrorNotice title="Messages unavailable" message={error} />
         ) : (
           <ChatWorkspace
             threads={data}

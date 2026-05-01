@@ -16,7 +16,7 @@ Express + MongoDB backend for the current AuctionArc frontend.
 
 ## Quick start
 
-1. Copy values into `backend/.env` and `frontend/.env` if needed.
+1. Copy values into `backend/.env` and `frontend/.env.local` if needed. A frontend template is available in `frontend/.env.example`.
 2. Install dependencies:
 
 ```bash
@@ -75,6 +75,6 @@ npm run seed
 
 ## Frontend alignment notes
 
-- `frontend/.env` now exposes `NEXT_PUBLIC_API_BASE_URL`
-- `frontend/.env` now uses the correct public Stripe key variable name for Next.js
+- `frontend/.env.local` exposes `NEXT_PUBLIC_API_BASE_URL`
+- `frontend/.env.local` uses the correct public Stripe key variable name for Next.js
 - The backend response shapes are designed to mirror the current frontend mock-data cards, tables, and profile modules

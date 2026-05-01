@@ -3,6 +3,7 @@
 import Link from "next/link";
 import styles from "@/components/admin-custom/AdminCustom.module.css";
 import { PanelCard, SectionTitle } from "@/components/admin-custom/AdminUi";
+import { ApiErrorNotice, ApiLoadingNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
 
 function PulseIcon() {
@@ -99,7 +100,13 @@ export default function AdminDashboardPage() {
 
   return (
     <div className={styles.page}>
-      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+      {error ? <ApiErrorNotice title="Admin overview unavailable" message={error} /> : null}
+      {isLoading ? (
+        <ApiLoadingNotice
+          title="Loading marketplace overview"
+          message="We are pulling the latest auction counts, transaction summaries, and admin monitoring data."
+        />
+      ) : null}
 
       <section>
         <SectionTitle>Auction Summary</SectionTitle>

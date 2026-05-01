@@ -1,25 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   DataTable,
+  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 const statusFlow = ["Awaiting payout", "In escrow", "Paid", "Awaiting shipment", "Delivered", "Completed"];
 
 export default function SellerOrdersPage() {
-  const { data, setData, error } = useApiData("/dashboard/seller/orders", {
+  const { user } = useAuth();
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/seller/orders", {
     initialData: [],
+    refreshIntervalMs: 15000,
+    revalidateOnWindowFocus: true,
   });
   const [pageMessage, setPageMessage] = useState("");
   const [pageError, setPageError] = useState("");
   const [busyOrderId, setBusyOrderId] = useState("");
+  const live = useLiveRefresh({
+    channels: useMemo(() => ["market:orders", user?.id ? `user:${user.id}` : ""], [user?.id]),
+    enabled: Boolean(user?.id),
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
+  });
 
   async function handleAdvanceStatus(row) {
     const currentIndex = statusFlow.indexOf(row.status);
@@ -43,6 +57,7 @@ export default function SellerOrdersPage() {
         current.map((order) => (order.orderId === row.orderId ? result.data : order)),
       );
       setPageMessage(`${row.item} moved to ${nextStatus}.`);
+      refresh({ background: true });
     } catch (requestError) {
       setPageError(requestError.message || "Could not update the order status.");
     } finally {
@@ -90,13 +105,22 @@ export default function SellerOrdersPage() {
       <SectionIntro
         title="Orders"
         description="Monitor sold items, buyer status, escrow state, and payout progress."
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime orders + 15s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
 
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
 
       <Panel title="Order pipeline" description="Commercial status for completed or nearly completed sales.">
-        {error ? <p>{error}</p> : <DataTable columns={orderColumns} rows={data} />}
+        {error ? <ApiErrorNotice title="Seller orders unavailable" message={error} /> : <DataTable columns={orderColumns} rows={data} />}
       </Panel>
     </div>
   );

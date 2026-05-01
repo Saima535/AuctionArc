@@ -1,13 +1,18 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import {
   DataTable,
   FilterBar,
+  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 const bidColumns = [
@@ -27,8 +32,22 @@ const bidColumns = [
 ];
 
 export default function BidderMyBidsPage() {
-  const { data, error } = useApiData("/dashboard/bidder/bids", {
+  const { user } = useAuth();
+  const { data, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/bidder/bids", {
     initialData: [],
+    refreshIntervalMs: 10000,
+    revalidateOnWindowFocus: true,
+  });
+  const liveChannels = useMemo(
+    () => ["market:bids", user?.id ? `user:${user.id}` : ""],
+    [user?.id],
+  );
+  const live = useLiveRefresh({
+    channels: liveChannels,
+    enabled: Boolean(user?.id),
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
   });
 
   return (
@@ -36,11 +55,21 @@ export default function BidderMyBidsPage() {
       <SectionIntro
         title="My bids"
         description="Follow your live positions, competition pressure, and bids that require action."
-        action={<FilterBar items={["All bids", "Leading", "Outbid", "Pending check"]} />}
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime bids + 10s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
 
+      <FilterBar items={["All bids", "Leading", "Outbid", "Pending check"]} />
+
       <Panel title="Bid positions" description="Current standing across auctions you are participating in.">
-        {error ? <p>{error}</p> : <DataTable columns={bidColumns} rows={data} />}
+        {error ? <ApiErrorNotice title="Bid positions unavailable" message={error} /> : <DataTable columns={bidColumns} rows={data} />}
       </Panel>
     </div>
   );

@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -25,7 +26,9 @@ export default function RootLayout({ children }) {
       data-scroll-behavior="smooth"
     >
       <body>
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,25 +1,44 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   FilterBar,
+  LiveRefreshControls,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiEmptyState, ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 export default function BidderDiscoverPage() {
   const router = useRouter();
-  const { data, setData, error } = useApiData("/dashboard/bidder/discover", {
+  const { user } = useAuth();
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/bidder/discover", {
     initialData: [],
+    refreshIntervalMs: 12000,
+    revalidateOnWindowFocus: true,
   });
   const [bidValues, setBidValues] = useState({});
   const [pageMessage, setPageMessage] = useState("");
   const [pageError, setPageError] = useState("");
   const [busyAuctionId, setBusyAuctionId] = useState("");
+  const liveChannels = useMemo(
+    () => ["market:auctions", "market:bids", "market:watchlist", user?.id ? `user:${user.id}` : ""],
+    [user?.id],
+  );
+  const handleLiveEvent = useCallback(() => {
+    refresh({ background: true });
+  }, [refresh]);
+  const live = useLiveRefresh({
+    channels: liveChannels,
+    enabled: Boolean(user?.id),
+    onEvent: handleLiveEvent,
+  });
 
   async function handleWatchToggle(item) {
     setPageError("");
@@ -45,6 +64,7 @@ export default function BidderDiscoverPage() {
         ),
       );
       setPageMessage(item.watchlisted ? "Removed from watchlist." : "Added to watchlist.");
+      refresh({ background: true });
     } catch (requestError) {
       setPageError(requestError.message || "Could not update watchlist.");
     } finally {
@@ -80,6 +100,7 @@ export default function BidderDiscoverPage() {
       );
       setBidValues((current) => ({ ...current, [item.auctionId]: "" }));
       setPageMessage(`Bid placed on ${item.title}.`);
+      refresh({ background: true });
     } catch (requestError) {
       setPageError(requestError.message || "Could not place bid.");
     } finally {
@@ -115,15 +136,30 @@ export default function BidderDiscoverPage() {
       <SectionIntro
         title="Discover"
         description="Browse promising auctions and trending opportunities that match your buying interest."
-        action={<FilterBar items={["All", "Vehicles", "Collectibles", "Industrial", "Trending"]} />}
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime auctions + 12s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
 
-      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+      <FilterBar items={["All", "Vehicles", "Collectibles", "Industrial", "Trending"]} />
+
+      {error ? <ApiErrorNotice title="Discover feed unavailable" message={error} /> : null}
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
 
       <div className={styles.compactList}>
-        {!data.length ? <p className={styles.emptyState}>No auctions are available to discover right now.</p> : null}
+        {!data.length ? (
+          <ApiEmptyState
+            title="No auctions available right now"
+            message="Once new live listings arrive, they will appear here automatically."
+          />
+        ) : null}
         {data.map((item) => (
           <article key={item.id} className={styles.compactCard}>
             <div className={styles.compactCardBody}>

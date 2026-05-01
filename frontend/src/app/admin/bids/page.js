@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   DataTable,
   FilterBar,
+  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatCard,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "../page.module.css";
 
@@ -18,13 +21,21 @@ function bidStatusTone(value) {
 }
 
 export default function AdminBidsPage() {
-  const { data, setData, error } = useApiData("/admin/bids", {
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/admin/bids", {
     initialData: [],
+    refreshIntervalMs: 8000,
+    revalidateOnWindowFocus: true,
   });
   const [selectedBidId, setSelectedBidId] = useState("");
   const [busyBidId, setBusyBidId] = useState("");
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
+  const live = useLiveRefresh({
+    channels: ["market:bids", "role:Admin"],
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
+  });
 
   const selectedBid = data.find((item) => item.bidId === selectedBidId) || data[0];
 
@@ -84,6 +95,7 @@ export default function AdminBidsPage() {
         current.map((item) => (item.bidId === selectedBid.bidId ? result.data : item)),
       );
       setPageMessage(`${selectedBid.id} updated to ${status}.`);
+      refresh({ background: true });
     } catch (requestError) {
       setPageError(requestError.message || "Could not update bid status.");
     } finally {
@@ -96,10 +108,20 @@ export default function AdminBidsPage() {
       <SectionIntro
         title="Bids"
         description="Review bid flow, unusual activity, and escalation paths linked to auction disputes."
-        action={<FilterBar items={["All bids", "Valid", "Held", "Review", "Suspicious signals"]} />}
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime admin bids + 8s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
 
-      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+      <FilterBar items={["All bids", "Valid", "Held", "Review", "Suspicious signals"]} />
+
+      {error ? <ApiErrorNotice title="Admin bid review unavailable" message={error} /> : null}
       {pageError ? <p className={styles.inlineNotice}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successNotice}>{pageMessage}</p> : null}
 

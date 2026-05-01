@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import styles from "@/components/public/PublicPage.module.css";
-import { clearStoredToken } from "@/lib/auth";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export function LogoutCard() {
+  const auth = useAuth();
+
   useEffect(() => {
-    clearStoredToken();
-  }, []);
+    auth.logout();
+  }, [auth]);
 
   return (
     <div className={styles.logoutWrap}>

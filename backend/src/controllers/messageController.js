@@ -2,6 +2,7 @@ import { User } from "../models/User.js";
 import { Thread } from "../models/Thread.js";
 import mongoose from "mongoose";
 import { toThreadRow } from "../services/mapperService.js";
+import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -51,6 +52,17 @@ export const createThread = asyncHandler(async (req, res) => {
     existingThread.updatedAt = new Date();
     await existingThread.save();
 
+    publishLiveEvent({
+      event: "thread.updated",
+      channels: ["market:messages"],
+      userIds: existingThread.participants.map((participant) => participant.user),
+      roles: ["Admin"],
+      payload: {
+        threadId: existingThread._id,
+        subject: existingThread.subject,
+      },
+    });
+
     res.status(201).json({
       success: true,
       message: "Conversation updated successfully.",
@@ -84,6 +96,17 @@ export const createThread = asyncHandler(async (req, res) => {
         body: normalizedBody,
       },
     ],
+  });
+
+  publishLiveEvent({
+    event: "thread.created",
+    channels: ["market:messages"],
+    userIds: thread.participants.map((participant) => participant.user),
+    roles: ["Admin"],
+    payload: {
+      threadId: thread._id,
+      subject: thread.subject,
+    },
   });
 
   res.status(201).json({
@@ -123,6 +146,17 @@ export const postThreadMessage = asyncHandler(async (req, res) => {
   });
   thread.updatedAt = new Date();
   await thread.save();
+
+  publishLiveEvent({
+    event: "thread.updated",
+    channels: ["market:messages"],
+    userIds: thread.participants.map((participant) => participant.user),
+    roles: ["Admin"],
+    payload: {
+      threadId: thread._id,
+      subject: thread.subject,
+    },
+  });
 
   res.status(201).json({
     success: true,

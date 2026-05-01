@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import styles from "./AdminShell.module.css";
 import { adminNavItems } from "@/data/admin/navigation";
 import { apiRequest } from "@/lib/api";
-import { useApiData } from "@/hooks/useApiData";
 
 function getPageTitle(pathname) {
   return adminNavItems.find((item) => item.href === pathname)?.label || "Admin";
@@ -15,12 +15,7 @@ function getPageTitle(pathname) {
 export function AdminShell({ children }) {
   const pathname = usePathname();
   const title = getPageTitle(pathname);
-  const { data: profile } = useApiData("/users/me/profile", {
-    initialData: {
-      name: "Admin",
-      role: "Admin",
-    },
-  });
+  const { user: profile } = useAuth();
   const [isExporting, setIsExporting] = useState(false);
   const initials = String(profile?.name || "Admin")
     .split(" ")

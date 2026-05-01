@@ -1,23 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ChatWorkspace,
   FilterBar,
+  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatCard,
 } from "@/components/admin/AdminPrimitives";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "../page.module.css";
 
 export default function AdminChatsPage() {
-  const { data, setData, error } = useApiData("/admin/chats", {
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/admin/chats", {
     initialData: [],
+    refreshIntervalMs: 5000,
+    revalidateOnWindowFocus: true,
   });
   const [activeThreadId, setActiveThreadId] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const live = useLiveRefresh({
+    channels: ["market:messages", "role:Admin"],
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
+  });
 
   useEffect(() => {
     if (!activeThreadId && data[0]?.id) {
@@ -37,6 +48,7 @@ export default function AdminChatsPage() {
       setData((current) =>
         current.map((thread) => (thread.id === threadId ? result.data : thread)),
       );
+      refresh({ background: true });
     } finally {
       setIsSending(false);
     }
@@ -47,10 +59,20 @@ export default function AdminChatsPage() {
       <SectionIntro
         title="Chats and disputes"
         description="Support and dispute inbox for moderator-guided conversations, escalations, and internal notes."
-        action={<FilterBar items={["Open", "Escalated", "Payments", "Authenticity", "Resolved"]} />}
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime admin chats + 5s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
 
-      {error ? <p>{error}</p> : null}
+      <FilterBar items={["Open", "Escalated", "Payments", "Authenticity", "Resolved"]} />
+
+      {error ? <ApiErrorNotice title="Admin chats unavailable" message={error} /> : null}
 
       <section className={styles.statGrid}>
         <StatCard label="Open threads" value={String(data.filter((thread) => thread.status === "Open").length)} delta="Live backlog" tone="warn" />

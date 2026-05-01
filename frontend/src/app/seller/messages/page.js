@@ -1,23 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { LiveRefreshControls } from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import shared from "@/components/seller/SellerShared.module.css";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import { DotsIcon, SearchIcon, SendIcon } from "@/components/seller/SellerIcons";
 
 export default function SellerMessagesPage() {
-  const { data, setData, error } = useApiData("/messages", {
+  const { user: profile } = useAuth();
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/messages", {
     initialData: [],
-  });
-  const { data: profile } = useApiData("/users/me/profile", {
-    initialData: null,
+    refreshIntervalMs: 6000,
+    revalidateOnWindowFocus: true,
   });
   const [activeThreadId, setActiveThreadId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [messageBody, setMessageBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [pageError, setPageError] = useState("");
+  const live = useLiveRefresh({
+    channels: useMemo(() => ["market:messages", profile?.id ? `user:${profile.id}` : ""], [profile?.id]),
+    enabled: Boolean(profile?.id),
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
+  });
 
   const filteredThreads = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -67,6 +78,7 @@ export default function SellerMessagesPage() {
         current.map((thread) => (thread.id === activeThread.id ? result.data : thread)),
       );
       setMessageBody("");
+      refresh({ background: true });
     } catch (requestError) {
       setPageError(requestError.message || "Could not send your message.");
     } finally {
@@ -76,7 +88,17 @@ export default function SellerMessagesPage() {
 
   return (
     <div className={shared.page}>
-      {error ? <p className={shared.errorText}>{error}</p> : null}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <LiveRefreshControls
+          onRefresh={refresh}
+          isRefreshing={isRefreshing}
+          lastUpdated={lastUpdated}
+          label="Realtime inbox + 6s fallback"
+          connectionState={live.connectionState}
+        />
+      </div>
+
+      {error ? <ApiErrorNotice title="Seller inbox unavailable" message={error} /> : null}
       {pageError ? <p className={shared.errorText}>{pageError}</p> : null}
 
       <section className={shared.chatGrid}>

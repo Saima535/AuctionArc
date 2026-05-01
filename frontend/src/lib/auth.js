@@ -1,9 +1,18 @@
 "use client";
 
 export const AUTH_TOKEN_KEY = "auctionarc_token";
+export const AUTH_EVENT_NAME = "auctionarc-auth-change";
 
 export function getApiBaseUrl() {
   return process.env.NEXT_PUBLIC_API_BASE_URL;
+}
+
+function emitAuthChange() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new Event(AUTH_EVENT_NAME));
 }
 
 export function getStoredToken() {
@@ -20,6 +29,7 @@ export function storeToken(token) {
   }
 
   window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+  emitAuthChange();
 }
 
 export function clearStoredToken() {
@@ -28,6 +38,7 @@ export function clearStoredToken() {
   }
 
   window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  emitAuthChange();
 }
 
 export async function fetchCurrentUser(token) {

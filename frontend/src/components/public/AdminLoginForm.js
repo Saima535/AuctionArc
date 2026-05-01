@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "@/components/public/PublicPage.module.css";
-import { getApiBaseUrl, storeToken } from "@/lib/auth";
+import { loginUser } from "@/lib/auth-actions";
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -18,46 +18,22 @@ export function AdminLoginForm() {
     const formData = new FormData(event.currentTarget);
     const email = formData.get("email");
     const password = formData.get("password");
-    const apiBaseUrl = getApiBaseUrl();
-
     setSubmitError("");
     setSubmitSuccess("");
-
-    if (!apiBaseUrl) {
-      setSubmitError("Frontend configuration is missing NEXT_PUBLIC_API_BASE_URL.");
-      return;
-    }
 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          role: "Admin",
-        }),
+      const result = await loginUser({
+        email,
+        password,
+        role: "Admin",
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setSubmitError(result.message || "Admin login failed. Please try again.");
-        return;
-      }
-
-      if (result.data?.token) {
-        storeToken(result.data.token);
-      }
-
       setSubmitSuccess("Admin login successful. Redirecting...");
-      router.push(result.data?.destination || "/admin");
-    } catch {
-      setSubmitError("Could not connect to the backend. Please make sure the backend server is running.");
+      router.push(result.destination);
+    } catch (error) {
+      setSubmitError(error.message || "Could not connect to the backend. Please make sure the backend server is running.");
     } finally {
       setIsSubmitting(false);
     }

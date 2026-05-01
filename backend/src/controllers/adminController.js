@@ -17,6 +17,7 @@ import {
   toThreadRow,
   toTransactionRow,
 } from "../services/mapperService.js";
+import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
@@ -229,6 +230,17 @@ export const updateAuctionStatus = asyncHandler(async (req, res) => {
   auction.status = assertOneOf(req.body.status || auction.status, AUCTION_STATUSES, "Auction status");
   await auction.save();
 
+  publishLiveEvent({
+    event: "auction.updated",
+    channels: ["market:auctions"],
+    userIds: [auction.seller],
+    roles: ["Admin"],
+    payload: {
+      auctionId: auction._id,
+      status: auction.status,
+    },
+  });
+
   res.json({
     success: true,
     message: "Auction status updated successfully.",
@@ -254,6 +266,18 @@ export const updateBidStatus = asyncHandler(async (req, res) => {
 
   bid.status = assertOneOf(req.body.status || bid.status, BID_STATUSES, "Bid status");
   await bid.save();
+
+  publishLiveEvent({
+    event: "bid.updated",
+    channels: ["market:bids", "market:auctions"],
+    userIds: [bid.bidder?._id, bid.auction?.seller],
+    roles: ["Admin"],
+    payload: {
+      bidId: bid._id,
+      auctionId: bid.auction?._id,
+      status: bid.status,
+    },
+  });
 
   res.json({
     success: true,

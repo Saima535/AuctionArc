@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthProvider";
 import styles from "./BuyerShell.module.css";
-import { useApiData } from "@/hooks/useApiData";
 
 const navItems = [
   { href: "/bidder", label: "Home" },
@@ -75,12 +75,7 @@ function initialsForName(name) {
 
 export function BuyerShell({ children }) {
   const pathname = usePathname();
-  const { data: profile } = useApiData("/users/me/profile", {
-    initialData: {
-      name: "Bidder",
-      profilePicture: null,
-    },
-  });
+  const { user: profile } = useAuth();
   const imageUrl = profile?.profilePicture?.url;
 
   return (

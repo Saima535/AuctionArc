@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "@/components/public/PublicPage.module.css";
-import { apiRequest } from "@/lib/api";
+import { requestPasswordReset } from "@/lib/auth-actions";
 
 export function ForgotPasswordForm() {
   const router = useRouter();
@@ -22,13 +22,9 @@ export function ForgotPasswordForm() {
     setIsSubmitting(true);
 
     try {
-      const result = await apiRequest("/auth/forgot-password", {
-        method: "POST",
-        auth: false,
-        body: {
-          email: formData.get("email"),
-          role: formData.get("role"),
-        },
+      const result = await requestPasswordReset({
+        email: formData.get("email"),
+        role: formData.get("role"),
       });
 
       const resetCode = result.data?.developmentCode;

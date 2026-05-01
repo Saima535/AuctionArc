@@ -1,13 +1,18 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import {
   DataTable,
   FilterBar,
+  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 const auctionColumns = [
@@ -28,8 +33,18 @@ const auctionColumns = [
 ];
 
 export default function SellerAuctionsPage() {
-  const { data, error } = useApiData("/dashboard/seller/auctions", {
+  const { user } = useAuth();
+  const { data, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/seller/auctions", {
     initialData: [],
+    refreshIntervalMs: 12000,
+    revalidateOnWindowFocus: true,
+  });
+  const live = useLiveRefresh({
+    channels: useMemo(() => ["market:auctions", user?.id ? `user:${user.id}` : ""], [user?.id]),
+    enabled: Boolean(user?.id),
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
   });
 
   return (
@@ -37,11 +52,21 @@ export default function SellerAuctionsPage() {
       <SectionIntro
         title="Auctions"
         description="Follow live selling sessions, bidder engagement, and end-state timing."
-        action={<FilterBar items={["Live", "Extended", "Scheduled", "Completed"]} />}
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime auctions + 12s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
 
+      <FilterBar items={["Live", "Extended", "Scheduled", "Completed"]} />
+
       <Panel title="Selling activity" description="A focused view of auctions tied to your inventory.">
-        {error ? <p>{error}</p> : <DataTable columns={auctionColumns} rows={data} />}
+        {error ? <ApiErrorNotice title="Seller auctions unavailable" message={error} /> : <DataTable columns={auctionColumns} rows={data} />}
       </Panel>
     </div>
   );

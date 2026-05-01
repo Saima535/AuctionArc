@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { ApiEmptyState, ApiErrorNotice, ApiLoadingNotice } from "@/components/feedback/ApiFeedback";
 import shared from "@/components/seller/SellerShared.module.css";
 import { useApiData } from "@/hooks/useApiData";
 import {
@@ -117,8 +118,13 @@ export default function SellerDashboardPage() {
         </div>
       </section>
 
-      {error ? <p className={shared.errorText}>{error}</p> : null}
-      {isLoading ? <p className={shared.mutedText}>Loading seller performance...</p> : null}
+      {error ? <ApiErrorNotice title="Seller dashboard unavailable" message={error} /> : null}
+      {isLoading ? (
+        <ApiLoadingNotice
+          title="Loading seller performance"
+          message="We are syncing your latest listings, sales snapshots, and buyer activity."
+        />
+      ) : null}
 
       <section className={shared.statGrid}>
         {stats.map((item) => (
@@ -135,6 +141,13 @@ export default function SellerDashboardPage() {
       <section className={shared.dashboardGrid}>
         <div className={shared.page}>
           <div className={shared.miniStats}>
+            {!performance.length && !isLoading ? (
+              <ApiEmptyState
+                title="No performance metrics yet"
+                message="Performance insights will appear here once your first listings and auctions collect activity."
+              />
+            ) : null}
+
             {performance.map((item) => (
               <article key={item.label} className={`${shared.panel} ${shared.miniStatCard}`}>
                 <div className={shared.miniStatTop}>
@@ -272,6 +285,13 @@ export default function SellerDashboardPage() {
         <aside className={`${shared.panel} ${shared.activityPanel}`}>
           <h2>Recent Activity</h2>
           <div className={shared.activityList}>
+            {!activityItems.length && !isLoading ? (
+              <ApiEmptyState
+                title="No recent activity"
+                message="New bids, buyer messages, and auction milestones will appear here as your seller workspace becomes active."
+              />
+            ) : null}
+
             {activityItems.map((item) => (
               <article key={item.title} className={shared.activityItem}>
                 <span className={`${shared.activityIcon} ${item.iconClass}`}>{item.icon}</span>

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthProvider";
 import styles from "./AdminWorkspace.module.css";
-import { useApiData } from "@/hooks/useApiData";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "grid" },
@@ -97,13 +97,7 @@ function initialsForName(name) {
 
 export function AdminWorkspace({ children }) {
   const pathname = usePathname();
-  const { data: profile } = useApiData("/users/me/profile", {
-    initialData: {
-      name: "Admin",
-      role: "Administrator",
-      profilePicture: null,
-    },
-  });
+  const { user: profile } = useAuth();
   const imageUrl = profile?.profilePicture?.url;
 
   return (

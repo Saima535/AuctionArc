@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "@/components/public/PublicPage.module.css";
+import { registerUser } from "@/lib/auth-actions";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -30,8 +31,6 @@ export function RegisterForm() {
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
     const birthdateValue = typeof birthdate === "string" ? birthdate : "";
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
     setSubmitError("");
     setSubmitSuccess("");
 
@@ -54,26 +53,12 @@ export function RegisterForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/auth/register`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        setSubmitError(result.message || "Registration failed. Please try again.");
-        return;
-      }
-
-      if (result.data?.token) {
-        window.localStorage.setItem("auctionarc_token", result.data.token);
-      }
+      const result = await registerUser(formData);
 
       setSubmitSuccess("Account created successfully. Redirecting...");
-      router.push(result.data?.destination || (role === "Seller" ? "/seller" : "/bidder/discover"));
+      router.push(result.destination || (role === "Seller" ? "/seller" : "/bidder/discover"));
     } catch (error) {
-      setSubmitError("Could not connect to the backend. Please make sure the backend server is running.");
+      setSubmitError(error.message || "Could not connect to the backend. Please make sure the backend server is running.");
     } finally {
       setIsSubmitting(false);
     }

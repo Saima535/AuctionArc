@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "@/components/public/PublicPage.module.css";
-import { apiRequest } from "@/lib/api";
+import { resetPassword } from "@/lib/auth-actions";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -22,14 +22,10 @@ export function ResetPasswordForm() {
     setIsSubmitting(true);
 
     try {
-      await apiRequest("/auth/reset-password", {
-        method: "POST",
-        auth: false,
-        body: {
-          code: formData.get("code"),
-          password: formData.get("password"),
-          confirmPassword: formData.get("confirmPassword"),
-        },
+      await resetPassword({
+        code: formData.get("code"),
+        password: formData.get("password"),
+        confirmPassword: formData.get("confirmPassword"),
       });
 
       setSubmitSuccess("Password reset completed successfully. Redirecting...");

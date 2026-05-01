@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthProvider";
 import styles from "./SellerShell.module.css";
-import { useApiData } from "@/hooks/useApiData";
 
 const sidebarItems = [
   { href: "/seller", label: "Dashboard", icon: "grid" },
@@ -133,13 +133,7 @@ function ProfileAvatar({ profile, className }) {
 
 export function SellerShell({ children }) {
   const pathname = usePathname();
-  const { data: profile } = useApiData("/users/me/profile", {
-    initialData: {
-      name: "Seller",
-      email: "",
-      profilePicture: null,
-    },
-  });
+  const { user: profile } = useAuth();
 
   return (
     <div className={styles.shell}>

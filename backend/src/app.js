@@ -10,6 +10,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import auctionRoutes from "./routes/auctionRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import liveRoutes from "./routes/liveRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -48,6 +49,7 @@ export function createApp() {
 
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/dashboard", dashboardRoutes);
+  app.use("/api/v1/live", liveRoutes);
   app.use("/api/v1/users", userRoutes);
   app.use("/api/v1/auctions", auctionRoutes);
   app.use("/api/v1/messages", messageRoutes);

@@ -4,6 +4,7 @@ import { Listing } from "../models/Listing.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { BID_STATUSES, LISTING_STATUSES } from "../constants/enums.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
+import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
@@ -260,6 +261,19 @@ export const placeBid = asyncHandler(async (req, res) => {
     $inc: { bidCount: 1 },
   });
 
+  publishLiveEvent({
+    event: "bid.updated",
+    channels: ["market:auctions", "market:bids"],
+    userIds: [req.user._id, auction.seller],
+    roles: ["Admin"],
+    payload: {
+      auctionId: auction._id,
+      bidderId: req.user._id,
+      sellerId: auction.seller,
+      amount,
+    },
+  });
+
   res.status(201).json({
     success: true,
     message: "Bid placed successfully.",
@@ -304,6 +318,20 @@ export const addToWatchlist = asyncHandler(async (req, res) => {
   auction.watcherCount += 1;
   await auction.save();
 
+  publishLiveEvent({
+    event: "watchlist.updated",
+    channels: ["market:auctions", "market:watchlist"],
+    userIds: [req.user._id, auction.seller],
+    roles: ["Admin"],
+    payload: {
+      auctionId: auction._id,
+      bidderId: req.user._id,
+      sellerId: auction.seller,
+      watcherCount: auction.watcherCount,
+      action: "added",
+    },
+  });
+
   res.json({
     success: true,
     message: "Auction added to watchlist.",
@@ -328,6 +356,20 @@ export const removeFromWatchlist = asyncHandler(async (req, res) => {
 
   auction.watcherCount = Math.max((auction.watcherCount || 1) - 1, 0);
   await auction.save();
+
+  publishLiveEvent({
+    event: "watchlist.updated",
+    channels: ["market:auctions", "market:watchlist"],
+    userIds: [req.user._id, auction.seller],
+    roles: ["Admin"],
+    payload: {
+      auctionId: auction._id,
+      bidderId: req.user._id,
+      sellerId: auction.seller,
+      watcherCount: auction.watcherCount,
+      action: "removed",
+    },
+  });
 
   res.json({
     success: true,

@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "@/components/public/PublicPage.module.css";
-import {
-  clearStoredToken,
-  fetchCurrentUser,
-  getStoredToken,
-} from "@/lib/auth";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 function destinationForRole(role) {
   if (role === "Seller") {
@@ -25,64 +21,59 @@ function destinationForRole(role) {
   return "/login";
 }
 
+function loginRouteForRoles(allowedRoles) {
+  if (allowedRoles.length === 1 && allowedRoles[0] === "Admin") {
+    return "/admin-login";
+  }
+
+  return "/login";
+}
+
 export function ProtectedRoute({ allowedRoles, children }) {
   const router = useRouter();
-  const [status, setStatus] = useState("checking");
-  const [message, setMessage] = useState("Checking your account access...");
+  const auth = useAuth();
+  const fallbackLoginRoute = loginRouteForRoles(allowedRoles);
+  const hasAllowedRole = auth.role && allowedRoles.includes(auth.role);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function verifyAccess() {
-      const token = getStoredToken();
-
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
-
-      try {
-        const authData = await fetchCurrentUser(token);
-        const userRole = authData?.user?.role;
-
-        if (!userRole) {
-          throw new Error("Your session is missing role information.");
-        }
-
-        if (!allowedRoles.includes(userRole)) {
-          router.replace(destinationForRole(userRole));
-          return;
-        }
-
-        if (isMounted) {
-          setStatus("ready");
-        }
-      } catch (error) {
-        clearStoredToken();
-
-        if (isMounted) {
-          setMessage(error.message || "Your session could not be verified. Please sign in again.");
-          setStatus("error");
-        }
-
-        router.replace("/login");
-      }
+    if (!auth.isReady) {
+      return;
     }
 
-    verifyAccess();
+    if (!auth.isAuthenticated) {
+      router.replace(fallbackLoginRoute);
+      return;
+    }
 
-    return () => {
-      isMounted = false;
-    };
-  }, [allowedRoles, router]);
+    if (!auth.role) {
+      router.replace(fallbackLoginRoute);
+      return;
+    }
 
-  if (status !== "ready") {
+    if (!hasAllowedRole) {
+      router.replace(destinationForRole(auth.role));
+    }
+  }, [auth.isAuthenticated, auth.isReady, auth.role, fallbackLoginRoute, hasAllowedRole, router]);
+
+  if (!auth.isReady) {
     return (
       <div className={styles.logoutWrap}>
         <section className={styles.logoutCard}>
           <span className={styles.eyebrow}>Access Check</span>
           <h1>Please wait</h1>
-          <p>{message}</p>
+          <p>Checking your account access...</p>
+        </section>
+      </div>
+    );
+  }
+
+  if (!auth.isAuthenticated || !hasAllowedRole) {
+    return (
+      <div className={styles.logoutWrap}>
+        <section className={styles.logoutCard}>
+          <span className={styles.eyebrow}>Access Check</span>
+          <h1>Please wait</h1>
+          <p>{auth.error || "Redirecting you to the correct sign-in or workspace..."}</p>
         </section>
       </div>
     );

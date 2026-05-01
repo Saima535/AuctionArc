@@ -13,8 +13,8 @@ export default function RegisterPage() {
         <span className={styles.eyebrow}>Create account</span>
         <h1>Register for AuctionArc</h1>
         <p>
-          Public registration is available for sellers and bidders. This
-          frontend form gives us the structure for later backend integration.
+          Public registration is available for sellers and bidders, and this form
+          now submits directly into the live AuctionArc auth flow.
         </p>
         <ul className={styles.bulletList}>
           <li>Seller accounts will manage auction listings and inventory.</li>

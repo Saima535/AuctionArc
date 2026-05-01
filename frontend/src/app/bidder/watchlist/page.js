@@ -1,26 +1,43 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   DataTable,
   FilterBar,
+  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 export default function BidderWatchlistPage() {
   const router = useRouter();
-  const { data, setData, error } = useApiData("/dashboard/bidder/watchlist", {
+  const { user } = useAuth();
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/bidder/watchlist", {
     initialData: [],
+    refreshIntervalMs: 15000,
+    revalidateOnWindowFocus: true,
   });
   const [activeAuctionId, setActiveAuctionId] = useState("");
   const [pageMessage, setPageMessage] = useState("");
   const [pageError, setPageError] = useState("");
+  const live = useLiveRefresh({
+    channels: useMemo(
+      () => ["market:auctions", "market:watchlist", user?.id ? `user:${user.id}` : ""],
+      [user?.id],
+    ),
+    enabled: Boolean(user?.id),
+    onEvent: useCallback(() => {
+      refresh({ background: true });
+    }, [refresh]),
+  });
 
   async function handleRemove(row) {
     setPageError("");
@@ -34,6 +51,7 @@ export default function BidderWatchlistPage() {
 
       setData((current) => current.filter((item) => item.auctionId !== row.auctionId));
       setPageMessage(`${row.title} removed from watchlist.`);
+      refresh({ background: true });
     } catch (requestError) {
       setPageError(requestError.message || "Could not remove the watchlist item.");
     } finally {
@@ -56,6 +74,7 @@ export default function BidderWatchlistPage() {
         },
       });
 
+      refresh({ background: true });
       router.push("/bidder/messages");
     } catch (requestError) {
       setPageError(requestError.message || "Could not start a conversation with the seller.");
@@ -109,14 +128,24 @@ export default function BidderWatchlistPage() {
       <SectionIntro
         title="Watchlist"
         description="Track auctions you care about and monitor urgency before placing or updating bids."
-        action={<FilterBar items={["All watched", "Ending soon", "Live", "Scheduled"]} />}
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime watchlist + 15s fallback"
+            connectionState={live.connectionState}
+          />
+        }
       />
+
+      <FilterBar items={["All watched", "Ending soon", "Live", "Scheduled"]} />
 
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
 
       <Panel title="Tracked auctions" description="A cleaner view of your watched opportunities and seller context.">
-        {error ? <p>{error}</p> : <DataTable columns={watchlistColumns} rows={data} />}
+        {error ? <ApiErrorNotice title="Watchlist unavailable" message={error} /> : <DataTable columns={watchlistColumns} rows={data} />}
       </Panel>
     </div>
   );
