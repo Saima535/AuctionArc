@@ -8,7 +8,7 @@ import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
-import { formatCountdown, formatCurrency } from "../utils/formatters.js";
+import { formatCurrency } from "../utils/formatters.js";
 import {
   assertNumber,
   assertOptionalText,
@@ -16,38 +16,35 @@ import {
 } from "../utils/validation.js";
 
 export const getPublicAuctions = asyncHandler(async (req, res) => {
-  const auctions = await Auction.find({
-    status: { $in: ["Live", "Extended", "Scheduled"] },
+  const listings = await Listing.find({
+    status: { $in: ["Live", "Featured"] },
   })
     .populate("seller", "name")
-    .populate("listing")
-    .sort({ featured: -1, updatedAt: -1 })
+    .sort({ premiumHighlight: -1, updatedAt: -1 })
     .limit(18);
 
   res.json({
     success: true,
-    data: auctions.map((auction) => {
-      const listing = auction.listing;
-      const imageUrl = listing?.images?.[0]?.url || null;
+    data: listings.map((listing) => {
+      const imageUrl = listing.images?.[0]?.url || null;
 
       return {
-        auctionId: auction._id,
-        id: auction.code,
-        title: auction.title,
-        category: auction.category || listing?.category || "Uncategorized",
-        seller: auction.seller?.name || "AuctionArc seller",
-        status: auction.status,
-        currentBid: formatCurrency(auction.currentBid || listing?.currentBid || listing?.price || 0),
-        countdown:
-          auction.status === "Scheduled" && auction.startAt
-            ? `Starts ${new Date(auction.startAt).toLocaleDateString("en-US")}`
-            : formatCountdown(auction.endAt),
-        description: listing?.description || "Public visitors can browse this auction item before creating an account.",
-        condition: listing?.condition || "Good",
-        delivery: listing?.deliveryOption || "AuctionArc Delivery",
-        watchers: String(auction.watcherCount || listing?.watcherCount || 0),
+        listingId: listing._id,
+        id: listing.code,
+        title: listing.title,
+        category: listing.category || "Uncategorized",
+        seller: listing.seller?.name || "AuctionArc seller",
+        status: listing.status,
+        currentBid: formatCurrency(listing.currentBid || listing.price || 0),
+        auctionWindow: `${listing.auctionDurationDays || 5} day auction`,
+        priceLabel: listing.currentBid > listing.price ? "Current bid" : "Starting price",
+        secondaryLabel: "Auction window",
+        description: listing.description || "Public visitors can browse this listed auction product before creating an account.",
+        condition: listing.condition || "Good",
+        delivery: listing.deliveryOption || "AuctionArc Delivery",
+        watchers: String(listing.watcherCount || 0),
         imageUrl,
-        premiumHighlight: Boolean(listing?.premiumHighlight || auction.featured),
+        premiumHighlight: Boolean(listing.premiumHighlight || listing.status === "Featured"),
       };
     }),
   });

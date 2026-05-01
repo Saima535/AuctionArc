@@ -52,13 +52,8 @@ export default async function Home() {
       <section className={styles.section} id="auctions">
         <div className={styles.sectionHeading}>
           <span>Public Auction Products</span>
-          <h2>Visitors can browse active auction listings before creating an account.</h2>
+          <h2>Active auction listings from the marketplace.</h2>
         </div>
-
-        <p className={styles.sectionLead}>
-          They can explore the products, pricing, seller information, and auction timing here.
-          To place bids or join the live auction flow, they need to register as an AuctionArc user.
-        </p>
 
         <PublicAuctionGrid
           auctions={auctions}

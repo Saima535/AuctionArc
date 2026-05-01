@@ -12,7 +12,7 @@ export function PublicAuctionGrid({
   return (
     <section className={styles.grid}>
       {auctions.map((auction) => (
-        <article key={auction.auctionId} className={styles.card}>
+        <article key={auction.listingId || auction.auctionId || auction.id} className={styles.card}>
           <div
             className={`${styles.media} ${auction.imageUrl ? styles.mediaImage : ""}`.trim()}
             style={auction.imageUrl ? { backgroundImage: `url(${auction.imageUrl})` } : undefined}
@@ -39,12 +39,12 @@ export function PublicAuctionGrid({
 
             <div className={styles.statGrid}>
               <div className={styles.statCard}>
-                <span>Current bid</span>
+                <span>{auction.priceLabel || "Current bid"}</span>
                 <strong>{auction.currentBid}</strong>
               </div>
               <div className={styles.statCard}>
-                <span>Countdown</span>
-                <strong>{auction.countdown}</strong>
+                <span>{auction.secondaryLabel || "Countdown"}</span>
+                <strong>{auction.auctionWindow || auction.countdown}</strong>
               </div>
               <div className={styles.statCard}>
                 <span>Seller</span>
