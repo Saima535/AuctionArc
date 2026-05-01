@@ -8,12 +8,50 @@ import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
-import { formatCurrency } from "../utils/formatters.js";
+import { formatCountdown, formatCurrency } from "../utils/formatters.js";
 import {
   assertNumber,
   assertOptionalText,
   assertRequiredText,
 } from "../utils/validation.js";
+
+export const getPublicAuctions = asyncHandler(async (req, res) => {
+  const auctions = await Auction.find({
+    status: { $in: ["Live", "Extended", "Scheduled"] },
+  })
+    .populate("seller", "name")
+    .populate("listing")
+    .sort({ featured: -1, updatedAt: -1 })
+    .limit(18);
+
+  res.json({
+    success: true,
+    data: auctions.map((auction) => {
+      const listing = auction.listing;
+      const imageUrl = listing?.images?.[0]?.url || null;
+
+      return {
+        auctionId: auction._id,
+        id: auction.code,
+        title: auction.title,
+        category: auction.category || listing?.category || "Uncategorized",
+        seller: auction.seller?.name || "AuctionArc seller",
+        status: auction.status,
+        currentBid: formatCurrency(auction.currentBid || listing?.currentBid || listing?.price || 0),
+        countdown:
+          auction.status === "Scheduled" && auction.startAt
+            ? `Starts ${new Date(auction.startAt).toLocaleDateString("en-US")}`
+            : formatCountdown(auction.endAt),
+        description: listing?.description || "Public visitors can browse this auction item before creating an account.",
+        condition: listing?.condition || "Good",
+        delivery: listing?.deliveryOption || "AuctionArc Delivery",
+        watchers: String(auction.watcherCount || listing?.watcherCount || 0),
+        imageUrl,
+        premiumHighlight: Boolean(listing?.premiumHighlight || auction.featured),
+      };
+    }),
+  });
+});
 
 export const createListing = asyncHandler(async (req, res) => {
   if (req.user.role !== "Seller") {

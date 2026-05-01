@@ -1,7 +1,7 @@
 export const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/#auctions", label: "Auctions" },
-  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/auctions", label: "Auctions" },
+  { href: "/how-it-works", label: "How It Works" },
   { href: "/contact-us", label: "Contact" },
 ];
 
@@ -9,9 +9,9 @@ export const footerSections = [
   {
     title: "Explore",
     links: [
-      { href: "/#auctions", label: "Browse Auctions" },
-      { href: "/#how-it-works", label: "Categories" },
-      { href: "/#about", label: "Sell an Item" },
+      { href: "/auctions", label: "Browse Auctions" },
+      { href: "/how-it-works", label: "How It Works" },
+      { href: "/register", label: "Sell an Item" },
     ],
   },
   {

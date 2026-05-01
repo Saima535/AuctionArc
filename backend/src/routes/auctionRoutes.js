@@ -3,6 +3,7 @@ import {
   addToWatchlist,
   createListing,
   deleteListing,
+  getPublicAuctions,
   placeBid,
   removeFromWatchlist,
   updateListing,
@@ -12,6 +13,7 @@ import { upload } from "../middleware/upload.js";
 
 const router = Router();
 
+router.get("/public", getPublicAuctions);
 router.post("/listings", requireRole("Seller"), upload.array("images", 3), createListing);
 router.patch("/listings/:listingId", requireRole("Seller"), updateListing);
 router.delete("/listings/:listingId", requireRole("Seller"), deleteListing);

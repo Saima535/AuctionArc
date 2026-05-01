@@ -1,27 +1,5 @@
 import styles from "./page.module.css";
-
-const howItWorks = [
-  {
-    title: "1. Register",
-    body: "Create an account as a buyer or seller and complete your profile.",
-  },
-  {
-    title: "2. Browse / List",
-    body: "Buyers explore auctions while sellers publish listings and set auction details.",
-  },
-  {
-    title: "3. Place Bid",
-    body: "Join manually or compete using structured bidding and timed auction flow.",
-  },
-  {
-    title: "4. Win & Pay",
-    body: "Winning bids move into secure payment and escrow handling.",
-  },
-  {
-    title: "5. Delivery",
-    body: "Seller ships the item and the buyer confirms receipt to complete the auction cycle.",
-  },
-];
+import { auctionHighlights, howItWorksSteps } from "@/data/landing-content";
 
 export default function Home() {
   return (
@@ -40,7 +18,7 @@ export default function Home() {
           </p>
 
           <div className={styles.heroActions}>
-            <a href="#auctions" className={styles.primaryAction}>
+            <a href="/auctions" className={styles.primaryAction}>
               Explore
             </a>
             <a href="/login" className={styles.secondaryAction}>
@@ -74,18 +52,12 @@ export default function Home() {
         </div>
 
         <div className={styles.valueGrid}>
-          <article className={styles.valueCard}>
-            <h3>Real-Time Bidding</h3>
-            <p>Stay in the action with live auction movement, structured bid flow, and fast updates.</p>
-          </article>
-          <article className={styles.valueCard}>
-            <h3>Seller Control</h3>
-            <p>Create listings, launch auctions, and manage order progress inside one focused workspace.</p>
-          </article>
-          <article className={styles.valueCard}>
-            <h3>Secure Payments</h3>
-            <p>Keep transactions organized with escrow-aware handling and platform-level oversight.</p>
-          </article>
+          {auctionHighlights.map((highlight) => (
+            <article key={highlight.title} className={styles.valueCard}>
+              <h3>{highlight.title}</h3>
+              <p>{highlight.body}</p>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -96,10 +68,10 @@ export default function Home() {
         </div>
 
         <div className={styles.stepsGrid}>
-          {howItWorks.map((step, index) => (
+          {howItWorksSteps.map((step, index) => (
             <article
               key={step.title}
-              className={index === howItWorks.length - 1 ? styles.stepCardWide : styles.stepCard}
+              className={index === howItWorksSteps.length - 1 ? styles.stepCardWide : styles.stepCard}
             >
               <h3>{step.title}</h3>
               <p>{step.body}</p>
