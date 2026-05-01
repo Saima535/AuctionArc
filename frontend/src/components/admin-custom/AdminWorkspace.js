@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./AdminWorkspace.module.css";
+import { useApiData } from "@/hooks/useApiData";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "grid" },
@@ -84,8 +85,26 @@ function SidebarIcon({ icon }) {
   return <GridIcon />;
 }
 
+function initialsForName(name) {
+  return String(name || "Admin")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
 export function AdminWorkspace({ children }) {
   const pathname = usePathname();
+  const { data: profile } = useApiData("/users/me/profile", {
+    initialData: {
+      name: "Admin",
+      role: "Administrator",
+      profilePicture: null,
+    },
+  });
+  const imageUrl = profile?.profilePicture?.url;
 
   return (
     <div className={styles.shell}>
@@ -133,11 +152,19 @@ export function AdminWorkspace({ children }) {
 
             <Link href="/admin/profile" className={styles.profileCard}>
               <span className={styles.profileIcon}>
-                <UserBadgeIcon />
+                {imageUrl ? (
+                  <span
+                    className={styles.profileImage}
+                    style={{ backgroundImage: `url(${imageUrl})` }}
+                    aria-label={`${profile?.name || "Admin"} profile`}
+                  />
+                ) : (
+                  initialsForName(profile?.name) || <UserBadgeIcon />
+                )}
               </span>
               <span>
-                <strong>Admin</strong>
-                <small>Administrator</small>
+                <strong>{profile?.name || "Admin"}</strong>
+                <small>{profile?.publicRoleLabel || profile?.role || "Administrator"}</small>
               </span>
             </Link>
           </div>

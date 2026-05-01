@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./BuyerShell.module.css";
+import { useApiData } from "@/hooks/useApiData";
 
 const navItems = [
   { href: "/bidder", label: "Home" },
@@ -63,8 +63,25 @@ function LogoutIcon() {
   );
 }
 
+function initialsForName(name) {
+  return String(name || "B")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
 export function BuyerShell({ children }) {
   const pathname = usePathname();
+  const { data: profile } = useApiData("/users/me/profile", {
+    initialData: {
+      name: "Bidder",
+      profilePicture: null,
+    },
+  });
+  const imageUrl = profile?.profilePicture?.url;
 
   return (
     <div className={styles.shell}>
@@ -102,14 +119,15 @@ export function BuyerShell({ children }) {
             </Link>
 
             <Link href="/bidder/profile" className={styles.avatarWrap} aria-label="Open profile">
-              <Image
-                src="/buyer-avatar.svg"
-                alt="Buyer profile"
-                width={46}
-                height={46}
-                className={styles.avatar}
-                priority
-              />
+              {imageUrl ? (
+                <span
+                  className={styles.avatarPhoto}
+                  style={{ backgroundImage: `url(${imageUrl})` }}
+                  aria-label={`${profile?.name || "Bidder"} profile`}
+                />
+              ) : (
+                <span className={styles.avatarFallback}>{initialsForName(profile?.name)}</span>
+              )}
             </Link>
           </div>
         </div>

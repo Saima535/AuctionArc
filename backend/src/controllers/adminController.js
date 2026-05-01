@@ -3,6 +3,7 @@ import { AUCTION_STATUSES, BID_STATUSES, LISTING_STATUSES, USER_STATUSES } from 
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
+import { Order } from "../models/Order.js";
 import { Report } from "../models/Report.js";
 import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
@@ -20,6 +21,68 @@ import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
 import { assertOneOf, pickAllowedKeys } from "../utils/validation.js";
+
+function serializeBidDetail(bid) {
+  return {
+    id: bid.code,
+    bidder: bid.bidder?.name || "Unknown bidder",
+    bidderEmail: bid.bidder?.email || "Not available",
+    amount: formatCurrency(bid.amount),
+    status: bid.status,
+    signal: bid.signal,
+    placedAt: bid.createdAt?.toISOString().slice(0, 10) || "Unknown",
+  };
+}
+
+async function serializeAuctionDetail(auction) {
+  const bids = await Bid.find({ auction: auction._id })
+    .populate("bidder")
+    .sort({ amount: -1, createdAt: -1 })
+    .limit(5);
+
+  return {
+    auctionId: auction._id,
+    id: auction.code,
+    title: auction.title,
+    status: auction.status,
+    category: auction.category || auction.listing?.category || "Uncategorized",
+    product: auction.listing?.title || auction.title,
+    productCode: auction.listing?.code || "No listing code",
+    seller: auction.seller?.name || "Unknown seller",
+    sellerEmail: auction.seller?.email || "Not available",
+    currentBid: formatCurrency(auction.currentBid || 0),
+    bids: String(auction.bidCount || bids.length),
+    watchers: String(auction.watcherCount || 0),
+    reserve: auction.reserveStatus,
+    starts: auction.startAt?.toISOString().slice(0, 10) || "Not scheduled",
+    ends: auction.endAt?.toISOString().slice(0, 10) || "Not scheduled",
+    topBids: bids.map(serializeBidDetail),
+  };
+}
+
+async function serializeListingReview(listing) {
+  const bids = await Bid.find({ listing: listing._id })
+    .populate("bidder")
+    .sort({ amount: -1, createdAt: -1 })
+    .limit(3);
+
+  return {
+    listingId: listing._id,
+    id: listing.code,
+    title: listing.title,
+    status: listing.status,
+    category: listing.category,
+    seller: listing.seller?.name || "Unknown seller",
+    sellerEmail: listing.seller?.email || "Not available",
+    price: formatCurrency(listing.price || 0),
+    reserve: formatCurrency(listing.reservePrice || 0),
+    bids: String(listing.bidCount || bids.length),
+    watchers: String(listing.watcherCount || 0),
+    condition: listing.condition,
+    delivery: listing.deliveryOption,
+    topBids: bids.map(serializeBidDetail),
+  };
+}
 
 export const getUsers = asyncHandler(async (req, res) => {
   const users = await User.find({ role: { $in: ["Seller", "Bidder"] } }).sort({ createdAt: -1 });
@@ -98,6 +161,61 @@ export const getAuctions = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: auctions.map(toAuctionRow),
+  });
+});
+
+export const getAuctionDrilldown = asyncHandler(async (req, res) => {
+  const scope = req.params.scope;
+
+  if (scope === "pending") {
+    const listings = await Listing.find({
+      status: { $in: ["Draft", "Pending approval", "Pending review"] },
+    })
+      .populate("seller")
+      .sort({ updatedAt: -1 });
+
+    const rows = await Promise.all(listings.map(serializeListingReview));
+
+    res.json({
+      success: true,
+      data: {
+        scope,
+        title: "Pending Auctions",
+        description: "Products and listings waiting for approval or removal before entering the marketplace.",
+        rows,
+      },
+    });
+    return;
+  }
+
+  const statusFilter =
+    scope === "live"
+      ? { status: { $in: ["Live", "Extended"] } }
+      : scope === "closed"
+        ? { status: "Closed" }
+        : null;
+
+  if (!statusFilter) {
+    throw new ApiError(400, "Unknown auction drilldown scope.");
+  }
+
+  const auctions = await Auction.find(statusFilter)
+    .populate("seller")
+    .populate("listing")
+    .sort({ updatedAt: -1 });
+  const rows = await Promise.all(auctions.map(serializeAuctionDetail));
+
+  res.json({
+    success: true,
+    data: {
+      scope,
+      title: scope === "live" ? "Live Auctions" : "Closed Auctions",
+      description:
+        scope === "live"
+          ? "Auctions still accepting bids, with product, seller, bidder, and bid details."
+          : "Closed auction outcomes with product, seller, bidder, and final bid context.",
+      rows,
+    },
   });
 });
 
@@ -209,6 +327,30 @@ export const getTransactions = asyncHandler(async (req, res) => {
     data: transactions.map((transaction) => ({
       ...toTransactionRow(transaction),
       date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
+    })),
+  });
+});
+
+export const getWinners = asyncHandler(async (req, res) => {
+  const orders = await Order.find({ status: { $in: ["Completed", "Paid", "Delivered", "Awaiting shipment", "In escrow"] } })
+    .populate("seller bidder listing")
+    .sort({ updatedAt: -1 });
+
+  res.json({
+    success: true,
+    data: orders.map((order) => ({
+      orderId: order._id,
+      id: order.code,
+      product: order.item || order.listing?.title || "Unknown product",
+      productCode: order.listing?.code || "No listing code",
+      bidder: order.bidder?.name || "Unknown bidder",
+      bidderEmail: order.bidder?.email || "Not available",
+      seller: order.seller?.name || "Unknown seller",
+      sellerEmail: order.seller?.email || "Not available",
+      amount: formatCurrency(order.amount),
+      escrow: formatCurrency(order.escrowAmount || 0),
+      status: order.status,
+      closedAt: order.updatedAt?.toISOString().slice(0, 10) || "Unknown",
     })),
   });
 });

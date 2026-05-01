@@ -87,14 +87,14 @@ export default function AdminDashboardPage() {
   const auctionSummary = data.dashboardSummary?.auctions || {};
   const transactionSummary = data.dashboardSummary?.transactions || {};
   const summary = [
-    { label: "Live Auctions", value: String(auctionSummary.live || 0), icon: <PulseIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
-    { label: "Pending Auctions", value: String(auctionSummary.pending || 0), icon: <ClockIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
-    { label: "Closed Auctions", value: String(auctionSummary.closed || 0), icon: <CheckIcon />, iconClass: styles.blueIcon, cardClass: styles.blueLine },
+    { label: "Live Auctions", value: String(auctionSummary.live || 0), href: "/admin/auctions/live", icon: <PulseIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
+    { label: "Pending Auctions", value: String(auctionSummary.pending || 0), href: "/admin/auctions/pending", icon: <ClockIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
+    { label: "Closed Auctions", value: String(auctionSummary.closed || 0), href: "/admin/auctions/closed", icon: <CheckIcon />, iconClass: styles.blueIcon, cardClass: styles.blueLine },
   ];
   const transactions = [
-    { label: "Package Transactions", value: String(transactionSummary.packages || 0), icon: <BoxIcon />, iconClass: styles.purpleIcon, cardClass: styles.purpleLine, fillClass: styles.purpleFill },
-    { label: "Bid Transactions", value: String(transactionSummary.bids || 0), icon: <TrendIcon />, iconClass: styles.purpleIcon, cardClass: styles.yellowLine, fillClass: styles.yellowFill },
-    { label: "Sold Transactions", value: String(transactionSummary.sold || 0), icon: <DollarIcon />, iconClass: styles.purpleIcon, cardClass: styles.greenLine, fillClass: styles.greenFill },
+    { label: "Package Transactions", value: String(transactionSummary.packages || 0), href: "/admin/transactions/packages", icon: <BoxIcon />, iconClass: styles.purpleIcon, cardClass: styles.purpleLine, fillClass: styles.purpleFill },
+    { label: "Bid Transactions", value: String(transactionSummary.bids || 0), href: "/admin/transactions/bids", icon: <TrendIcon />, iconClass: styles.purpleIcon, cardClass: styles.yellowLine, fillClass: styles.yellowFill },
+    { label: "Sold Transactions", value: String(transactionSummary.sold || 0), href: "/admin/transactions/sold", icon: <DollarIcon />, iconClass: styles.purpleIcon, cardClass: styles.greenLine, fillClass: styles.greenFill },
   ];
 
   return (
@@ -105,20 +105,22 @@ export default function AdminDashboardPage() {
         <SectionTitle>Auction Summary</SectionTitle>
         <div className={styles.summaryGrid}>
           {summary.map((item) => (
-            <PanelCard key={item.label} className={`${styles.summaryCard} ${item.cardClass}`}>
-              <div className={styles.summaryTop}>
-                <span className={`${styles.summaryIcon} ${item.iconClass}`}>{item.icon}</span>
-                <strong className={styles.summaryValue}>{isLoading ? "..." : item.value}</strong>
-              </div>
-              <p className={styles.summaryLabel}>{item.label}</p>
-            </PanelCard>
+            <Link key={item.label} href={item.href} className={styles.cardLink}>
+              <PanelCard className={`${styles.summaryCard} ${item.cardClass}`}>
+                <div className={styles.summaryTop}>
+                  <span className={`${styles.summaryIcon} ${item.iconClass}`}>{item.icon}</span>
+                  <strong className={styles.summaryValue}>{isLoading ? "..." : item.value}</strong>
+                </div>
+                <p className={styles.summaryLabel}>{item.label}</p>
+              </PanelCard>
+            </Link>
           ))}
         </div>
       </section>
 
       <section>
         <SectionTitle>User Actions</SectionTitle>
-        <Link href="/admin/users" className={styles.primaryAction}>
+        <Link href="/admin/winners" className={styles.primaryAction}>
           <TrophyIcon />
           <span>View Winners</span>
         </Link>
@@ -128,20 +130,22 @@ export default function AdminDashboardPage() {
         <SectionTitle>Transactions Summary</SectionTitle>
         <div className={styles.transactionSummaryGrid}>
           {transactions.map((item) => (
-            <PanelCard key={item.label} className={`${styles.transactionCard} ${item.cardClass}`}>
-              <div className={styles.transactionTop}>
-                <span className={`${styles.transactionIcon} ${item.iconClass}`}>{item.icon}</span>
-              </div>
-              <div>
-                <div className={styles.transactionValueRow}>
-                  <strong className={styles.transactionValue}>{isLoading ? "..." : item.value}</strong>
+            <Link key={item.label} href={item.href} className={styles.cardLink}>
+              <PanelCard className={`${styles.transactionCard} ${item.cardClass}`}>
+                <div className={styles.transactionTop}>
+                  <span className={`${styles.transactionIcon} ${item.iconClass}`}>{item.icon}</span>
                 </div>
-                <p className={styles.transactionLabel}>{item.label}</p>
-              </div>
-              <div className={styles.progressTrack}>
-                <div className={`${styles.progressFill} ${item.fillClass}`} />
-              </div>
-            </PanelCard>
+                <div>
+                  <div className={styles.transactionValueRow}>
+                    <strong className={styles.transactionValue}>{isLoading ? "..." : item.value}</strong>
+                  </div>
+                  <p className={styles.transactionLabel}>{item.label}</p>
+                </div>
+                <div className={styles.progressTrack}>
+                  <div className={`${styles.progressFill} ${item.fillClass}`} />
+                </div>
+              </PanelCard>
+            </Link>
           ))}
         </div>
       </section>

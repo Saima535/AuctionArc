@@ -117,7 +117,15 @@ export default function AdminUsersPage() {
           <PanelCard key={user.userId} className={styles.userCard}>
             <div className={styles.userHeader}>
               <div className={styles.userIdentity}>
-                <span className={styles.userAvatar}>{initialsForName(user.name)}</span>
+                {user.profilePicture?.url ? (
+                  <span
+                    className={`${styles.userAvatar} ${styles.userAvatarImage}`.trim()}
+                    style={{ backgroundImage: `url(${user.profilePicture.url})` }}
+                    aria-label={`${user.name} profile`}
+                  />
+                ) : (
+                  <span className={styles.userAvatar}>{initialsForName(user.name)}</span>
+                )}
                 <div className={styles.userInfo}>
                   <h3>{user.name}</h3>
                   <span className={`${styles.roleMeta} ${user.role === "Bidder" ? styles.buyerMeta : styles.sellerMeta}`}>

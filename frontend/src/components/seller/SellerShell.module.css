@@ -1,4 +1,30 @@
 .shell {
+  --admin-surface: rgba(29, 29, 29, 0.96);
+  --admin-panel: #111111;
+  --admin-text: #fff7ea;
+  --admin-muted: rgba(255, 255, 255, 0.72);
+  --admin-border: rgba(245, 163, 0, 0.18);
+  --admin-border-strong: rgba(245, 163, 0, 0.42);
+  --admin-good: #62e6a2;
+  --admin-warn: #f5b331;
+  --admin-danger: #ff8f8f;
+  --admin-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --admin-control-bg: #2e2e2e;
+  --admin-input-bg: #090909;
+  --admin-active-bg: rgba(94, 63, 7, 0.5);
+  --admin-active-border: rgba(245, 179, 49, 0.5);
+  --admin-chart-bg: linear-gradient(180deg, rgba(48, 34, 8, 0.88), rgba(17, 17, 17, 0.94));
+  --member-panel: rgba(29, 29, 29, 0.96);
+  --member-text: #fff7ea;
+  --member-muted: rgba(255, 255, 255, 0.72);
+  --member-border: rgba(245, 163, 0, 0.18);
+  --member-border-strong: rgba(245, 163, 0, 0.42);
+  --member-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --form-card-bg: rgba(29, 29, 29, 0.96);
+  --form-input-bg: #090909;
+  --form-primary-bg: linear-gradient(180deg, #f0a000, #e39200);
+  --form-primary-text: #090909;
+  --form-secondary-bg: #2e2e2e;
   min-height: 100vh;
   background: #050505;
   color: #f6f1e7;
@@ -98,6 +124,20 @@
   background: #f1a400;
   color: #0a0a0a;
   font-weight: 800;
+  overflow: hidden;
+}
+
+.avatarInner {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profilePhoto {
+  background-position: center;
+  background-size: cover;
 }
 
 .workspace {

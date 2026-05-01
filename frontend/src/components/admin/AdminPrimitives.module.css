@@ -9,11 +9,12 @@
 .sectionIntro h2 {
   font-size: 1.45rem;
   line-height: 1.15;
+  color: var(--admin-text, var(--color-text));
 }
 
 .sectionIntro p {
   margin-top: 8px;
-  color: var(--admin-muted);
+  color: var(--admin-muted, var(--color-muted));
   line-height: 1.7;
 }
 
@@ -25,7 +26,7 @@
 .chatThread {
   border: 1px solid var(--admin-border);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--admin-surface, rgba(255, 255, 255, 0.82));
   box-shadow: var(--admin-shadow);
 }
 
@@ -49,14 +50,14 @@
 .settingCard p,
 .table td,
 .table th {
-  color: var(--admin-muted);
+  color: var(--admin-muted, var(--color-muted));
 }
 
 .statCard h3 {
   margin-top: 8px;
   font-size: 2rem;
   line-height: 1;
-  color: var(--admin-text);
+  color: var(--admin-text, var(--color-text));
 }
 
 .deltaGood,
@@ -69,15 +70,15 @@
 }
 
 .deltaGood {
-  color: var(--admin-good);
+  color: var(--admin-good, #1d9b5f);
 }
 
 .deltaWarn {
-  color: var(--admin-warn);
+  color: var(--admin-warn, #d97706);
 }
 
 .deltaNeutral {
-  color: var(--admin-muted);
+  color: var(--admin-muted, var(--color-muted));
 }
 
 .panelHeader {
@@ -93,6 +94,7 @@
 .settingCard h3 {
   font-size: 1.18rem;
   line-height: 1.2;
+  color: var(--admin-text, var(--color-text));
 }
 
 .badgeGood,
@@ -110,22 +112,22 @@
 
 .badgeGood {
   background: rgba(29, 155, 95, 0.12);
-  color: var(--admin-good);
+  color: var(--admin-good, #1d9b5f);
 }
 
 .badgeWarn {
   background: rgba(217, 119, 6, 0.12);
-  color: var(--admin-warn);
+  color: var(--admin-warn, #d97706);
 }
 
 .badgeDanger {
   background: rgba(209, 67, 67, 0.12);
-  color: var(--admin-danger);
+  color: var(--admin-danger, #d14343);
 }
 
 .badgeNeutral {
   background: rgba(102, 117, 143, 0.12);
-  color: var(--admin-muted);
+  color: var(--admin-muted, var(--color-muted));
 }
 
 .filterBar {
@@ -140,8 +142,8 @@
   padding: 0 14px;
   border-radius: 999px;
   border: 1px solid var(--admin-border-strong);
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--admin-text);
+  background: var(--admin-control-bg, rgba(255, 255, 255, 0.82));
+  color: var(--admin-text, var(--color-text));
   cursor: pointer;
 }
 
@@ -190,15 +192,17 @@
 }
 
 .feedItem strong {
-  color: var(--admin-text);
+  color: var(--admin-text, var(--color-text));
 }
 
 .chartFrame {
   height: 220px;
   border-radius: 18px;
-  background:
+  background: var(
+    --admin-chart-bg,
     linear-gradient(180deg, rgba(231, 240, 255, 0.5), rgba(255, 255, 255, 0.4)),
-    var(--admin-panel);
+    var(--admin-panel)
+  );
   padding: 18px;
 }
 
@@ -277,7 +281,7 @@
 .noteList li {
   position: relative;
   padding-left: 18px;
-  color: var(--admin-muted);
+  color: var(--admin-muted, var(--color-muted));
   line-height: 1.7;
 }
 
@@ -322,7 +326,7 @@
 .noteComposer {
   border: 1px solid var(--admin-border);
   border-radius: 18px;
-  background: var(--admin-panel);
+  background: var(--admin-panel, var(--color-panel));
 }
 
 .chatItem,
@@ -332,8 +336,8 @@
 }
 
 .chatItemActive {
-  background: linear-gradient(180deg, #eef4ff, #f8fbff);
-  border-color: #c9dbff;
+  background: var(--admin-active-bg, linear-gradient(180deg, #eef4ff, #f8fbff));
+  border-color: var(--admin-active-border, #c9dbff);
 }
 
 .chatItemTop {
@@ -353,7 +357,7 @@
 .chatItemActive small {
   display: inline-flex;
   margin-top: 10px;
-  color: var(--admin-muted);
+  color: var(--admin-muted, var(--color-muted));
 }
 
 .threadHeader {
@@ -381,15 +385,15 @@
   min-height: 110px;
   border-radius: 16px;
   border: 1px solid var(--admin-border-strong);
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--admin-input-bg, rgba(255, 255, 255, 0.94));
   padding: 12px 14px;
   font: inherit;
-  color: var(--admin-text);
+  color: var(--admin-text, var(--color-text));
   resize: vertical;
 }
 
 .messageCard strong {
-  color: var(--admin-text);
+  color: var(--admin-text, var(--color-text));
 }
 
 .messageCard p {

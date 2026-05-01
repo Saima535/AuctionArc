@@ -71,7 +71,7 @@ export function RegisterForm() {
       }
 
       setSubmitSuccess("Account created successfully. Redirecting...");
-      router.push(result.data?.destination || (role === "Seller" ? "/seller" : "/bidder"));
+      router.push(result.data?.destination || (role === "Seller" ? "/seller" : "/bidder/discover"));
     } catch (error) {
       setSubmitError("Could not connect to the backend. Please make sure the backend server is running.");
     } finally {

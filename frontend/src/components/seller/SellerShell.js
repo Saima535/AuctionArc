@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./SellerShell.module.css";
+import { useApiData } from "@/hooks/useApiData";
 
 const sidebarItems = [
   { href: "/seller", label: "Dashboard", icon: "grid" },
@@ -103,8 +104,42 @@ function SidebarIcon({ icon }) {
   return <GridIcon />;
 }
 
+function initialsForName(name) {
+  return String(name || "AA")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function ProfileAvatar({ profile, className }) {
+  const imageUrl = profile?.profilePicture?.url;
+  const initials = initialsForName(profile?.name);
+
+  if (imageUrl) {
+    return (
+      <span
+        className={`${className} ${styles.profilePhoto}`.trim()}
+        style={{ backgroundImage: `url(${imageUrl})` }}
+        aria-label={`${profile?.name || "Seller"} profile`}
+      />
+    );
+  }
+
+  return <span className={className}>{initials}</span>;
+}
+
 export function SellerShell({ children }) {
   const pathname = usePathname();
+  const { data: profile } = useApiData("/users/me/profile", {
+    initialData: {
+      name: "Seller",
+      email: "",
+      profilePicture: null,
+    },
+  });
 
   return (
     <div className={styles.shell}>
@@ -132,7 +167,7 @@ export function SellerShell({ children }) {
               <span className={styles.notificationDot} />
             </button>
             <Link href="/seller/profile" className={styles.initialAvatar}>
-              JD
+              <ProfileAvatar profile={profile} className={styles.avatarInner} />
             </Link>
           </div>
         </div>
@@ -141,10 +176,10 @@ export function SellerShell({ children }) {
       <div className={styles.workspace}>
         <aside className={styles.sidebar}>
           <div className={styles.profileBlock}>
-            <span className={styles.profileBadge}>JD</span>
+            <ProfileAvatar profile={profile} className={styles.profileBadge} />
             <div>
-              <strong>John Doe</strong>
-              <p>john@example.com</p>
+              <strong>{profile?.name || "Seller"}</strong>
+              <p>{profile?.email || "No email set"}</p>
             </div>
           </div>
 

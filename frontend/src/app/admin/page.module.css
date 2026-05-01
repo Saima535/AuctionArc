@@ -71,6 +71,41 @@
   padding: 18px;
 }
 
+.formCard {
+  border: 1px solid var(--admin-border);
+  border-radius: 18px;
+  background: var(--admin-panel);
+  padding: 18px;
+}
+
+.fieldLabel {
+  display: block;
+  margin: 14px 0 8px;
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.fieldLabel:first-child {
+  margin-top: 0;
+}
+
+.textInput,
+.textarea {
+  width: 100%;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 14px;
+  background: var(--admin-input-bg, rgba(255, 255, 255, 0.94));
+  color: var(--admin-text);
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
 .noteList {
   margin: 16px 0 0;
   padding-left: 18px;

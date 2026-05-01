@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   DataTable,
   FilterBar,
@@ -8,29 +9,79 @@ import {
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
 import { useApiData } from "@/hooks/useApiData";
+import { apiRequest } from "@/lib/api";
 import styles from "../page.module.css";
 
-const auctionColumns = [
-  { key: "id", label: "Auction ID" },
-  { key: "title", label: "Auction" },
-  {
-    key: "status",
-    label: "Status",
-    render: (value) => (
-      <StatusBadge tone={value === "Live" ? "good" : value === "Scheduled" ? "neutral" : value === "Extended" ? "warn" : "danger"}>
-        {value}
-      </StatusBadge>
-    ),
-  },
-  { key: "reserve", label: "Reserve" },
-  { key: "countdown", label: "Countdown" },
-  { key: "bids", label: "Bids" },
-];
+function statusTone(value) {
+  return value === "Live" ? "good" : value === "Scheduled" || value === "Closed" ? "neutral" : value === "Extended" ? "warn" : "danger";
+}
 
 export default function AdminAuctionsPage() {
-  const { data, error } = useApiData("/admin/auctions", {
+  const { data, setData, error } = useApiData("/admin/auctions", {
     initialData: [],
   });
+  const [selectedAuctionId, setSelectedAuctionId] = useState("");
+  const [busyAuctionId, setBusyAuctionId] = useState("");
+  const [pageError, setPageError] = useState("");
+  const [pageMessage, setPageMessage] = useState("");
+
+  const selectedAuction =
+    data.find((item) => item.auctionId === selectedAuctionId) || data[0];
+
+  const auctionColumns = useMemo(
+    () => [
+      { key: "id", label: "Auction ID" },
+      { key: "title", label: "Auction" },
+      {
+        key: "status",
+        label: "Status",
+        render: (value) => <StatusBadge tone={statusTone(value)}>{value}</StatusBadge>,
+      },
+      { key: "reserve", label: "Reserve" },
+      { key: "countdown", label: "Countdown" },
+      { key: "bids", label: "Bids" },
+      {
+        key: "actions",
+        label: "Actions",
+        render: (_, row) => (
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => setSelectedAuctionId(row.auctionId)}
+          >
+            Manage
+          </button>
+        ),
+      },
+    ],
+    [],
+  );
+
+  async function handleAuctionStatus(status) {
+    if (!selectedAuction) {
+      return;
+    }
+
+    setBusyAuctionId(selectedAuction.auctionId);
+    setPageError("");
+    setPageMessage("");
+
+    try {
+      const result = await apiRequest(`/admin/auctions/${selectedAuction.auctionId}/status`, {
+        method: "PATCH",
+        body: { status },
+      });
+
+      setData((current) =>
+        current.map((item) => (item.auctionId === selectedAuction.auctionId ? result.data : item)),
+      );
+      setPageMessage(`${selectedAuction.title} updated to ${status}.`);
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not update auction status.");
+    } finally {
+      setBusyAuctionId("");
+    }
+  }
 
   return (
     <div className={styles.page}>
@@ -40,22 +91,40 @@ export default function AdminAuctionsPage() {
         action={<FilterBar items={["Live", "Scheduled", "Extended", "Paused", "Under review"]} />}
       />
 
-      {error ? <p>{error}</p> : null}
+      {error ? <p className={styles.inlineNotice}>{error}</p> : null}
+      {pageError ? <p className={styles.inlineNotice}>{pageError}</p> : null}
+      {pageMessage ? <p className={styles.successNotice}>{pageMessage}</p> : null}
 
-      <Panel title="Auction operations board" description="Reserve state, countdown state, and intervention controls in one place.">
-        <DataTable columns={auctionColumns} rows={data} />
-      </Panel>
+      <section className={styles.mainGrid}>
+        <Panel title="Auction operations board" description="Reserve state, countdown state, and intervention controls in one place.">
+          <DataTable columns={auctionColumns} rows={data} />
+        </Panel>
 
-      <Panel title="Recommended admin actions" description="Common interventions that should be readily accessible here.">
-        <div className={styles.compactList}>
-          {["Pause auction", "Cancel auction", "Extend auction", "Mark reviewed", "Notify participants"].map((item) => (
-            <article key={item} className={styles.compactCard}>
-              <strong>{item}</strong>
-              <p>Use these actions alongside the live auction table above.</p>
-            </article>
-          ))}
-        </div>
-      </Panel>
+        {selectedAuction ? (
+          <aside className={styles.detailPanel}>
+            <strong>{selectedAuction.title}</strong>
+            <p>{selectedAuction.id} | {selectedAuction.status}</p>
+            <ul className={styles.noteList}>
+              <li>Reserve: {selectedAuction.reserve}</li>
+              <li>Countdown: {selectedAuction.countdown}</li>
+              <li>{selectedAuction.bids} bids recorded</li>
+            </ul>
+            <div className={styles.actionRow}>
+              {["Live", "Paused", "Extended", "Under review", "Closed"].map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  className={status === "Closed" || status === "Under review" ? styles.dangerButton : styles.actionButton}
+                  disabled={busyAuctionId === selectedAuction.auctionId}
+                  onClick={() => handleAuctionStatus(status)}
+                >
+                  {busyAuctionId === selectedAuction.auctionId ? "Updating..." : status}
+                </button>
+              ))}
+            </div>
+          </aside>
+        ) : null}
+      </section>
     </div>
   );
 }

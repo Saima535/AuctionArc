@@ -1,4 +1,30 @@
 .shell {
+  --admin-surface: #141417;
+  --admin-panel: #101014;
+  --admin-text: #fff7ea;
+  --admin-muted: rgba(255, 255, 255, 0.7);
+  --admin-border: rgba(240, 173, 0, 0.2);
+  --admin-border-strong: rgba(240, 173, 0, 0.44);
+  --admin-accent: #f5b400;
+  --admin-good: #12d66f;
+  --admin-warn: #f0b000;
+  --admin-danger: #ff7676;
+  --admin-shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
+  --admin-control-bg: #17171c;
+  --admin-input-bg: #09090b;
+  --admin-active-bg: rgba(85, 56, 8, 0.58);
+  --admin-active-border: rgba(245, 180, 0, 0.5);
+  --admin-chart-bg: linear-gradient(180deg, rgba(37, 27, 8, 0.92), rgba(15, 15, 18, 0.98));
+  --color-text: var(--admin-text);
+  --color-muted: var(--admin-muted);
+  --color-border: var(--admin-border);
+  --color-border-strong: var(--admin-border-strong);
+  --color-background: #040404;
+  --form-card-bg: var(--admin-surface);
+  --form-input-bg: var(--admin-input-bg);
+  --form-primary-bg: linear-gradient(180deg, #f0b000, #eba600);
+  --form-primary-text: #09090b;
+  --form-secondary-bg: #17171c;
   min-height: 100vh;
   display: grid;
   grid-template-columns: 310px minmax(0, 1fr);
@@ -161,12 +187,22 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(180deg, #e8ab00, #d99a00);
-  color: #fff;
+  color: #0a0a0a;
+  font-weight: 800;
+  overflow: hidden;
 }
 
 .profileIcon svg {
   width: 22px;
   height: 22px;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background-position: center;
+  background-size: cover;
 }
 
 .profileCard strong {

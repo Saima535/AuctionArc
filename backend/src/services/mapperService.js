@@ -32,6 +32,7 @@ export function toTableUser(user) {
     status: user.status,
     country: user.country || "Unknown",
     contact: user.contact || "Not set",
+    profilePicture: user.profilePicture || null,
     joined: user.createdAt?.toISOString().slice(0, 10),
     lastSeen: formatRelativeTime(user.lastSeenAt || user.updatedAt),
   };
@@ -51,6 +52,7 @@ export function toListingCard(listing) {
 
 export function toAuctionRow(auction) {
   return {
+    auctionId: auction._id,
     id: auction.code,
     title: auction.title,
     status: auction.status,
@@ -79,6 +81,7 @@ export function toDiscoverRow(auction) {
 
 export function toBidRow(bid) {
   return {
+    bidId: bid._id,
     id: bid.code,
     auction: bid.auction?.title || "Unknown auction",
     bidder: bid.bidder?.name || "Unknown bidder",
@@ -99,6 +102,7 @@ export function toThreadRow(thread) {
   const lastMessage = thread.messages.at(-1);
 
   return {
+    threadId: thread._id,
     id: thread.code,
     subject: thread.subject,
     priority: thread.priority,

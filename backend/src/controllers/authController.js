@@ -44,7 +44,7 @@ function buildAuthResponse(user) {
       profilePicture: user.profilePicture || null,
     },
     destination:
-      user.role === "Seller" ? "/seller" : user.role === "Bidder" ? "/bidder" : "/admin",
+      user.role === "Seller" ? "/seller" : user.role === "Bidder" ? "/bidder/discover" : "/admin",
   };
 }
 

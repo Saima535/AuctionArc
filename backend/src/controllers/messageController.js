@@ -1,5 +1,6 @@
 import { User } from "../models/User.js";
 import { Thread } from "../models/Thread.js";
+import mongoose from "mongoose";
 import { toThreadRow } from "../services/mapperService.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { ApiError } from "../utils/apiError.js";
@@ -101,10 +102,13 @@ export const postThreadMessage = asyncHandler(async (req, res) => {
 
   const normalizedBody = assertRequiredText(body, "Message body", { maxLength: 4000 });
 
+  const threadSelector = mongoose.Types.ObjectId.isValid(req.params.threadId)
+    ? { _id: req.params.threadId }
+    : { code: req.params.threadId };
   const filter =
     req.user.role === "Admin"
-      ? { _id: req.params.threadId }
-      : { _id: req.params.threadId, "participants.user": req.user._id };
+      ? threadSelector
+      : { ...threadSelector, "participants.user": req.user._id };
 
   const thread = await Thread.findOne(filter);
 
