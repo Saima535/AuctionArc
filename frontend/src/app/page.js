@@ -1,7 +1,11 @@
+import Link from "next/link";
 import styles from "./page.module.css";
-import { auctionHighlights, howItWorksSteps } from "@/data/landing-content";
+import { PublicAuctionGrid } from "@/components/public/PublicAuctionGrid";
+import { fetchPublicAuctions } from "@/lib/public-auctions";
 
-export default function Home() {
+export default async function Home() {
+  const auctions = await fetchPublicAuctions();
+
   return (
     <div className={styles.page}>
       <section className={styles.hero} id="hero">
@@ -47,36 +51,27 @@ export default function Home() {
 
       <section className={styles.section} id="auctions">
         <div className={styles.sectionHeading}>
-          <span>Marketplace flow</span>
-          <h2>Everything is designed around a fast, focused auction experience.</h2>
+          <span>Public Auction Products</span>
+          <h2>Visitors can browse active auction listings before creating an account.</h2>
         </div>
 
-        <div className={styles.valueGrid}>
-          {auctionHighlights.map((highlight) => (
-            <article key={highlight.title} className={styles.valueCard}>
-              <h3>{highlight.title}</h3>
-              <p>{highlight.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+        <p className={styles.sectionLead}>
+          They can explore the products, pricing, seller information, and auction timing here.
+          To place bids or join the live auction flow, they need to register as an AuctionArc user.
+        </p>
 
-      <section className={styles.section} id="how-it-works">
-        <div className={styles.sectionHeading}>
-          <span>How It Works</span>
-          <h2>From sign-up to delivery, the full auction cycle stays simple and clear.</h2>
-        </div>
+        <PublicAuctionGrid
+          auctions={auctions}
+          emptyMessage="No public auction products are available on the homepage right now."
+        />
 
-        <div className={styles.stepsGrid}>
-          {howItWorksSteps.map((step, index) => (
-            <article
-              key={step.title}
-              className={index === howItWorksSteps.length - 1 ? styles.stepCardWide : styles.stepCard}
-            >
-              <h3>{step.title}</h3>
-              <p>{step.body}</p>
-            </article>
-          ))}
+        <div className={styles.sectionCtaRow}>
+          <Link href="/auctions" className={styles.secondaryAction}>
+            View All Auctions
+          </Link>
+          <Link href="/register" className={styles.primaryAction}>
+            Join AuctionArc
+          </Link>
         </div>
       </section>
     </div>
