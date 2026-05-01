@@ -7,7 +7,7 @@ import styles from "./BuyerShell.module.css";
 
 const navItems = [
   { href: "/bidder", label: "Home" },
-  { href: "/bidder/discover", label: "Auctions" },
+  { href: "/bidder/auctions", label: "Auctions" },
   { href: "/bidder/profile", label: "Profile" },
 ];
 

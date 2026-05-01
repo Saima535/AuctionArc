@@ -86,7 +86,7 @@ export default function BidderDashboardPage() {
           {error ? <ApiErrorNotice title="Bidder dashboard unavailable" message={error} /> : null}
 
           <div className={styles.profileActions}>
-            <Link href="/bidder/discover" className={styles.primaryButton}>
+            <Link href="/bidder/auctions" className={styles.primaryButton}>
               Browse Auctions
             </Link>
             <Link href="/bidder/wallet" className={styles.secondaryButton}>

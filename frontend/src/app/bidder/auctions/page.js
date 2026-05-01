@@ -1,0 +1,369 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
+import {
+  LiveRefreshControls,
+  SectionIntro,
+  StatusBadge,
+} from "@/components/admin/AdminPrimitives";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiEmptyState, ApiErrorNotice } from "@/components/feedback/ApiFeedback";
+import { useApiData } from "@/hooks/useApiData";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { apiRequest } from "@/lib/api";
+import styles from "@/components/member/MemberDashboard.module.css";
+
+function categoryTone(category) {
+  const normalized = String(category || "").toLowerCase();
+
+  if (normalized.includes("vehicle")) {
+    return "warn";
+  }
+
+  if (normalized.includes("electronic") || normalized.includes("industrial")) {
+    return "danger";
+  }
+
+  return "good";
+}
+
+export default function BidderAuctionsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/bidder/discover", {
+    initialData: [],
+    refreshIntervalMs: 12000,
+    revalidateOnWindowFocus: true,
+  });
+  const [bidValues, setBidValues] = useState({});
+  const [pageMessage, setPageMessage] = useState("");
+  const [pageError, setPageError] = useState("");
+  const [busyAuctionId, setBusyAuctionId] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const liveChannels = useMemo(
+    () => ["market:auctions", "market:bids", "market:watchlist", user?.id ? `user:${user.id}` : ""],
+    [user?.id],
+  );
+  const handleLiveEvent = useCallback(() => {
+    refresh({ background: true });
+  }, [refresh]);
+  const live = useLiveRefresh({
+    channels: liveChannels,
+    enabled: Boolean(user?.id),
+    onEvent: handleLiveEvent,
+  });
+
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(
+      new Set(
+        data
+          .map((item) => item.category)
+          .filter(Boolean),
+      ),
+    ).sort((left, right) => left.localeCompare(right));
+
+    return ["All", ...uniqueCategories];
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    if (selectedCategory === "All") {
+      return data;
+    }
+
+    return data.filter((item) => item.category === selectedCategory);
+  }, [data, selectedCategory]);
+
+  async function handleWatchToggle(item) {
+    setPageError("");
+    setPageMessage("");
+
+    if (!item.auctionId || !item.canWatch) {
+      setPageError("This product does not have an active auction session yet.");
+      return;
+    }
+
+    setBusyAuctionId(item.auctionId);
+
+    try {
+      if (item.watchlisted) {
+        await apiRequest(`/auctions/${item.auctionId}/watchlist`, {
+          method: "DELETE",
+        });
+      } else {
+        await apiRequest(`/auctions/${item.auctionId}/watchlist`, {
+          method: "POST",
+        });
+      }
+
+      setData((current) =>
+        current.map((row) =>
+          row.auctionId === item.auctionId
+            ? { ...row, watchlisted: !row.watchlisted }
+            : row,
+        ),
+      );
+      setPageMessage(item.watchlisted ? "Removed from watchlist." : "Added to watchlist.");
+      refresh({ background: true });
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not update watchlist.");
+    } finally {
+      setBusyAuctionId("");
+    }
+  }
+
+  async function handlePlaceBid(item) {
+    const bidKey = item.auctionId || item.listingId;
+    const amount = Number(bidValues[bidKey]);
+
+    setPageError("");
+    setPageMessage("");
+
+    if (!amount || amount <= 0) {
+      setPageError("Enter a valid bid amount.");
+      return;
+    }
+
+    if (!item.auctionId || !item.canBid) {
+      setPageError("Bidding is not open for this product yet.");
+      return;
+    }
+
+    setBusyAuctionId(item.auctionId);
+
+    try {
+      await apiRequest(`/auctions/${item.auctionId}/bids`, {
+        method: "POST",
+        body: { amount },
+      });
+
+      setData((current) =>
+        current.map((row) =>
+          row.auctionId === item.auctionId
+            ? { ...row, price: `$${amount.toLocaleString()}`, currentBid: `$${amount.toLocaleString()}` }
+            : row,
+        ),
+      );
+      setBidValues((current) => ({ ...current, [bidKey]: "" }));
+      setPageMessage(`Bid placed on ${item.title}.`);
+      refresh({ background: true });
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not place bid.");
+    } finally {
+      setBusyAuctionId("");
+    }
+  }
+
+  async function handleMessageSeller(item) {
+    setPageError("");
+    setPageMessage("");
+    setBusyAuctionId(item.auctionId || item.listingId);
+
+    try {
+      await apiRequest("/messages", {
+        method: "POST",
+        body: {
+          recipientId: item.sellerId,
+          subject: `${item.title} inquiry`,
+          body: `Hi, I am interested in ${item.title}. Could you share more details about the auction item?`,
+        },
+      });
+
+      router.push("/bidder/messages");
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not start the conversation.");
+    } finally {
+      setBusyAuctionId("");
+    }
+  }
+
+  return (
+    <div className={styles.page}>
+      <SectionIntro
+        title="Auctions"
+        description="Browse listed auction products, filter by category, and join live bidding when a session is open."
+        action={
+          <LiveRefreshControls
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+            label="Realtime auctions + 12s fallback"
+            connectionState={live.connectionState}
+          />
+        }
+      />
+
+      <div className={styles.categoryToolbar}>
+        <div className={styles.categoryMenuWrap}>
+          <button
+            type="button"
+            className={styles.categoryToggle}
+            onClick={() => setIsCategoryMenuOpen((current) => !current)}
+            aria-expanded={isCategoryMenuOpen}
+            aria-haspopup="menu"
+          >
+            Categories
+          </button>
+          {isCategoryMenuOpen ? (
+            <div className={styles.categoryMenu} role="menu" aria-label="Auction categories">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={category === selectedCategory ? styles.categoryItemActive : styles.categoryItem}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    setIsCategoryMenuOpen(false);
+                  }}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <p className={styles.categorySummary}>
+          {selectedCategory === "All"
+            ? "Showing all listed auction products."
+            : `Showing ${selectedCategory} products.`}
+        </p>
+      </div>
+
+      {error ? <ApiErrorNotice title="Auction feed unavailable" message={error} /> : null}
+      {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
+      {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
+
+      {!data.length ? (
+        <ApiEmptyState
+          title="No auction products available right now"
+          message="Once approved auction products are available, they will appear here automatically."
+        />
+      ) : null}
+
+      {data.length && !filteredData.length ? (
+        <ApiEmptyState
+          title="No products available in this category"
+          message="Try another category or switch back to all products."
+        />
+      ) : null}
+
+      {filteredData.length ? (
+        <section className={styles.auctionGrid}>
+          {filteredData.map((item) => {
+            const busyKey = item.auctionId || item.listingId;
+
+            return (
+              <article key={item.listingId || item.id} className={styles.auctionCard}>
+                <div
+                  className={`${styles.auctionMedia} ${item.imageUrl ? styles.auctionMediaImage : ""}`.trim()}
+                  style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
+                >
+                  {!item.imageUrl ? (
+                    <span className={styles.auctionMediaFallback}>
+                      {item.category?.slice(0, 1) || "A"}
+                    </span>
+                  ) : null}
+                  <div className={styles.auctionBadgeRow}>
+                    {item.premiumHighlight ? <span className={styles.featureBadge}>Featured</span> : null}
+                    <StatusBadge tone={categoryTone(item.category)}>{item.category}</StatusBadge>
+                  </div>
+                </div>
+
+                <div className={styles.auctionBody}>
+                  <div className={styles.auctionHeader}>
+                    <div>
+                      <span className={styles.cardCode}>{item.id}</span>
+                      <h3>{item.title}</h3>
+                    </div>
+                    <StatusBadge tone={item.canBid ? "danger" : item.canWatch ? "warn" : "good"}>
+                      {item.stage}
+                    </StatusBadge>
+                  </div>
+
+                  <p className={styles.auctionDescription}>
+                    {item.description || "No product description has been added yet."}
+                  </p>
+
+                  <div className={styles.auctionStatGrid}>
+                    <div className={styles.auctionStatCard}>
+                      <span>{item.priceLabel || "Current price"}</span>
+                      <strong>{item.currentBid || item.price}</strong>
+                    </div>
+                    <div className={styles.auctionStatCard}>
+                      <span>Seller</span>
+                      <strong>{item.seller}</strong>
+                    </div>
+                    <div className={styles.auctionStatCard}>
+                      <span>Watchers</span>
+                      <strong>{item.watchers}</strong>
+                    </div>
+                    <div className={styles.auctionStatCard}>
+                      <span>Auction window</span>
+                      <strong>{item.auctionWindow}</strong>
+                    </div>
+                  </div>
+
+                  <div className={styles.auctionInfoGrid}>
+                    <p className={styles.auctionMeta}>
+                      <span>Condition</span>
+                      <strong>{item.condition}</strong>
+                    </p>
+                    <p className={styles.auctionMeta}>
+                      <span>Delivery</span>
+                      <strong>{item.delivery}</strong>
+                    </p>
+                  </div>
+
+                  <div className={styles.inlineForm}>
+                    <input
+                      className={styles.amountInput}
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      placeholder={item.canBid ? "Enter bid amount" : "Bidding opens when session goes live"}
+                      value={bidValues[busyKey] || ""}
+                      onChange={(event) =>
+                        setBidValues((current) => ({
+                          ...current,
+                          [busyKey]: event.target.value,
+                        }))
+                      }
+                    />
+                    <button
+                      type="button"
+                      className={styles.actionButton}
+                      disabled={busyAuctionId === busyKey || !item.canBid}
+                      onClick={() => handlePlaceBid(item)}
+                    >
+                      {busyAuctionId === busyKey ? "Working..." : item.canBid ? "Place Bid" : "Not Open Yet"}
+                    </button>
+                  </div>
+
+                  <div className={styles.auctionActionRow}>
+                    <button
+                      type="button"
+                      className={item.watchlisted ? styles.secondaryAction : styles.actionButton}
+                      disabled={busyAuctionId === busyKey || !item.canWatch}
+                      onClick={() => handleWatchToggle(item)}
+                    >
+                      {item.canWatch ? (item.watchlisted ? "Remove Watch" : "Add Watch") : "Watch Later"}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryAction}
+                      disabled={busyAuctionId === busyKey || !item.sellerId}
+                      onClick={() => handleMessageSeller(item)}
+                    >
+                      Message Seller
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : null}
+    </div>
+  );
+}

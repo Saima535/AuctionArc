@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/api";
 const ROLE_DESTINATIONS = {
   Admin: "/admin",
   Seller: "/seller",
-  Bidder: "/bidder/discover",
+  Bidder: "/bidder/auctions",
 };
 
 function getDestination(result, role) {

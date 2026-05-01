@@ -56,7 +56,7 @@ export function RegisterForm() {
       const result = await registerUser(formData);
 
       setSubmitSuccess("Account created successfully. Redirecting...");
-      router.push(result.destination || (role === "Seller" ? "/seller" : "/bidder/discover"));
+      router.push(result.destination || (role === "Seller" ? "/seller" : "/bidder/auctions"));
     } catch (error) {
       setSubmitError(error.message || "Could not connect to the backend. Please make sure the backend server is running.");
     } finally {

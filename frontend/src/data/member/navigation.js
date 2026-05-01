@@ -13,7 +13,7 @@ export const sellerNavItems = [
 export const bidderNavItems = [
   { href: "/bidder", label: "Overview", caption: "Bidding snapshot" },
   { href: "/bidder/profile", label: "Profile", caption: "Bidder identity" },
-  { href: "/bidder/discover", label: "Discover", caption: "New auction opportunities" },
+  { href: "/bidder/auctions", label: "Auctions", caption: "Browse listed auction products" },
   { href: "/bidder/watchlist", label: "Watchlist", caption: "Tracked auctions" },
   { href: "/bidder/my-bids", label: "My Bids", caption: "Active bid positions" },
   { href: "/bidder/wins", label: "Wins", caption: "Won auctions and payments" },

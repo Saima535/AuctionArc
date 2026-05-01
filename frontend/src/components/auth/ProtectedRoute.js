@@ -11,7 +11,7 @@ function destinationForRole(role) {
   }
 
   if (role === "Bidder") {
-    return "/bidder/discover";
+    return "/bidder/auctions";
   }
 
   if (role === "Admin") {

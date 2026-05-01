@@ -483,24 +483,69 @@ export const getSellerAnalytics = asyncHandler(async (req, res) => {
 });
 
 export const getBidderDiscover = asyncHandler(async (req, res) => {
-  const [auctions, watchlist] = await Promise.all([
-    Auction.find({})
+  const [listings, watchlist] = await Promise.all([
+    Listing.find({
+      status: { $in: ["Live", "Featured"] },
+    })
       .populate("seller", "name")
-      .sort({ createdAt: -1 })
-      .limit(6),
+      .sort({ premiumHighlight: -1, updatedAt: -1 })
+      .limit(12),
     Watchlist.find({ user: req.user._id }).select("auction"),
   ]);
   const watchedAuctionIds = new Set(watchlist.map((item) => String(item.auction)));
+  const relatedAuctions = await Auction.find({
+    listing: { $in: listings.map((listing) => listing._id) },
+    status: { $in: ["Scheduled", "Live", "Extended"] },
+  }).sort({ updatedAt: -1 });
+  const auctionByListingId = new Map();
+
+  for (const auction of relatedAuctions) {
+    const listingId = String(auction.listing);
+
+    if (!auctionByListingId.has(listingId)) {
+      auctionByListingId.set(listingId, auction);
+    }
+  }
 
   res.json({
     success: true,
-    data: auctions.map((auction) => ({
-      ...toDiscoverRow(auction),
-      auctionId: auction._id,
-      seller: auction.seller?.name || "AuctionArc seller",
-      sellerId: auction.seller?._id || null,
-      watchlisted: watchedAuctionIds.has(String(auction._id)),
-    })),
+    data: listings.map((listing) => {
+      const relatedAuction = auctionByListingId.get(String(listing._id));
+      const stage = relatedAuction
+        ? relatedAuction.status === "Scheduled"
+          ? "Opening soon"
+          : relatedAuction.status
+        : "Preview";
+      const watcherCount = relatedAuction?.watcherCount || listing.watcherCount || 0;
+      const interest = watcherCount > 80 ? "Hot" : watcherCount > 40 ? "High" : "Rising";
+
+      return {
+        id: listing.code,
+        listingId: listing._id,
+        auctionId: relatedAuction?._id || null,
+        title: listing.title,
+        category: listing.category,
+        description: listing.description,
+        condition: listing.condition || "Good",
+        delivery: listing.deliveryOption || "AuctionArc Delivery",
+        imageUrl: listing.images?.[0]?.url || "",
+        premiumHighlight: Boolean(listing.premiumHighlight),
+        status: listing.status,
+        stage,
+        price: formatCurrency(relatedAuction?.currentBid || listing.currentBid || listing.price || 0),
+        currentBid: formatCurrency(relatedAuction?.currentBid || listing.currentBid || listing.price || 0),
+        priceLabel: relatedAuction?.currentBid > listing.price || listing.currentBid > listing.price ? "Current bid" : "Starting price",
+        auctionWindow: `${listing.auctionDurationDays || 5} day auction`,
+        watchers: String(watcherCount),
+        reserveStatus: listing.reserveStatus || "Pending",
+        interest,
+        seller: listing.seller?.name || "AuctionArc seller",
+        sellerId: listing.seller?._id || null,
+        watchlisted: relatedAuction ? watchedAuctionIds.has(String(relatedAuction._id)) : false,
+        canBid: Boolean(relatedAuction && ["Live", "Extended"].includes(relatedAuction.status)),
+        canWatch: Boolean(relatedAuction),
+      };
+    }),
   });
 });
 
