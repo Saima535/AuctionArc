@@ -199,8 +199,8 @@ export default function SellerListingsPage() {
                 </tr>
               ) : null}
 
-              {data.map((row) => (
-                <tr key={row.listingId}>
+              {data.map((row, index) => (
+                <tr key={row.listingId || row.id || index}>
                   <td>{row.title}</td>
                   <td>
                     <span

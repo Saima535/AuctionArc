@@ -9,18 +9,67 @@ import { registerUser } from "@/lib/auth-actions";
 export function RegisterForm() {
   const router = useRouter();
   const [birthdateError, setBirthdateError] = useState("");
+  const [birthdateValue, setBirthdateValue] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [selectedImageName, setSelectedImageName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const today = new Date();
-  const maxBirthdate = new Date(
-    today.getFullYear() - 18,
-    today.getMonth(),
-    today.getDate(),
-  )
-    .toISOString()
-    .split("T")[0];
+  const dayOptions = Array.from({ length: 31 }, (_, index) => index + 1);
+  const monthOptions = [
+    { value: "01", label: "Jan" },
+    { value: "02", label: "Feb" },
+    { value: "03", label: "Mar" },
+    { value: "04", label: "Apr" },
+    { value: "05", label: "May" },
+    { value: "06", label: "Jun" },
+    { value: "07", label: "Jul" },
+    { value: "08", label: "Aug" },
+    { value: "09", label: "Sep" },
+    { value: "10", label: "Oct" },
+    { value: "11", label: "Nov" },
+    { value: "12", label: "Dec" },
+  ];
+  const yearOptions = Array.from(
+    { length: 83 },
+    (_, index) => today.getFullYear() - 18 - index,
+  );
+
+  function buildBirthdate(day, month, year) {
+    if (!day || !month || !year) {
+      return "";
+    }
+
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  function isValidBirthdate(day, month, year) {
+    if (!day || !month || !year) {
+      return false;
+    }
+
+    const birthdate = buildBirthdate(day, month, year);
+    const parsed = new Date(birthdate);
+
+    return (
+      parsed instanceof Date &&
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.getFullYear() === Number(year) &&
+      parsed.getMonth() + 1 === Number(month) &&
+      parsed.getDate() === Number(day)
+    );
+  }
+
+  function calculateAge(birthdate) {
+    const today = new Date();
+    const birth = new Date(birthdate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -39,7 +88,14 @@ export function RegisterForm() {
       return;
     }
 
-    if (maxBirthdate && birthdateValue > maxBirthdate) {
+    const [year, month, day] = birthdateValue.split("-");
+
+    if (!isValidBirthdate(day, month, year)) {
+      setBirthdateError("Please select a valid birthdate.");
+      return;
+    }
+
+    if (calculateAge(birthdateValue) < 18) {
       setBirthdateError("You must be at least 18 years old to create an AuctionArc account.");
       return;
     }
@@ -65,7 +121,25 @@ export function RegisterForm() {
   }
 
   function handleBirthdateChange(event) {
-    if (maxBirthdate && event.target.value && event.target.value > maxBirthdate) {
+    const form = event.target.form;
+    const day = form?.birthdateDay?.value || "";
+    const month = form?.birthdateMonth?.value || "";
+    const year = form?.birthdateYear?.value || "";
+    const value = buildBirthdate(day, month, year);
+
+    setBirthdateValue(value);
+
+    if (!value) {
+      setBirthdateError("");
+      return;
+    }
+
+    if (!isValidBirthdate(day, month, year)) {
+      setBirthdateError("Please select a valid birthdate.");
+      return;
+    }
+
+    if (calculateAge(value) < 18) {
       setBirthdateError("You must be at least 18 years old to create an AuctionArc account.");
       return;
     }
@@ -151,15 +225,58 @@ export function RegisterForm() {
           />
         </div>
         <div className={styles.field}>
-          <label htmlFor="register-birthdate">Birthdate</label>
-          <input
-            id="register-birthdate"
-            name="birthdate"
-            type="date"
-            max={maxBirthdate}
-            required
-            onChange={handleBirthdateChange}
-          />
+          <label htmlFor="register-birthdate-day">Birthdate</label>
+          <div className={styles.birthdateRow}>
+            <select
+              id="register-birthdate-day"
+              name="birthdateDay"
+              defaultValue=""
+              required
+              onChange={handleBirthdateChange}
+            >
+              <option value="" disabled>
+                Day
+              </option>
+              {dayOptions.map((day) => (
+                <option key={day} value={String(day).padStart(2, "0")}>
+                  {day}
+                </option>
+              ))}
+            </select>
+            <select
+              id="register-birthdate-month"
+              name="birthdateMonth"
+              defaultValue=""
+              required
+              onChange={handleBirthdateChange}
+            >
+              <option value="" disabled>
+                Month
+              </option>
+              {monthOptions.map((month) => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
+            <select
+              id="register-birthdate-year"
+              name="birthdateYear"
+              defaultValue=""
+              required
+              onChange={handleBirthdateChange}
+            >
+              <option value="" disabled>
+                Year
+              </option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+          <input type="hidden" name="birthdate" value={birthdateValue} />
           {birthdateError ? <p className={styles.errorText}>{birthdateError}</p> : null}
         </div>
       </div>

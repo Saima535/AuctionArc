@@ -40,6 +40,7 @@ export function toTableUser(user) {
 
 export function toListingCard(listing) {
   return {
+    listingId: listing._id,
     id: listing.code,
     title: listing.title,
     category: listing.category,

@@ -59,31 +59,34 @@ export default function SellerDashboardPage() {
 
   const stats = useMemo(
     () =>
-      data.kpis.map((item, index) => ({
+      (data?.kpis ?? []).map((item, index) => ({
         ...item,
         icon: statIcons[index] || <TrendIcon />,
       })),
-    [data.kpis],
+    [data?.kpis],
   );
 
   const performance = useMemo(
     () =>
-      data.performance.map((item, index) => ({
+      (data?.performance ?? []).map((item, index) => ({
         ...item,
         icon: performanceIcons[index] || <TrendIcon />,
       })),
-    [data.performance],
+    [data?.performance],
   );
 
   const activityItems = useMemo(
     () =>
-      data.activity.map((item, index) => ({
+      (data?.activity ?? []).map((item, index) => ({
         ...item,
         icon: activityVisuals[index % activityVisuals.length].icon,
         iconClass: activityVisuals[index % activityVisuals.length].className,
       })),
-    [data.activity],
+    [data?.activity],
   );
+
+  const currentListings = data?.currentListings ?? [];
+  const salesHistory = data?.salesHistory ?? [];
 
   return (
     <div className={shared.page}>
@@ -158,7 +161,7 @@ export default function SellerDashboardPage() {
             </div>
 
             <div className={shared.productGrid}>
-              {!data.currentListings.length ? (
+              {!currentListings.length ? (
                 <article className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productBody}>
                     <h3>No live listings yet</h3>
@@ -167,7 +170,7 @@ export default function SellerDashboardPage() {
                 </article>
               ) : null}
 
-              {data.currentListings.map((product) => (
+              {currentListings.map((product) => (
                 <article key={product.id} className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productMedia}>
                     <div className={shared.mediaPlaceholder}>
@@ -227,7 +230,7 @@ export default function SellerDashboardPage() {
             </div>
 
             <div className={shared.productGrid}>
-              {!data.salesHistory.length ? (
+              {!salesHistory.length ? (
                 <article className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productBody}>
                     <h3>No completed sales yet</h3>
@@ -236,7 +239,7 @@ export default function SellerDashboardPage() {
                 </article>
               ) : null}
 
-              {data.salesHistory.map((item) => (
+              {salesHistory.map((item) => (
                 <article key={item.id} className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productMedia}>
                     <div className={shared.mediaPlaceholder}>
