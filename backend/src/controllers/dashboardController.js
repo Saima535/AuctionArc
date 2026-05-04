@@ -8,6 +8,7 @@ import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
+import { ApiError } from "../utils/apiError.js";
 import {
   compactAmount,
   toAuctionRow,
@@ -18,17 +19,15 @@ import {
   toThreadRow,
   toTransactionRow,
 } from "../services/mapperService.js";
-import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
-import { publishLiveEvent } from "../services/liveUpdateService.js";
 
 export const getSellerOverview = asyncHandler(async (req, res) => {
   const [listings, auctions, orders, threads, sellerAuctions] = await Promise.all([
-    Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(8),
-    Auction.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(6),
-    Order.find({ seller: req.user._id }).sort({ updatedAt: -1 }),
-    Thread.find({ "participants.user": req.user._id }).sort({ updatedAt: -1 }).limit(5),
+    Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
+    Auction.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(3),
+    Order.find({ seller: req.user._id }),
+    Thread.find({ "participants.user": req.user._id }).sort({ updatedAt: -1 }).limit(2),
     Auction.find({ seller: req.user._id }).select("_id"),
   ]);
 
@@ -37,39 +36,6 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
   }).distinct("bidder");
 
   const grossSales = orders.reduce((sum, order) => sum + order.amount, 0);
-  const totalViews = listings.reduce((sum, listing) => sum + (listing.viewCount || 0), 0);
-  const totalWatchers = listings.reduce((sum, listing) => sum + (listing.watcherCount || 0), 0);
-  const pendingOrders = orders.filter((item) => !["Completed", "Delivered"].includes(item.status)).length;
-  const conversionRate = listings.length ? Math.round((orders.length / listings.length) * 100) : 0;
-  const activeAuctions = auctions.filter((item) => ["Live", "Extended"].includes(item.status));
-  const currentListings = listings
-    .filter((listing) => ["Live", "Featured", "Pending approval", "Pending review", "Draft"].includes(listing.status))
-    .slice(0, 4)
-    .map((listing) => {
-      const relatedAuction = auctions.find((auction) => String(auction.listing) === String(listing._id));
-
-      return {
-        id: listing._id,
-        code: listing.code,
-        title: listing.title,
-        description: listing.description,
-        currentBid: formatCurrency(listing.currentBid || listing.price || 0),
-        endTime: relatedAuction?.endAt ? relatedAuction.endAt.toISOString() : null,
-        delivery: listing.deliveryOption || "AuctionArc Delivery",
-        views: String(listing.viewCount || 0),
-        watchers: String(listing.watcherCount || 0),
-        status: listing.status,
-      };
-    });
-  const salesHistory = orders
-    .filter((item) => ["Completed", "Paid", "Delivered"].includes(item.status))
-    .slice(0, 4)
-    .map((order) => ({
-      id: order.code,
-      title: order.item,
-      price: formatCurrency(order.amount),
-      status: order.status,
-    }));
 
   res.json({
     success: true,
@@ -90,20 +56,10 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
           "warn",
         ),
       ],
-      performance: [
-        toStats("Listing views", compactAmount(totalViews), "Across your storefront", "good"),
-        toStats("Watchers", compactAmount(totalWatchers), "Live bidder attention", "good"),
-        toStats("Pending orders", String(pendingOrders), "Needs delivery follow-up", pendingOrders ? "warn" : "good"),
-        toStats("Conversion", `${conversionRate}%`, `${orders.length} order outcomes`, "good"),
-      ],
       activity: auctions.map((auction) => ({
         title: `${auction.title} updated`,
         meta: `${auction.status} auction refreshed ${auction.updatedAt.toISOString().slice(0, 10)}`,
       })),
-      spotlight: {
-        greeting: `Welcome back, ${req.user.name.split(" ")[0]}!`,
-        message: `You have ${sellerBids.length} active bidder${sellerBids.length === 1 ? "" : "s"} across ${activeAuctions.length} auction${activeAuctions.length === 1 ? "" : "s"}.`,
-      },
       listings: listings.slice(0, 3).map((listing) => ({
         id: listing.code,
         title: listing.title,
@@ -111,8 +67,6 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
         price: formatCurrency(listing.price),
         bids: String(listing.bidCount),
       })),
-      currentListings,
-      salesHistory,
       messages: threads.map((thread) => ({
         title: thread.subject,
         meta: thread.messages.at(-1)?.body || "No recent message",
@@ -124,10 +78,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
 export const getBidderOverview = asyncHandler(async (req, res) => {
   const [bids, watchlist, orders, threads] = await Promise.all([
     Bid.find({ bidder: req.user._id }).populate("auction"),
-    Watchlist.find({ user: req.user._id }).populate({
-      path: "auction",
-      populate: { path: "seller", select: "name" },
-    }),
+    Watchlist.find({ user: req.user._id }).populate("auction"),
     Order.find({ bidder: req.user._id }).populate("seller"),
     Thread.find({ "participants.user": req.user._id }).sort({ updatedAt: -1 }).limit(2),
   ]);
@@ -147,11 +98,10 @@ export const getBidderOverview = asyncHandler(async (req, res) => {
       })),
       watchlist: watchlist.slice(0, 3).map((item) => ({
         id: item.auction?.code,
-        auctionId: item.auction?._id,
         title: item.auction?.title,
         status: item.auction?.status,
         currentBid: item.auction?.currentBid ? formatCurrency(item.auction.currentBid) : "--",
-        seller: item.auction?.seller?.name || "AuctionArc seller",
+        seller: "AuctionArc seller",
       })),
       messages: threads.map((thread) => ({
         title: thread.subject,
@@ -362,16 +312,7 @@ export const getSellerListings = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: listings.map((listing) => ({
-      ...toListingCard(listing),
-      listingId: listing._id,
-      description: listing.description,
-      currentBid: formatCurrency(listing.currentBid || listing.price || 0),
-      condition: listing.condition,
-      auctionDurationDays: listing.auctionDurationDays,
-      views: String(listing.viewCount || 0),
-      watchers: String(listing.watcherCount || 0),
-    })),
+    data: listings.map(toListingCard),
   });
 });
 
@@ -397,51 +338,12 @@ export const getSellerOrders = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: orders.map((order) => ({
-      orderId: order._id,
       id: order.code,
       item: order.item,
       buyer: order.bidder?.name || "Unknown buyer",
       amount: formatCurrency(order.amount),
       status: order.status,
     })),
-  });
-});
-
-export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
-  const order = await Order.findOne({
-    _id: req.params.orderId,
-    seller: req.user._id,
-  }).populate("bidder");
-
-  if (!order) {
-    throw new ApiError(404, "Order not found.");
-  }
-
-  order.status = req.body.status || order.status;
-  await order.save();
-
-  publishLiveEvent({
-    event: "order.updated",
-    channels: ["market:orders"],
-    userIds: [order.seller, order.bidder],
-    roles: ["Admin"],
-    payload: {
-      orderId: order._id,
-      status: order.status,
-    },
-  });
-
-  res.json({
-    success: true,
-    message: "Order status updated successfully.",
-    data: {
-      orderId: order._id,
-      id: order.code,
-      item: order.item,
-      buyer: order.bidder?.name || "Unknown buyer",
-      amount: formatCurrency(order.amount),
-      status: order.status,
-    },
   });
 });
 
@@ -483,69 +385,11 @@ export const getSellerAnalytics = asyncHandler(async (req, res) => {
 });
 
 export const getBidderDiscover = asyncHandler(async (req, res) => {
-  const [listings, watchlist] = await Promise.all([
-    Listing.find({
-      status: { $in: ["Live", "Featured"] },
-    })
-      .populate("seller", "name")
-      .sort({ premiumHighlight: -1, updatedAt: -1 })
-      .limit(12),
-    Watchlist.find({ user: req.user._id }).select("auction"),
-  ]);
-  const watchedAuctionIds = new Set(watchlist.map((item) => String(item.auction)));
-  const relatedAuctions = await Auction.find({
-    listing: { $in: listings.map((listing) => listing._id) },
-    status: { $in: ["Scheduled", "Live", "Extended"] },
-  }).sort({ updatedAt: -1 });
-  const auctionByListingId = new Map();
-
-  for (const auction of relatedAuctions) {
-    const listingId = String(auction.listing);
-
-    if (!auctionByListingId.has(listingId)) {
-      auctionByListingId.set(listingId, auction);
-    }
-  }
+  const auctions = await Auction.find({}).sort({ createdAt: -1 }).limit(6);
 
   res.json({
     success: true,
-    data: listings.map((listing) => {
-      const relatedAuction = auctionByListingId.get(String(listing._id));
-      const stage = relatedAuction
-        ? relatedAuction.status === "Scheduled"
-          ? "Opening soon"
-          : relatedAuction.status
-        : "Preview";
-      const watcherCount = relatedAuction?.watcherCount || listing.watcherCount || 0;
-      const interest = watcherCount > 80 ? "Hot" : watcherCount > 40 ? "High" : "Rising";
-
-      return {
-        id: listing.code,
-        listingId: listing._id,
-        auctionId: relatedAuction?._id || null,
-        title: listing.title,
-        category: listing.category,
-        description: listing.description,
-        condition: listing.condition || "Good",
-        delivery: listing.deliveryOption || "AuctionArc Delivery",
-        imageUrl: listing.images?.[0]?.url || "",
-        premiumHighlight: Boolean(listing.premiumHighlight),
-        status: listing.status,
-        stage,
-        price: formatCurrency(relatedAuction?.currentBid || listing.currentBid || listing.price || 0),
-        currentBid: formatCurrency(relatedAuction?.currentBid || listing.currentBid || listing.price || 0),
-        priceLabel: relatedAuction?.currentBid > listing.price || listing.currentBid > listing.price ? "Current bid" : "Starting price",
-        auctionWindow: `${listing.auctionDurationDays || 5} day auction`,
-        watchers: String(watcherCount),
-        reserveStatus: listing.reserveStatus || "Pending",
-        interest,
-        seller: listing.seller?.name || "AuctionArc seller",
-        sellerId: listing.seller?._id || null,
-        watchlisted: relatedAuction ? watchedAuctionIds.has(String(relatedAuction._id)) : false,
-        canBid: Boolean(relatedAuction && ["Live", "Extended"].includes(relatedAuction.status)),
-        canWatch: Boolean(relatedAuction),
-      };
-    }),
+    data: auctions.map(toDiscoverRow),
   });
 });
 
@@ -556,7 +400,6 @@ export const getBidderBids = asyncHandler(async (req, res) => {
     success: true,
     data: bids.map((bid) => ({
       id: bid.code,
-      auctionId: bid.auction?._id,
       auction: bid.auction?.title || "Unknown auction",
       yourBid: formatCurrency(bid.amount),
       standing: bid.status === "Top bid" ? "Leading" : bid.status === "Outbid" ? "2nd place" : "Review hold",
@@ -574,7 +417,6 @@ export const getBidderWins = asyncHandler(async (req, res) => {
       id: order.code,
       item: order.item,
       seller: order.seller?.name || "Unknown seller",
-      sellerId: order.seller?._id || null,
       amount: formatCurrency(order.amount),
       status: order.status,
     })),
@@ -582,21 +424,16 @@ export const getBidderWins = asyncHandler(async (req, res) => {
 });
 
 export const getWatchlist = asyncHandler(async (req, res) => {
-  const watchlist = await Watchlist.find({ user: req.user._id }).populate({
-    path: "auction",
-    populate: { path: "seller", select: "name" },
-  });
+  const watchlist = await Watchlist.find({ user: req.user._id }).populate("auction");
 
   res.json({
     success: true,
     data: watchlist.map((item) => ({
       id: item.auction?.code,
-      auctionId: item.auction?._id,
       title: item.auction?.title,
       status: item.auction?.status,
       currentBid: item.auction?.currentBid ? formatCurrency(item.auction.currentBid) : "--",
-      seller: item.auction?.seller?.name || "AuctionArc seller",
-      sellerId: item.auction?.seller?._id || null,
+      seller: "AuctionArc seller",
     })),
   });
 });
@@ -615,5 +452,33 @@ export const getWalletOverview = asyncHandler(async (req, res) => {
       ],
       transactions: transactions.map(toTransactionRow),
     },
+  });
+});
+
+export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  const order = await Order.findById(orderId).populate("seller");
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (order.seller._id.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "You can only update your own orders");
+  }
+
+  const validStatuses = ["Awaiting payout", "Completed", "In escrow", "Awaiting shipment", "Paid", "Delivered"];
+  if (!validStatuses.includes(status)) {
+    throw new ApiError(400, "Invalid status");
+  }
+
+  order.status = status;
+  await order.save();
+
+  res.json({
+    success: true,
+    data: order,
   });
 });
