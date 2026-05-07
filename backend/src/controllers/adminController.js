@@ -18,6 +18,7 @@ import {
   toTransactionRow,
 } from "../services/mapperService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
+import { createNotification } from "../services/notificationService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
@@ -26,7 +27,7 @@ import { assertOneOf, pickAllowedKeys } from "../utils/validation.js";
 function serializeBidDetail(bid) {
   return {
     id: bid.code,
-    bidder: bid.bidder?.name || "Unknown bidder",
+    bidder: bid.bidder?.name || "Unknown buyer",
     bidderEmail: bid.bidder?.email || "Not available",
     amount: formatCurrency(bid.amount),
     status: bid.status,
@@ -146,6 +147,18 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
   listing.status = assertOneOf(req.body.status || listing.status, LISTING_STATUSES, "Listing status");
   await listing.save();
 
+  await createNotification({
+    userId: listing.seller,
+    title: "Listing status updated",
+    body: `"${listing.title}" is now ${listing.status}.`,
+    type: "listing",
+    href: "/seller/listings",
+    metadata: {
+      listingId: listing._id,
+      status: listing.status,
+    },
+  });
+
   res.json({
     success: true,
     message: "Listing status updated successfully.",
@@ -213,8 +226,8 @@ export const getAuctionDrilldown = asyncHandler(async (req, res) => {
       title: scope === "live" ? "Live Auctions" : "Closed Auctions",
       description:
         scope === "live"
-          ? "Auctions still accepting bids, with product, seller, bidder, and bid details."
-          : "Closed auction outcomes with product, seller, bidder, and final bid context.",
+          ? "Auctions still accepting bids, with product, seller, buyer, and bid details."
+          : "Closed auction outcomes with product, seller, buyer, and final bid context.",
       rows,
     },
   });
@@ -236,6 +249,18 @@ export const updateAuctionStatus = asyncHandler(async (req, res) => {
     userIds: [auction.seller],
     roles: ["Admin"],
     payload: {
+      auctionId: auction._id,
+      status: auction.status,
+    },
+  });
+
+  await createNotification({
+    userId: auction.seller,
+    title: "Auction status updated",
+    body: `"${auction.title}" is now ${auction.status}.`,
+    type: "auction",
+    href: "/seller/auctions",
+    metadata: {
       auctionId: auction._id,
       status: auction.status,
     },
@@ -278,6 +303,36 @@ export const updateBidStatus = asyncHandler(async (req, res) => {
       status: bid.status,
     },
   });
+
+  if (bid.bidder?._id) {
+    await createNotification({
+      userId: bid.bidder._id,
+      title: "Bid status updated",
+      body: `Your bid on "${bid.auction?.title || "the auction"}" is now ${bid.status}.`,
+      type: "bid",
+      href: "/bidder/my-bids",
+      metadata: {
+        bidId: bid._id,
+        auctionId: bid.auction?._id,
+        status: bid.status,
+      },
+    });
+  }
+
+  if (bid.auction?.seller) {
+    await createNotification({
+      userId: bid.auction.seller,
+      title: "Bid review updated",
+      body: `A bid on "${bid.auction?.title || "your auction"}" is now ${bid.status}.`,
+      type: "bid",
+      href: "/seller/auctions",
+      metadata: {
+        bidId: bid._id,
+        auctionId: bid.auction?._id,
+        status: bid.status,
+      },
+    });
+  }
 
   res.json({
     success: true,
@@ -367,7 +422,7 @@ export const getWinners = asyncHandler(async (req, res) => {
       id: order.code,
       product: order.item || order.listing?.title || "Unknown product",
       productCode: order.listing?.code || "No listing code",
-      bidder: order.bidder?.name || "Unknown bidder",
+      bidder: order.bidder?.name || "Unknown buyer",
       bidderEmail: order.bidder?.email || "Not available",
       seller: order.seller?.name || "Unknown seller",
       sellerEmail: order.seller?.email || "Not available",

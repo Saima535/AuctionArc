@@ -14,7 +14,7 @@ export default function HowItWorksPage() {
         <span className={styles.eyebrow}>How It Works</span>
         <h1>The auction flow, step by step.</h1>
         <p>
-          From onboarding to delivery, AuctionArc keeps the experience clear for bidders,
+          From onboarding to delivery, AuctionArc keeps the experience clear for buyers,
           sellers, and administrators who need visibility across the whole marketplace.
         </p>
       </section>
@@ -40,7 +40,7 @@ export default function HowItWorksPage() {
       <section className={styles.panel}>
         <h2>Ready to enter the marketplace?</h2>
         <p>
-          Create a bidder or seller account to move from the public site into the
+          Create a buyer or seller account to move from the public site into the
           full AuctionArc workspace.
         </p>
         <div className={styles.buttonRow}>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import styles from "./BuyerShell.module.css";
 
 const navItems = [
@@ -108,6 +109,8 @@ export function BuyerShell({ children }) {
           </nav>
 
           <div className={styles.profileGroup}>
+            <NotificationBell notificationsHref="/bidder/notifications" />
+
             <Link href="/logout" className={styles.logoutLink}>
               <LogoutIcon />
               <span>Logout</span>
@@ -118,7 +121,7 @@ export function BuyerShell({ children }) {
                 <span
                   className={styles.avatarPhoto}
                   style={{ backgroundImage: `url(${imageUrl})` }}
-                  aria-label={`${profile?.name || "Bidder"} profile`}
+                  aria-label={`${profile?.name || "Buyer"} profile`}
                 />
               ) : (
                 <span className={styles.avatarFallback}>{initialsForName(profile?.name)}</span>

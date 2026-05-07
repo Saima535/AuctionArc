@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "AuctionArc",
-  description: "AuctionArc is a modern auction management platform for sellers, bidders, and administrators.",
+  description: "AuctionArc is a modern auction management platform for sellers, buyers, and administrators.",
 };
 
 export default function RootLayout({ children }) {

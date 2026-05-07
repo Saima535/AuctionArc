@@ -76,7 +76,7 @@ export const register = asyncHandler(async (req, res) => {
   assertPassword(password);
 
   if (!PUBLIC_ROLES.includes(role)) {
-    throw new ApiError(400, "Only seller and bidder public registrations are allowed.");
+    throw new ApiError(400, "Only seller and buyer public registrations are allowed.");
   }
 
   if (!isAdult(birthdate)) {
@@ -110,7 +110,7 @@ export const register = asyncHandler(async (req, res) => {
     email: normalizedEmail,
     password: await hashPassword(password),
     role,
-    publicRoleLabel: role === "Seller" ? "Verified seller" : "Active bidder",
+    publicRoleLabel: role === "Seller" ? "Verified seller" : "Active buyer",
     status: role === "Seller" ? "Pending verification" : "Active",
     gender,
     nid,

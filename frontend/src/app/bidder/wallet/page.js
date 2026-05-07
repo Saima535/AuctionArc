@@ -76,7 +76,7 @@ export default function BidderWalletPage() {
           <DataTable columns={transactionColumns} rows={data.transactions} />
         </Panel>
 
-        <Panel title="Add funds" description="Top up your bidder wallet before entering competitive auctions.">
+        <Panel title="Add funds" description="Top up your buyer wallet before entering competitive auctions.">
           <form onSubmit={handleTopUp}>
             <div className={styles.quickAmountRow}>
               {["50", "100", "250", "500"].map((value) => (

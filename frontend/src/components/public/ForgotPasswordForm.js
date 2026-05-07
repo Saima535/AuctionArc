@@ -63,7 +63,7 @@ export function ForgotPasswordForm() {
         <label htmlFor="forgot-role">Account role</label>
         <select id="forgot-role" name="role" defaultValue="Bidder" onChange={handleFieldChange}>
           <option>Seller</option>
-          <option>Bidder</option>
+          <option value="Bidder">Buyer</option>
         </select>
       </div>
       {submitError ? <p className={styles.errorText}>{submitError}</p> : null}

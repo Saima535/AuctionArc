@@ -59,34 +59,34 @@ export default function SellerDashboardPage() {
 
   const stats = useMemo(
     () =>
-      (data?.kpis ?? []).map((item, index) => ({
+      (data.kpis ?? []).map((item, index) => ({
         ...item,
         icon: statIcons[index] || <TrendIcon />,
       })),
-    [data?.kpis],
+    [data.kpis],
   );
 
   const performance = useMemo(
     () =>
-      (data?.performance ?? []).map((item, index) => ({
+      (data.performance ?? []).map((item, index) => ({
         ...item,
         icon: performanceIcons[index] || <TrendIcon />,
       })),
-    [data?.performance],
+    [data.performance],
   );
 
   const activityItems = useMemo(
     () =>
-      (data?.activity ?? []).map((item, index) => ({
+      (data.activity ?? []).map((item, index) => ({
         ...item,
         icon: activityVisuals[index % activityVisuals.length].icon,
         iconClass: activityVisuals[index % activityVisuals.length].className,
       })),
-    [data?.activity],
+    [data.activity],
   );
 
-  const currentListings = data?.currentListings ?? [];
-  const salesHistory = data?.salesHistory ?? [];
+  const currentListings = data.currentListings ?? [];
+  const salesHistory = data.salesHistory ?? [];
 
   return (
     <div className={shared.page}>

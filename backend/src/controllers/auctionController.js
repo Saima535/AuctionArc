@@ -1,8 +1,10 @@
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
+import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { BID_STATUSES, LISTING_STATUSES } from "../constants/enums.js";
+import { createNotification, createNotifications } from "../services/notificationService.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
@@ -119,6 +121,24 @@ export const createListing = asyncHandler(async (req, res) => {
     premiumHighlight: premiumHighlight === "true" || premiumHighlight === true,
     images: uploadedImages.filter(Boolean),
   });
+
+  if (requestedStatus === "Pending approval") {
+    const admins = await User.find({ role: "Admin", status: "Active" }).select("_id");
+
+    await createNotifications(
+      admins.map((admin) => ({
+        userId: admin._id,
+        title: "Listing awaiting approval",
+        body: `${req.user.name} submitted "${listing.title}" for approval.`,
+        type: "admin-review",
+        href: "/admin/auctions/pending",
+        metadata: {
+          listingId: listing._id,
+          sellerId: req.user._id,
+        },
+      })),
+    );
+  }
 
   res.status(201).json({
     success: true,
@@ -242,7 +262,7 @@ export const deleteListing = asyncHandler(async (req, res) => {
 
 export const placeBid = asyncHandler(async (req, res) => {
   if (req.user.role !== "Bidder") {
-    throw new ApiError(403, "Only bidders can place bids.");
+    throw new ApiError(403, "Only buyers can place bids.");
   }
 
   const auction = await Auction.findById(req.params.auctionId);
@@ -277,6 +297,14 @@ export const placeBid = asyncHandler(async (req, res) => {
     signal: amount > auction.currentBid * 1.15 ? "High intent" : "Normal",
   });
 
+  const outbidBids = await Bid.find({
+    auction: auction._id,
+    bidder: { $ne: req.user._id },
+    status: { $nin: ["Held", "Review", "Pending check"] },
+  })
+    .select("bidder")
+    .populate("bidder", "_id");
+
   await Bid.updateMany(
     {
       auction: auction._id,
@@ -309,6 +337,52 @@ export const placeBid = asyncHandler(async (req, res) => {
     },
   });
 
+  await createNotification({
+    userId: req.user._id,
+    title: "Your bid was placed",
+    body: `You placed ${formatCurrency(amount)} on "${auction.title}".`,
+    type: "bid",
+    href: "/bidder/my-bids",
+    metadata: {
+      auctionId: auction._id,
+      amount,
+    },
+  });
+
+  await createNotification({
+    userId: auction.seller,
+    title: "New bid on your auction",
+    body: `${req.user.name} placed ${formatCurrency(amount)} on "${auction.title}".`,
+    type: "bid",
+    href: "/seller/auctions",
+    metadata: {
+      auctionId: auction._id,
+      bidderId: req.user._id,
+    },
+  });
+
+  const outbidBuyerIds = Array.from(
+    new Set(
+      outbidBids
+        .map((item) => String(item.bidder?._id || ""))
+        .filter((bidderId) => bidderId && bidderId !== String(req.user._id)),
+    ),
+  );
+
+  await createNotifications(
+    outbidBuyerIds.map((bidderId) => ({
+      userId: bidderId,
+      title: "You were outbid",
+      body: `Another buyer moved ahead of you on "${auction.title}".`,
+      type: "bid",
+      href: "/bidder/my-bids",
+      metadata: {
+        auctionId: auction._id,
+        amount,
+      },
+    })),
+  );
+
   res.status(201).json({
     success: true,
     message: "Bid placed successfully.",
@@ -323,7 +397,7 @@ export const placeBid = asyncHandler(async (req, res) => {
 
 export const addToWatchlist = asyncHandler(async (req, res) => {
   if (req.user.role !== "Bidder") {
-    throw new ApiError(403, "Only bidders can manage watchlists.");
+    throw new ApiError(403, "Only buyers can manage watchlists.");
   }
 
   const auction = await Auction.findById(req.params.auctionId);

@@ -85,7 +85,7 @@ export function toBidRow(bid) {
     bidId: bid._id,
     id: bid.code,
     auction: bid.auction?.title || "Unknown auction",
-    bidder: bid.bidder?.name || "Unknown bidder",
+    bidder: bid.bidder?.name || "Unknown buyer",
     amount: formatCurrency(bid.amount),
     status: bid.status,
     signal: bid.signal,

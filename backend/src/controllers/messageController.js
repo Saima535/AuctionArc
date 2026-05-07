@@ -3,10 +3,23 @@ import { Thread } from "../models/Thread.js";
 import mongoose from "mongoose";
 import { toThreadRow } from "../services/mapperService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
+import { createNotifications } from "../services/notificationService.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { assertRequiredText } from "../utils/validation.js";
+
+function notificationsHrefForParticipant(roleLabel) {
+  if (roleLabel === "Admin") {
+    return "/admin/chats";
+  }
+
+  if (roleLabel === "Buyer") {
+    return "/bidder/messages";
+  }
+
+  return "/seller/messages";
+}
 
 export const getThreads = asyncHandler(async (req, res) => {
   const filter = req.user.role === "Admin" ? {} : { "participants.user": req.user._id };
@@ -63,6 +76,22 @@ export const createThread = asyncHandler(async (req, res) => {
       },
     });
 
+    await createNotifications(
+      existingThread.participants
+        .filter((participant) => String(participant.user) !== String(req.user._id))
+        .map((participant) => ({
+          userId: participant.user,
+          title: "New message received",
+          body: `${req.user.name} added a new message to "${existingThread.subject}".`,
+          type: "message",
+          href: notificationsHrefForParticipant(participant.roleLabel),
+          metadata: {
+            threadId: existingThread._id,
+            senderId: req.user._id,
+          },
+        })),
+    );
+
     res.status(201).json({
       success: true,
       message: "Conversation updated successfully.",
@@ -108,6 +137,22 @@ export const createThread = asyncHandler(async (req, res) => {
       subject: thread.subject,
     },
   });
+
+  await createNotifications(
+    thread.participants
+      .filter((participant) => String(participant.user) !== String(req.user._id))
+      .map((participant) => ({
+        userId: participant.user,
+        title: "New conversation started",
+        body: `${req.user.name} started "${thread.subject}".`,
+        type: "message",
+        href: notificationsHrefForParticipant(participant.roleLabel),
+        metadata: {
+          threadId: thread._id,
+          senderId: req.user._id,
+        },
+      })),
+  );
 
   res.status(201).json({
     success: true,
@@ -157,6 +202,25 @@ export const postThreadMessage = asyncHandler(async (req, res) => {
       subject: thread.subject,
     },
   });
+
+  await createNotifications(
+    thread.participants
+      .filter((participant) => String(participant.user) !== String(req.user._id))
+      .map((participant) => ({
+        userId: participant.user,
+        title: req.user.role === "Admin" ? "Admin replied to a conversation" : "New message received",
+        body:
+          req.user.role === "Admin"
+            ? `An admin replied in "${thread.subject}".`
+            : `${req.user.name} replied in "${thread.subject}".`,
+        type: "message",
+        href: notificationsHrefForParticipant(participant.roleLabel),
+        metadata: {
+          threadId: thread._id,
+          senderId: req.user._id,
+        },
+      })),
+  );
 
   res.status(201).json({
     success: true,

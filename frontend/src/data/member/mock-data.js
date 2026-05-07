@@ -1,7 +1,7 @@
 export const sellerOverview = {
   kpis: [
     { label: "Live listings", value: "0", delta: "No live listings yet", tone: "neutral" },
-    { label: "Active bidders", value: "0", delta: "No bidder activity yet", tone: "neutral" },
+    { label: "Active buyers", value: "0", delta: "No buyer activity yet", tone: "neutral" },
     { label: "Gross sales", value: "$0", delta: "No sales yet", tone: "neutral" },
     { label: "Pending payouts", value: "$0", delta: "No payouts pending", tone: "neutral" },
   ],
@@ -89,7 +89,7 @@ export const sellerProfile = {
     },
     {
       title: "Visibility controls",
-      description: "How your storefront and listings appear to bidders.",
+      description: "How your storefront and listings appear to buyers.",
       items: [],
     },
   ],
@@ -97,7 +97,7 @@ export const sellerProfile = {
 
 export const bidderProfile = {
   name: "Not set",
-  role: "Bidder",
+  role: "Buyer",
   email: "Not set",
   location: "Not set",
   stats: [
@@ -109,7 +109,7 @@ export const bidderProfile = {
   sections: [
     {
       title: "Personal profile",
-      description: "Bidder identity, visibility, and account trust details.",
+      description: "Buyer identity, visibility, and account trust details.",
       items: [],
     },
     {

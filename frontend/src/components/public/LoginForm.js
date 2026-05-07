@@ -50,7 +50,7 @@ export function LoginForm() {
       <div className={styles.field}>
         <label htmlFor="login-role">Sign in as</label>
         <select id="login-role" name="role" defaultValue="Bidder" onChange={handleFieldChange}>
-          <option>Bidder</option>
+          <option value="Bidder">Buyer</option>
           <option>Seller</option>
         </select>
       </div>

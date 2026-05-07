@@ -190,7 +190,7 @@ export function RegisterForm() {
           <label htmlFor="register-role">Account role</label>
           <select id="register-role" name="role" defaultValue="Bidder" onChange={handleFieldChange}>
             <option>Seller</option>
-            <option>Bidder</option>
+            <option value="Bidder">Buyer</option>
           </select>
         </div>
         <div className={styles.field}>

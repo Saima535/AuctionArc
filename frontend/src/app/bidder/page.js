@@ -59,7 +59,7 @@ export default function BidderDashboardPage() {
       <aside className={styles.sidebar}>
         <section className={styles.panel}>
           <div className={styles.panelHeading}>
-            <h2 className={styles.sectionTitle}>Bidder Hub</h2>
+            <h2 className={styles.sectionTitle}>Buyer Hub</h2>
             <span className={styles.headingIcon}>
               <SparklesIcon />
             </span>
@@ -79,11 +79,11 @@ export default function BidderDashboardPage() {
 
           {!stats.length && isLoading ? (
             <ApiLoadingNotice
-              title="Loading bidder snapshot"
+              title="Loading buyer snapshot"
               message="We are gathering your bidding activity, watchlist status, and wallet readiness."
             />
           ) : null}
-          {error ? <ApiErrorNotice title="Bidder dashboard unavailable" message={error} /> : null}
+          {error ? <ApiErrorNotice title="Buyer dashboard unavailable" message={error} /> : null}
 
           <div className={styles.profileActions}>
             <Link href="/bidder/auctions" className={styles.primaryButton}>

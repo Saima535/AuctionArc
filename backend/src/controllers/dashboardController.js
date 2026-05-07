@@ -9,6 +9,7 @@ import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { ApiError } from "../utils/apiError.js";
+import { createNotification } from "../services/notificationService.js";
 import {
   compactAmount,
   toAuctionRow,
@@ -47,7 +48,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
           `+${Math.max(listings.length - 1, 0)} this week`,
           "good",
         ),
-        toStats("Active bidders", String(sellerBids.length), "+18%", "good"),
+        toStats("Active buyers", String(sellerBids.length), "+18%", "good"),
         toStats("Gross sales", formatCurrency(grossSales), "+12.4%", "good"),
         toStats(
           "Pending payouts",
@@ -459,7 +460,7 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
 
-  const order = await Order.findById(orderId).populate("seller");
+  const order = await Order.findById(orderId).populate("seller bidder");
 
   if (!order) {
     throw new ApiError(404, "Order not found");
@@ -476,6 +477,20 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
 
   order.status = status;
   await order.save();
+
+  if (order.bidder?._id) {
+    await createNotification({
+      userId: order.bidder._id,
+      title: "Order status changed",
+      body: `Your order for "${order.item}" is now ${order.status}.`,
+      type: "order",
+      href: "/bidder/wins",
+      metadata: {
+        orderId: order._id,
+        status: order.status,
+      },
+    });
+  }
 
   res.json({
     success: true,

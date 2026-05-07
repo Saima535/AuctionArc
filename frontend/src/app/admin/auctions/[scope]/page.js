@@ -123,8 +123,8 @@ export default function AdminAuctionScopePage() {
             </div>
 
             <div className={styles.userDetails}>
-              <strong>Bidder context</strong>
-              {!row.topBids?.length ? <p className={styles.helperText}>No bidder activity recorded yet.</p> : null}
+              <strong>Buyer context</strong>
+              {!row.topBids?.length ? <p className={styles.helperText}>No buyer activity recorded yet.</p> : null}
               {row.topBids?.map((bid) => (
                 <div key={bid.id} className={styles.infoRow}>
                   <span>{bid.bidder}</span>

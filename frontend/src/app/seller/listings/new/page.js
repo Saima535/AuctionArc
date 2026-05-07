@@ -140,7 +140,7 @@ export default function SellerNewListingPage() {
             id="listing-description"
             name="description"
             className={shared.textarea}
-            placeholder="Add the product details, provenance, included accessories, and any bidder notes."
+            placeholder="Add the product details, provenance, included accessories, and any buyer notes."
             rows={5}
             onChange={clearMessages}
           />

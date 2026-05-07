@@ -54,9 +54,9 @@ export default function BidderSettingsPage() {
       });
 
       setData(result.data);
-      setMessage("Bidder settings updated successfully.");
+      setMessage("Buyer settings updated successfully.");
     } catch (requestError) {
-      setSubmitError(requestError.message || "Could not update bidder settings.");
+      setSubmitError(requestError.message || "Could not update buyer settings.");
     } finally {
       setIsSubmitting(false);
     }
@@ -71,7 +71,7 @@ export default function BidderSettingsPage() {
 
       {error ? <p>{error}</p> : null}
 
-      <Panel title="Bidder controls" description="Personal preferences and account settings ready for backend integration.">
+      <Panel title="Buyer controls" description="Personal preferences and account settings ready for backend integration.">
         <SettingsGrid sections={bidderSettings} />
       </Panel>
 

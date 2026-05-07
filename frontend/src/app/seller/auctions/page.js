@@ -51,7 +51,7 @@ export default function SellerAuctionsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Auctions"
-        description="Follow live selling sessions, bidder engagement, and end-state timing."
+        description="Follow live selling sessions, buyer engagement, and end-state timing."
         action={
           <LiveRefreshControls
             onRefresh={refresh}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import styles from "./AdminWorkspace.module.css";
 
 const navItems = [
@@ -47,15 +48,6 @@ function AlertIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3.5 21 19a1.2 1.2 0 0 1-1 1.8H4a1.2 1.2 0 0 1-1-1.8L12 3.5Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M12 9v4.5M12 17.3h.01" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6.5 16.5V11a5.5 5.5 0 1 1 11 0v5.5l1.5 2H5l1.5-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -135,10 +127,7 @@ export function AdminWorkspace({ children }) {
           <h1>Admin Dashboard</h1>
 
           <div className={styles.topbarActions}>
-            <button type="button" className={styles.notificationButton} aria-label="Notifications">
-              <BellIcon />
-              <span className={styles.notificationDot} />
-            </button>
+            <NotificationBell notificationsHref="/admin/notifications" />
 
             <Link href="/logout" className={styles.logoutButton}>
               Logout

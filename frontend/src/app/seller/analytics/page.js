@@ -25,7 +25,7 @@ export default function SellerAnalyticsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Analytics"
-        description="Track listing visibility, bidder attention, and conversion trends across your selling activity."
+        description="Track listing visibility, buyer attention, and conversion trends across your selling activity."
       />
 
       {error ? <p>{error}</p> : null}

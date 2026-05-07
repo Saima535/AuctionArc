@@ -8,7 +8,7 @@ export const metadata = {
 const termsSections = [
   {
     title: "Marketplace Roles",
-    body: "AuctionArc supports sellers, bidders, and administrators with different permissions and responsibilities across the platform.",
+    body: "AuctionArc supports sellers, buyers, and administrators with different permissions and responsibilities across the platform.",
   },
   {
     title: "Auction Participation",

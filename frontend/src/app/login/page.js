@@ -4,7 +4,7 @@ import { LoginForm } from "@/components/public/LoginForm";
 
 export const metadata = {
   title: "Login | AuctionArc",
-  description: "Sign in to AuctionArc as a seller or bidder.",
+  description: "Sign in to AuctionArc as a seller or buyer.",
 };
 
 export default function LoginPage() {

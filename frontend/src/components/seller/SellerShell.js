@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import styles from "./SellerShell.module.css";
 
 const sidebarItems = [
@@ -19,28 +20,6 @@ const topLinks = [
 
 function LogoMark() {
   return <span className={styles.logoGlyph}>A</span>;
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M6.5 16.5V11a5.5 5.5 0 1 1 11 0v5.5l1.5 2H5l1.5-2Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M10 20a2 2 0 0 0 4 0"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
 }
 
 function GridIcon() {
@@ -156,10 +135,7 @@ export function SellerShell({ children }) {
           </nav>
 
           <div className={styles.topbarActions}>
-            <button type="button" className={styles.iconButton} aria-label="Notifications">
-              <BellIcon />
-              <span className={styles.notificationDot} />
-            </button>
+            <NotificationBell notificationsHref="/seller/notifications" />
             <Link href="/seller/profile" className={styles.initialAvatar}>
               <ProfileAvatar profile={profile} className={styles.avatarInner} />
             </Link>

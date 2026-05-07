@@ -18,7 +18,7 @@ export default function AdminWinnersPage() {
     <div className={styles.page}>
       <div>
         <h2>Auction Winners</h2>
-        <p className={styles.helperText}>Winning bidders, products, final values, sellers, and fulfillment state.</p>
+        <p className={styles.helperText}>Winning buyers, products, final values, sellers, and fulfillment state.</p>
       </div>
 
       {error ? <p className={styles.inlineNotice}>{error}</p> : null}
@@ -29,7 +29,7 @@ export default function AdminWinnersPage() {
             <tr>
               <th>Order</th>
               <th>Product</th>
-              <th>Winning bidder</th>
+              <th>Winning buyer</th>
               <th>Seller</th>
               <th>Final amount</th>
               <th>Escrow</th>
@@ -40,7 +40,7 @@ export default function AdminWinnersPage() {
           <tbody>
             {!data.length ? (
               <tr>
-                <td colSpan={8}>No winning bidder records found.</td>
+                <td colSpan={8}>No winning buyer records found.</td>
               </tr>
             ) : null}
             {data.map((row) => (

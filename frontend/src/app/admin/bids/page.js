@@ -43,7 +43,7 @@ export default function AdminBidsPage() {
     () => [
       { key: "id", label: "Bid ID" },
       { key: "auction", label: "Auction" },
-      { key: "bidder", label: "Bidder" },
+      { key: "bidder", label: "Buyer" },
       { key: "amount", label: "Amount" },
       {
         key: "status",

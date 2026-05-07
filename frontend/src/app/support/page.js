@@ -3,7 +3,7 @@ import { supportOptions } from "@/data/site-content";
 
 export const metadata = {
   title: "Support | AuctionArc",
-  description: "Find support categories for sellers, bidders, admins, and technical help.",
+  description: "Find support categories for sellers, buyers, admins, and technical help.",
 };
 
 export default function SupportPage() {

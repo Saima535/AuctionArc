@@ -9,7 +9,17 @@ import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
+import { Notification } from "../models/Notification.js";
 import { hashPassword } from "../utils/security.js";
+
+const seededNotificationTitles = [
+  "Marketplace oversight ready",
+  "Support queue updated",
+  "Seller workspace is ready",
+  "Message center available",
+  "Buyer dashboard is active",
+  "Auction feed refreshed",
+];
 
 function daysAgo(value) {
   const date = new Date();
@@ -168,7 +178,7 @@ async function seedMarketplace() {
       email: "bidder@auctionarc.com",
       password: samplePassword,
       role: "Bidder",
-      publicRoleLabel: "Active bidder",
+      publicRoleLabel: "Active buyer",
       status: "Active",
       birthdate: new Date("1995-09-21"),
       country: "United States",
@@ -185,7 +195,7 @@ async function seedMarketplace() {
         heldBalance: 6400,
         pendingPayout: 0,
         platformFees: 0,
-        walletLabel: "Bidder wallet",
+        walletLabel: "Buyer wallet",
       },
       preferences: {
         outbidAlerts: "Instant",
@@ -208,7 +218,7 @@ async function seedMarketplace() {
       email: "ethan@auctionarc.com",
       password: samplePassword,
       role: "Bidder",
-      publicRoleLabel: "Bidder",
+      publicRoleLabel: "Buyer",
       status: "Suspended",
       birthdate: new Date("1992-12-11"),
       country: "United Kingdom",
@@ -225,7 +235,7 @@ async function seedMarketplace() {
         heldBalance: 1000,
         pendingPayout: 0,
         platformFees: 0,
-        walletLabel: "UK bidder wallet",
+        walletLabel: "UK buyer wallet",
       },
       createdAt: daysAgo(15),
       updatedAt: daysAgo(3),
@@ -235,7 +245,7 @@ async function seedMarketplace() {
       email: "lima@auctionarc.com",
       password: samplePassword,
       role: "Bidder",
-      publicRoleLabel: "High intent bidder",
+      publicRoleLabel: "High intent buyer",
       status: "Active",
       birthdate: new Date("1989-08-16"),
       country: "Bangladesh",
@@ -252,7 +262,7 @@ async function seedMarketplace() {
         heldBalance: 7000,
         pendingPayout: 0,
         platformFees: 0,
-        walletLabel: "Enterprise bidder wallet",
+        walletLabel: "Enterprise buyer wallet",
       },
       createdAt: daysAgo(9),
       updatedAt: daysAgo(1),
@@ -761,11 +771,11 @@ async function seedMarketplace() {
       priority: "High",
       status: "Escalated",
       participants: [
-        { user: byEmail["bidder@auctionarc.com"]._id, roleLabel: "Bidder", name: "Avery Stone" },
+        { user: byEmail["bidder@auctionarc.com"]._id, roleLabel: "Buyer", name: "Avery Stone" },
         { user: byEmail["seller@auctionarc.com"]._id, roleLabel: "Seller", name: "Prime Auto Gallery" },
       ],
       messages: [
-        { senderName: "Bidder", senderRole: "Bidder", body: "My wallet was charged but the seller still shows unpaid.", sentAt: daysAgo(1) },
+        { senderName: "Buyer", senderRole: "Bidder", body: "My wallet was charged but the seller still shows unpaid.", sentAt: daysAgo(1) },
         { senderName: "Support", senderRole: "Support", body: "We are checking settlement state and escrow release logs.", sentAt: daysAgo(1) },
         { senderName: "Admin note", senderRole: "Admin", body: "Mark finance review if payout remains pending after next sync window.", sentAt: daysAgo(1) },
       ],
@@ -778,11 +788,11 @@ async function seedMarketplace() {
       priority: "Medium",
       status: "Open",
       participants: [
-        { user: byEmail["bidder@auctionarc.com"]._id, roleLabel: "Bidder", name: "Avery Stone" },
+        { user: byEmail["bidder@auctionarc.com"]._id, roleLabel: "Buyer", name: "Avery Stone" },
         { user: byEmail["heritage@auctionarc.com"]._id, roleLabel: "Moderation", name: "Heritage Vault" },
       ],
       messages: [
-        { senderName: "Bidder", senderRole: "Bidder", body: "I need authenticity proof before I continue bidding.", sentAt: daysAgo(2) },
+        { senderName: "Buyer", senderRole: "Bidder", body: "I need authenticity proof before I continue bidding.", sentAt: daysAgo(2) },
         { senderName: "Moderation", senderRole: "Admin", body: "Seller has been asked to upload provenance documents.", sentAt: daysAgo(1) },
       ],
       createdAt: daysAgo(2),
@@ -835,10 +845,18 @@ async function seedMarketplace() {
   );
 }
 
+async function removeSeededNotifications() {
+  await Notification.deleteMany({
+    title: { $in: seededNotificationTitles },
+  });
+}
+
 export async function bootstrapDatabase() {
   await createOrUpdateAdmin();
 
   if (env.seedOnBoot) {
     await seedMarketplace();
   }
+
+  await removeSeededNotifications();
 }

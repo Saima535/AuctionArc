@@ -3,7 +3,7 @@ import { RegisterForm } from "@/components/public/RegisterForm";
 
 export const metadata = {
   title: "Register | AuctionArc",
-  description: "Create a seller or bidder AuctionArc account.",
+  description: "Create a seller or buyer AuctionArc account.",
 };
 
 export default function RegisterPage() {
@@ -13,12 +13,12 @@ export default function RegisterPage() {
         <span className={styles.eyebrow}>Create account</span>
         <h1>Register for AuctionArc</h1>
         <p>
-          Public registration is available for sellers and bidders, and this form
+          Public registration is available for sellers and buyers, and this form
           now submits directly into the live AuctionArc auth flow.
         </p>
         <ul className={styles.bulletList}>
           <li>Seller accounts will manage auction listings and inventory.</li>
-          <li>Bidder accounts will follow listings and place bids.</li>
+          <li>Buyer accounts will follow listings and place bids.</li>
           <li>Admin accounts are provisioned separately through a private channel.</li>
         </ul>
       </section>

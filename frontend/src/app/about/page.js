@@ -3,7 +3,7 @@ import { aboutHighlights } from "@/data/site-content";
 
 export const metadata = {
   title: "About | AuctionArc",
-  description: "Learn what AuctionArc is building for sellers, bidders, and admins.",
+  description: "Learn what AuctionArc is building for sellers, buyers, and admins.",
 };
 
 export default function AboutPage() {

@@ -72,7 +72,7 @@ async function buildSellerProfileContext(user) {
       },
       {
         title: "Visibility controls",
-        description: "How your storefront and listings appear to bidders.",
+        description: "How your storefront and listings appear to buyers.",
         items: [
           `Featured appearance: ${user.preferences.featuredAppearance || "Enabled"}`,
           `Active listings: ${activeListings}`,
@@ -111,10 +111,10 @@ async function buildBidderProfileContext(user) {
     sections: [
       {
         title: "Personal profile",
-        description: "Bidder identity, visibility, and account trust details.",
+        description: "Buyer identity, visibility, and account trust details.",
         items: [
           `Display name: ${user.name}`,
-          `Bidder label: ${user.publicRoleLabel || "Bidder"}`,
+          `Buyer label: ${String(user.publicRoleLabel || "Buyer").replace(/bidder/gi, "buyer")}`,
           `Country: ${user.country || "Not set"}`,
         ],
       },

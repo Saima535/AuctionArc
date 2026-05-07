@@ -3,10 +3,10 @@ export const roleCards = [
     title: "Seller",
     label: "Launch and manage listings",
     description:
-      "Create auctions, monitor bidder activity, and keep inventory moving with a clean publishing workflow.",
+      "Create auctions, monitor buyer activity, and keep inventory moving with a clean publishing workflow.",
   },
   {
-    title: "Bidder",
+    title: "Buyer",
     label: "Discover and compete with confidence",
     description:
       "Track live opportunities, place bids at the right time, and stay informed about the status of every auction.",
@@ -20,7 +20,7 @@ export const roleCards = [
 ];
 
 export const featureHighlights = [
-  "Role-aware experience for sellers, bidders, and administrators",
+  "Role-aware experience for sellers, buyers, and administrators",
   "Streamlined auction creation, participation, and oversight flows",
   "A homepage foundation ready for authentication and dashboards",
 ];
