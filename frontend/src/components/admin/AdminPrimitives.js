@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import styles from "./AdminPrimitives.module.css";
 
 export function SectionIntro({ title, description, action }) {
@@ -228,12 +231,52 @@ export function ChatWorkspace({
   composerPlaceholder = "Write your message",
   onSendMessage,
   isSending = false,
+  currentUserName = "",
+  searchPlaceholder = "Search conversations",
+  emptyTitle = "No conversations available yet.",
+  emptyMessage = "Once messages start coming in, they will appear here.",
 }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const normalizedThreads = useMemo(() => {
+    const seen = new Set();
+    const ordered = [];
+
+    for (const thread of threads) {
+      if (!thread?.id || seen.has(thread.id)) {
+        continue;
+      }
+
+      seen.add(thread.id);
+      ordered.push(thread);
+    }
+
+    return ordered;
+  }, [threads]);
+
+  const filteredThreads = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    if (!query) {
+      return normalizedThreads;
+    }
+
+    return normalizedThreads.filter((thread) =>
+      [thread.subject, thread.lastMessage, thread.participants, thread.participantRoles]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }, [normalizedThreads, searchTerm]);
+
   const activeThread =
-    threads.find((thread) => thread.id === activeThreadId) || threads[0];
+    filteredThreads.find((thread) => thread.id === activeThreadId) || filteredThreads[0];
 
   if (!activeThread) {
-    return <p>No conversations are available yet.</p>;
+    return (
+      <div className={styles.chatEmptyState}>
+        <strong>{emptyTitle}</strong>
+        <p>{emptyMessage}</p>
+      </div>
+    );
   }
 
   async function handleSubmit(event) {
@@ -251,7 +294,17 @@ export function ChatWorkspace({
   return (
     <div className={styles.chatLayout}>
       <div className={styles.chatList}>
-        {threads.map((thread) => (
+        <div className={styles.chatSearch}>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder={searchPlaceholder}
+            className={styles.chatSearchInput}
+          />
+        </div>
+
+        {filteredThreads.map((thread) => (
           <article
             key={thread.id}
             className={thread.id === activeThread.id ? styles.chatItemActive : styles.chatItem}
@@ -263,6 +316,7 @@ export function ChatWorkspace({
                 {thread.priority}
               </StatusBadge>
             </div>
+            <span className={styles.chatParticipants}>{thread.participants}</span>
             <p>{thread.lastMessage}</p>
             <small>
               {thread.id} | {thread.status}
@@ -271,24 +325,39 @@ export function ChatWorkspace({
         ))}
       </div>
 
-      <div className={styles.chatThread}>
-        <div className={styles.threadHeader}>
-          <div>
-            <h3>{activeThread.subject}</h3>
-            <p>
-              {activeThread.participants} | {activeThread.status}
-            </p>
+        <div className={styles.chatThread}>
+          <div className={styles.threadHeader}>
+            <div>
+              <h3>{activeThread.subject}</h3>
+              <p>
+                {activeThread.participants} | {activeThread.status}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className={styles.messageList}>
-          {activeThread.messages.map((message) => (
-            <article key={`${activeThread.id}-${message.from}-${message.body}`} className={styles.messageCard}>
-              <strong>{message.from}</strong>
-              <p>{message.body}</p>
-            </article>
-          ))}
-        </div>
+          <div className={styles.messageList}>
+            {activeThread.messages.map((message) => (
+              <article
+                key={`${activeThread.id}-${message.key}`}
+                className={
+                  message.from === currentUserName
+                    ? styles.messageCardOwn
+                    : styles.messageCard
+                }
+              >
+                <strong>{message.from}</strong>
+                <p>{message.body}</p>
+                {message.sentAt ? (
+                  <small className={styles.messageTimestamp}>
+                    {new Intl.DateTimeFormat(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(message.sentAt))}
+                  </small>
+                ) : null}
+              </article>
+            ))}
+          </div>
 
         {onSendMessage ? (
           <form className={styles.noteComposer} onSubmit={handleSubmit}>

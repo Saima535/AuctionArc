@@ -2,14 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import styles from "./BuyerShell.module.css";
 
-const navItems = [
-  { href: "/bidder", label: "Home" },
+const primaryNavItems = [
+  { href: "/bidder", label: "Dashboard" },
   { href: "/bidder/auctions", label: "Auctions" },
+  { href: "/bidder/watchlist", label: "Watchlist" },
+  { href: "/bidder/my-bids", label: "My Bids" },
+  { href: "/bidder/wins", label: "Wins" },
+  { href: "/bidder/messages", label: "Messages" },
+];
+
+const accountMenuItems = [
+  { href: "/bidder/wallet", label: "Wallet" },
+  { href: "/bidder/notifications", label: "Notifications" },
   { href: "/bidder/profile", label: "Profile" },
+  { href: "/bidder/settings", label: "Settings" },
 ];
 
 function CrownIcon() {
@@ -34,31 +45,16 @@ function CrownIcon() {
   );
 }
 
-function LogoutIcon() {
+function ChevronIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
-        d="M10 17v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1"
+        d="m7 10 5 5 5-5"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M14 16l5-4-5-4"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M19 12H9"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.7"
+        strokeWidth="1.8"
       />
     </svg>
   );
@@ -78,6 +74,14 @@ export function BuyerShell({ children }) {
   const pathname = usePathname();
   const { user: profile } = useAuth();
   const imageUrl = profile?.profilePicture?.url;
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const isAccountMenuActive = useMemo(
+    () =>
+      accountMenuItems.some(
+        (item) => pathname === item.href || pathname?.startsWith(item.href),
+      ),
+    [pathname],
+  );
 
   return (
     <div className={styles.shell}>
@@ -91,7 +95,7 @@ export function BuyerShell({ children }) {
           </Link>
 
           <nav className={styles.nav} aria-label="Buyer navigation">
-            {navItems.map((item) => {
+            {primaryNavItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/bidder" && pathname?.startsWith(item.href));
@@ -111,22 +115,56 @@ export function BuyerShell({ children }) {
           <div className={styles.profileGroup}>
             <NotificationBell notificationsHref="/bidder/notifications" />
 
-            <Link href="/logout" className={styles.logoutLink}>
-              <LogoutIcon />
-              <span>Logout</span>
-            </Link>
+            <div className={styles.menuWrap}>
+              <button
+                type="button"
+                className={isAccountMenuActive || isAccountMenuOpen ? styles.avatarButtonActive : styles.avatarButton}
+                onClick={() => setIsAccountMenuOpen((current) => !current)}
+                aria-expanded={isAccountMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open buyer account menu"
+              >
+                {imageUrl ? (
+                  <span
+                    className={styles.avatarPhoto}
+                    style={{ backgroundImage: `url(${imageUrl})` }}
+                    aria-label={`${profile?.name || "Buyer"} profile`}
+                  />
+                ) : (
+                  <span className={styles.avatarFallback}>{initialsForName(profile?.name)}</span>
+                )}
+                <ChevronIcon />
+              </button>
 
-            <Link href="/bidder/profile" className={styles.avatarWrap} aria-label="Open profile">
-              {imageUrl ? (
-                <span
-                  className={styles.avatarPhoto}
-                  style={{ backgroundImage: `url(${imageUrl})` }}
-                  aria-label={`${profile?.name || "Buyer"} profile`}
-                />
-              ) : (
-                <span className={styles.avatarFallback}>{initialsForName(profile?.name)}</span>
-              )}
-            </Link>
+              {isAccountMenuOpen ? (
+                <div className={styles.accountMenu} role="menu" aria-label="Buyer account menu">
+                  {accountMenuItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/bidder" && pathname?.startsWith(item.href));
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={isActive ? styles.accountMenuItemActive : styles.accountMenuItem}
+                        onClick={() => setIsAccountMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+
+                  <Link
+                    href="/logout"
+                    className={styles.accountMenuItem}
+                    onClick={() => setIsAccountMenuOpen(false)}
+                  >
+                    Logout
+                  </Link>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>

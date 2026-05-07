@@ -2,15 +2,44 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import styles from "./AdminWorkspace.module.css";
 
-const navItems = [
+const sidebarItems = [
   { href: "/admin", label: "Dashboard", icon: "grid" },
+  { href: "/admin/insights", label: "Insights", icon: "grid" },
   { href: "/admin/users", label: "Users", icon: "users" },
+  { href: "/admin/products", label: "Products", icon: "grid" },
+  { href: "/admin/auctions", label: "Auctions", icon: "grid" },
+  { href: "/admin/bids", label: "Bids", icon: "money" },
+  { href: "/admin/chats", label: "Chats", icon: "alert" },
+  { href: "/admin/reports", label: "Reports", icon: "alert" },
   { href: "/admin/transactions", label: "Transactions", icon: "money" },
-  { href: "/admin/disputes", label: "Disputes", icon: "alert" },
+  { href: "/admin/winners", label: "Winners", icon: "users" },
+  { href: "/admin/notifications", label: "Notifications", icon: "alert" },
+  { href: "/admin/profile", label: "Profile", icon: "users" },
+  { href: "/admin/settings", label: "Settings", icon: "grid" },
+];
+
+const primaryTopNavItems = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/users", label: "Users" },
+  { href: "/admin/products", label: "Products" },
+  { href: "/admin/auctions", label: "Auctions" },
+  { href: "/admin/chats", label: "Chats" },
+  { href: "/admin/reports", label: "Reports" },
+];
+
+const accountMenuItems = [
+  { href: "/admin/insights", label: "Insights" },
+  { href: "/admin/bids", label: "Bids" },
+  { href: "/admin/transactions", label: "Transactions" },
+  { href: "/admin/winners", label: "Winners" },
+  { href: "/admin/notifications", label: "Notifications" },
+  { href: "/admin/profile", label: "Profile" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 function GridIcon() {
@@ -61,6 +90,21 @@ function UserBadgeIcon() {
   );
 }
 
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="m7 10 5 5 5-5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
 function SidebarIcon({ icon }) {
   if (icon === "users") {
     return <UsersIcon />;
@@ -91,6 +135,14 @@ export function AdminWorkspace({ children }) {
   const pathname = usePathname();
   const { user: profile } = useAuth();
   const imageUrl = profile?.profilePicture?.url;
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const isAccountMenuActive = useMemo(
+    () =>
+      accountMenuItems.some(
+        (item) => pathname === item.href || pathname?.startsWith(item.href),
+      ),
+    [pathname],
+  );
 
   return (
     <div className={styles.shell}>
@@ -105,7 +157,7 @@ export function AdminWorkspace({ children }) {
         </div>
 
         <nav className={styles.nav} aria-label="Admin navigation">
-          {navItems.map((item) => {
+          {sidebarItems.map((item) => {
             const isActive =
               pathname === item.href ||
               (item.href !== "/admin" && pathname?.startsWith(item.href));
@@ -122,34 +174,88 @@ export function AdminWorkspace({ children }) {
         <div className={styles.sidebarFooter}>© 2024 AuctionArc</div>
       </aside>
 
-      <div className={styles.mainArea}>
+        <div className={styles.mainArea}>
         <header className={styles.topbar}>
-          <h1>Admin Dashboard</h1>
+          <div className={styles.topbarMain}>
+            <h1>Admin workspace</h1>
+            <nav className={styles.topnav} aria-label="Admin top navigation">
+              {primaryTopNavItems.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== "/admin" && pathname?.startsWith(item.href));
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={isActive ? styles.topnavLinkActive : styles.topnavLink}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
 
           <div className={styles.topbarActions}>
             <NotificationBell notificationsHref="/admin/notifications" />
 
-            <Link href="/logout" className={styles.logoutButton}>
-              Logout
-            </Link>
+            <div className={styles.menuWrap}>
+              <button
+                type="button"
+                className={isAccountMenuActive || isAccountMenuOpen ? styles.profileButtonActive : styles.profileButton}
+                onClick={() => setIsAccountMenuOpen((current) => !current)}
+                aria-expanded={isAccountMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open admin account menu"
+              >
+                <span className={styles.profileIcon}>
+                  {imageUrl ? (
+                    <span
+                      className={styles.profileImage}
+                      style={{ backgroundImage: `url(${imageUrl})` }}
+                      aria-label={`${profile?.name || "Admin"} profile`}
+                    />
+                  ) : (
+                    initialsForName(profile?.name) || <UserBadgeIcon />
+                  )}
+                </span>
+                <span className={styles.profileSummary}>
+                  <strong>{profile?.name || "Admin"}</strong>
+                  <small>{profile?.publicRoleLabel || profile?.role || "Administrator"}</small>
+                </span>
+                <ChevronIcon />
+              </button>
 
-            <Link href="/admin/profile" className={styles.profileCard}>
-              <span className={styles.profileIcon}>
-                {imageUrl ? (
-                  <span
-                    className={styles.profileImage}
-                    style={{ backgroundImage: `url(${imageUrl})` }}
-                    aria-label={`${profile?.name || "Admin"} profile`}
-                  />
-                ) : (
-                  initialsForName(profile?.name) || <UserBadgeIcon />
-                )}
-              </span>
-              <span>
-                <strong>{profile?.name || "Admin"}</strong>
-                <small>{profile?.publicRoleLabel || profile?.role || "Administrator"}</small>
-              </span>
-            </Link>
+              {isAccountMenuOpen ? (
+                <div className={styles.accountMenu} role="menu" aria-label="Admin account menu">
+                  {accountMenuItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/admin" && pathname?.startsWith(item.href));
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={isActive ? styles.accountMenuItemActive : styles.accountMenuItem}
+                        onClick={() => setIsAccountMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+
+                  <Link
+                    href="/logout"
+                    className={styles.accountMenuItem}
+                    onClick={() => setIsAccountMenuOpen(false)}
+                  >
+                    Logout
+                  </Link>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 

@@ -21,6 +21,26 @@ function notificationsHrefForParticipant(roleLabel) {
   return "/seller/messages";
 }
 
+function isDuplicateRecentMessage(thread, senderName, senderRole, body) {
+  const lastMessage = thread.messages.at(-1);
+
+  if (!lastMessage) {
+    return false;
+  }
+
+  if (
+    lastMessage.senderName !== senderName ||
+    lastMessage.senderRole !== senderRole ||
+    lastMessage.body !== body
+  ) {
+    return false;
+  }
+
+  const lastSentAt = lastMessage.sentAt ? new Date(lastMessage.sentAt).getTime() : 0;
+
+  return Boolean(lastSentAt) && Date.now() - lastSentAt < 2 * 60 * 1000;
+}
+
 export const getThreads = asyncHandler(async (req, res) => {
   const filter = req.user.role === "Admin" ? {} : { "participants.user": req.user._id };
   const threads = await Thread.find(filter).sort({ updatedAt: -1 });
@@ -57,44 +77,46 @@ export const createThread = asyncHandler(async (req, res) => {
   });
 
   if (existingThread) {
-    existingThread.messages.push({
-      senderName: req.user.name,
-      senderRole: req.user.role,
-      body: normalizedBody,
-    });
-    existingThread.updatedAt = new Date();
-    await existingThread.save();
+    if (!isDuplicateRecentMessage(existingThread, req.user.name, req.user.role, normalizedBody)) {
+      existingThread.messages.push({
+        senderName: req.user.name,
+        senderRole: req.user.role,
+        body: normalizedBody,
+      });
+      existingThread.updatedAt = new Date();
+      await existingThread.save();
 
-    publishLiveEvent({
-      event: "thread.updated",
-      channels: ["market:messages"],
-      userIds: existingThread.participants.map((participant) => participant.user),
-      roles: ["Admin"],
-      payload: {
-        threadId: existingThread._id,
-        subject: existingThread.subject,
-      },
-    });
+      publishLiveEvent({
+        event: "thread.updated",
+        channels: ["market:messages"],
+        userIds: existingThread.participants.map((participant) => participant.user),
+        roles: ["Admin"],
+        payload: {
+          threadId: existingThread._id,
+          subject: existingThread.subject,
+        },
+      });
 
-    await createNotifications(
-      existingThread.participants
-        .filter((participant) => String(participant.user) !== String(req.user._id))
-        .map((participant) => ({
-          userId: participant.user,
-          title: "New message received",
-          body: `${req.user.name} added a new message to "${existingThread.subject}".`,
-          type: "message",
-          href: notificationsHrefForParticipant(participant.roleLabel),
-          metadata: {
-            threadId: existingThread._id,
-            senderId: req.user._id,
-          },
-        })),
-    );
+      await createNotifications(
+        existingThread.participants
+          .filter((participant) => String(participant.user) !== String(req.user._id))
+          .map((participant) => ({
+            userId: participant.user,
+            title: "New message received",
+            body: `${req.user.name} added a new message to "${existingThread.subject}".`,
+            type: "message",
+            href: notificationsHrefForParticipant(participant.roleLabel),
+            metadata: {
+              threadId: existingThread._id,
+              senderId: req.user._id,
+            },
+          })),
+      );
+    }
 
     res.status(201).json({
       success: true,
-      message: "Conversation updated successfully.",
+      message: "Conversation opened successfully.",
       data: toThreadRow(existingThread),
     });
     return;
@@ -184,43 +206,47 @@ export const postThreadMessage = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Thread not found.");
   }
 
-  thread.messages.push({
-    senderName: req.user.role === "Admin" ? "Admin note" : req.user.name,
-    senderRole: req.user.role,
-    body: normalizedBody,
-  });
-  thread.updatedAt = new Date();
-  await thread.save();
+  const senderName = req.user.role === "Admin" ? "Admin note" : req.user.name;
 
-  publishLiveEvent({
-    event: "thread.updated",
-    channels: ["market:messages"],
-    userIds: thread.participants.map((participant) => participant.user),
-    roles: ["Admin"],
-    payload: {
-      threadId: thread._id,
-      subject: thread.subject,
-    },
-  });
+  if (!isDuplicateRecentMessage(thread, senderName, req.user.role, normalizedBody)) {
+    thread.messages.push({
+      senderName,
+      senderRole: req.user.role,
+      body: normalizedBody,
+    });
+    thread.updatedAt = new Date();
+    await thread.save();
 
-  await createNotifications(
-    thread.participants
-      .filter((participant) => String(participant.user) !== String(req.user._id))
-      .map((participant) => ({
-        userId: participant.user,
-        title: req.user.role === "Admin" ? "Admin replied to a conversation" : "New message received",
-        body:
-          req.user.role === "Admin"
-            ? `An admin replied in "${thread.subject}".`
-            : `${req.user.name} replied in "${thread.subject}".`,
-        type: "message",
-        href: notificationsHrefForParticipant(participant.roleLabel),
-        metadata: {
-          threadId: thread._id,
-          senderId: req.user._id,
-        },
-      })),
-  );
+    publishLiveEvent({
+      event: "thread.updated",
+      channels: ["market:messages"],
+      userIds: thread.participants.map((participant) => participant.user),
+      roles: ["Admin"],
+      payload: {
+        threadId: thread._id,
+        subject: thread.subject,
+      },
+    });
+
+    await createNotifications(
+      thread.participants
+        .filter((participant) => String(participant.user) !== String(req.user._id))
+        .map((participant) => ({
+          userId: participant.user,
+          title: req.user.role === "Admin" ? "Admin replied to a conversation" : "New message received",
+          body:
+            req.user.role === "Admin"
+              ? `An admin replied in "${thread.subject}".`
+              : `${req.user.name} replied in "${thread.subject}".`,
+          type: "message",
+          href: notificationsHrefForParticipant(participant.roleLabel),
+          metadata: {
+            threadId: thread._id,
+            senderId: req.user._id,
+          },
+        })),
+    );
+  }
 
   res.status(201).json({
     success: true,

@@ -42,13 +42,26 @@ export default function SellerWalletPage() {
           <DataTable columns={transactionColumns} rows={data.transactions} />
         </Panel>
 
-        <Panel title="Fee visibility" description="Platform charges and deductions at a glance.">
+        <Panel title="Wallet summary" description="A cleaner view of the balances and deductions driving seller payouts.">
           <div className={styles.compactList}>
-            {["Pending payout visibility", "Platform fee tracking", "Escrow balance awareness"].map((item) => (
-              <article key={item} className={styles.compactCard}>
+            {[
+              {
+                title: "Pending payout readiness",
+                detail: "Use this view to monitor what is available now versus what is still waiting on release.",
+              },
+              {
+                title: "Platform fee tracking",
+                detail: "Keep an eye on deductions alongside completed and in-progress transaction activity.",
+              },
+              {
+                title: "Escrow balance awareness",
+                detail: "Held balances stay visible here so seller cash flow is easier to understand.",
+              },
+            ].map((item) => (
+              <article key={item.title} className={styles.compactCard}>
                 <div>
-                  <strong>{item}</strong>
-                  <p>The live wallet summary above now reflects your real backend balances.</p>
+                  <strong>{item.title}</strong>
+                  <p>{item.detail}</p>
                 </div>
               </article>
             ))}

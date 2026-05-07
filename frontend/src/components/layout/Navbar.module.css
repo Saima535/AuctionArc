@@ -78,7 +78,8 @@
 }
 
 .primaryAction,
-.secondaryAction {
+.secondaryAction,
+.avatarAction {
   min-height: 42px;
   padding: 0 18px;
   border-radius: 999px;
@@ -104,8 +105,20 @@
   background: rgba(255, 210, 31, 0.06);
 }
 
+.avatarAction {
+  width: 42px;
+  min-width: 42px;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  background: rgba(255, 210, 31, 0.14);
+  color: var(--color-accent);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
 .primaryAction:hover,
-.secondaryAction:hover {
+.secondaryAction:hover,
+.avatarAction:hover {
   transform: translateY(-1px);
 }
 
@@ -139,9 +152,16 @@
   }
 
   .primaryAction,
-  .secondaryAction {
+  .secondaryAction,
+  .avatarAction {
     min-height: 38px;
     padding: 0 14px;
     font-size: 0.88rem;
+  }
+
+  .avatarAction {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
   }
 }

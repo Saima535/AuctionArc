@@ -86,6 +86,10 @@ export default function BidderMessagesPage() {
             composerPlaceholder="Write your message"
             onSendMessage={handleSendMessage}
             isSending={isSending}
+            currentUserName={user?.name || ""}
+            searchPlaceholder="Search seller or support conversations"
+            emptyTitle="No buyer conversations available yet."
+            emptyMessage="Seller and support threads will appear here once a conversation begins."
           />
         )}
       </Panel>

@@ -118,9 +118,37 @@
   gap: 18px;
 }
 
+.topbarMain {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
 .topbar h1 {
   font-size: 1.2rem;
   color: #fffaf0;
+}
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  overflow: visible;
+  padding-bottom: 4px;
+}
+
+.topnavLink,
+.topnavLinkActive {
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.topnavLinkActive {
+  color: #f5b400;
 }
 
 .topbarActions {
@@ -129,17 +157,8 @@
   gap: 22px;
 }
 
-.logoutButton {
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: 12px;
-  border: 1px solid rgba(240, 173, 0, 0.24);
-  background: rgba(24, 24, 24, 0.82);
-  color: #f5b400;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.menuWrap {
+  position: relative;
 }
 
 .notificationButton {
@@ -167,7 +186,8 @@
   background: #f3b100;
 }
 
-.profileCard {
+.profileButton,
+.profileButtonActive {
   min-width: 188px;
   min-height: 60px;
   padding: 0 16px;
@@ -177,6 +197,12 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  cursor: pointer;
+}
+
+.profileButtonActive {
+  border-color: rgba(245, 180, 0, 0.5);
+  box-shadow: 0 0 0 1px rgba(245, 180, 0, 0.18);
 }
 
 .profileIcon {
@@ -205,16 +231,63 @@
   background-size: cover;
 }
 
-.profileCard strong {
+.profileSummary {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profileButton svg,
+.profileButtonActive svg {
+  width: 18px;
+  height: 18px;
+  color: #f5b400;
+  flex: 0 0 auto;
+}
+
+.profileSummary strong {
   display: block;
   color: #fff;
   font-size: 1rem;
 }
 
-.profileCard small {
+.profileSummary small {
   display: block;
   margin-top: 4px;
   color: rgba(255, 255, 255, 0.56);
+}
+
+.accountMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 25;
+  min-width: 220px;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 14, 14, 0.98);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+}
+
+.accountMenuItem,
+.accountMenuItemActive {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.accountMenuItemActive {
+  background: rgba(85, 56, 8, 0.58);
+  color: #f5b400;
 }
 
 .content {
@@ -251,5 +324,15 @@
     padding-bottom: 16px;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .topbarMain,
+  .topnav {
+    width: 100%;
+  }
+
+  .topnav {
+    overflow-x: auto;
+    overflow-y: visible;
   }
 }

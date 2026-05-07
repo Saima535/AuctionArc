@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./AccountForms.module.css";
+
+function buildInitialValues(fields) {
+  return Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""]));
+}
 
 export function ProfileEditor({
   title,
@@ -14,9 +18,12 @@ export function ProfileEditor({
   submitError = "",
   helper = "Profile values sync with your live AuctionArc account.",
 }) {
-  const [formValues, setFormValues] = useState(() =>
-    Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])),
-  );
+  const initialValues = useMemo(() => buildInitialValues(fields), [fields]);
+  const [formValues, setFormValues] = useState(initialValues);
+
+  useEffect(() => {
+    setFormValues(initialValues);
+  }, [initialValues]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -89,7 +96,7 @@ export function ProfileEditor({
           <button type="submit" className={styles.primary} disabled={isSubmitting}>
             {isSubmitting ? "Saving..." : submitLabel}
           </button>
-          <button type="reset" className={styles.secondary} onClick={() => setFormValues(Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])))}>
+          <button type="reset" className={styles.secondary} onClick={() => setFormValues(initialValues)}>
             Cancel
           </button>
         </div>
@@ -112,9 +119,12 @@ export function SettingsEditor({
   submitError = "",
   helper = "Settings changes are saved directly to your live AuctionArc account.",
 }) {
-  const [formValues, setFormValues] = useState(() =>
-    Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""])),
-  );
+  const initialValues = useMemo(() => buildInitialValues(fields), [fields]);
+  const [formValues, setFormValues] = useState(initialValues);
+
+  useEffect(() => {
+    setFormValues(initialValues);
+  }, [initialValues]);
 
   function handleChange(event) {
     const { name, value } = event.target;

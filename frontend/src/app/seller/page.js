@@ -98,10 +98,13 @@ export default function SellerDashboardPage() {
             </span>
             <div className={shared.heroText}>
               <h2>{data.spotlight?.greeting || "Welcome back!"}</h2>
-              <p>{data.spotlight?.message || "Your seller activity will appear here shortly."}</p>
+              <p>{data.spotlight?.message || "Your live seller activity and buyer engagement will appear here shortly."}</p>
               <div className={shared.heroActions}>
                 <Link href="/seller/messages" className={shared.primaryCta}>
                   View Messages
+                </Link>
+                <Link href="/seller/profile" className={shared.secondaryCta}>
+                  View Profile
                 </Link>
                 <Link href="/seller/listings/new" className={shared.secondaryCta}>
                   Create Listing
@@ -115,8 +118,8 @@ export default function SellerDashboardPage() {
       <section>
         <div className={shared.sectionHeader}>
           <div>
-            <h1>Seller Dashboard</h1>
-            <p>Manage your auctions and track your performance</p>
+            <h1>Seller control center</h1>
+            <p>Track listings, buyer attention, payouts, and active sales from one organized workspace.</p>
           </div>
         </div>
       </section>
@@ -153,7 +156,7 @@ export default function SellerDashboardPage() {
 
           <section className={shared.productSection}>
             <div className={shared.sectionTop}>
-              <h2 className={shared.panelTitle}>Current Bidding Products</h2>
+              <h2 className={shared.panelTitle}>Live listing spotlight</h2>
               <Link href="/seller/listings/new" className={shared.primaryCta}>
                 <PlusIcon />
                 <span>Add Product</span>
@@ -226,7 +229,7 @@ export default function SellerDashboardPage() {
 
           <section className={shared.productSection}>
             <div className={shared.sectionTop}>
-              <h2 className={shared.panelTitle}>Sales History</h2>
+              <h2 className={shared.panelTitle}>Recent sales history</h2>
             </div>
 
             <div className={shared.productGrid}>
@@ -274,7 +277,7 @@ export default function SellerDashboardPage() {
         </div>
 
         <aside className={`${shared.panel} ${shared.activityPanel}`}>
-          <h2>Recent Activity</h2>
+          <h2>Recent seller activity</h2>
           <div className={shared.activityList}>
             {activityItems.map((item) => (
               <article key={item.title} className={shared.activityItem}>
@@ -288,7 +291,7 @@ export default function SellerDashboardPage() {
           </div>
 
           <Link href="/seller/messages" className={shared.activityLink}>
-            View All Activity
+            Open Message Center
           </Link>
         </aside>
       </section>

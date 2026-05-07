@@ -90,6 +90,10 @@ export default function AdminChatsPage() {
           composerPlaceholder="Write an admin response"
           onSendMessage={handleSendMessage}
           isSending={isSending}
+          currentUserName="Admin note"
+          searchPlaceholder="Search support and dispute threads"
+          emptyTitle="No admin chat threads available yet."
+          emptyMessage="Support conversations and dispute threads will appear here as activity comes in."
         />
       </Panel>
     </div>

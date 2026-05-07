@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import shared from "@/components/seller/SellerShared.module.css";
 import { useApiData } from "@/hooks/useApiData";
 import { apiRequest } from "@/lib/api";
 import {
   EditIcon,
-  EyeIcon,
-  PauseIcon,
   PlusIcon,
   TrashIcon,
   UsersIcon,
+  EyeIcon,
+  PauseIcon,
 } from "@/components/seller/SellerIcons";
 
 const defaultForm = {
@@ -27,6 +27,64 @@ function toPlainAmount(value) {
   return String(value || "").replace(/[$,]/g, "");
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return "Not scheduled";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not scheduled";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function formatTimeLeft(value) {
+  if (!value) {
+    return "Waiting for schedule";
+  }
+
+  const endDate = new Date(value);
+
+  if (Number.isNaN(endDate.getTime())) {
+    return "Waiting for schedule";
+  }
+
+  const diffMs = endDate.getTime() - Date.now();
+
+  if (diffMs <= 0) {
+    return "Ended";
+  }
+
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    return `${days}d ${hours}h left`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m left`;
+  }
+
+  return `${minutes}m left`;
+}
+
+function statusClass(status) {
+  return status === "Live" || status === "Featured"
+    ? shared.badgeActive
+    : status === "Pending approval" || status === "Pending review"
+      ? shared.badgePending
+      : shared.badgeMuted;
+}
+
 export default function SellerListingsPage() {
   const { data, setData, error, isLoading } = useApiData("/dashboard/seller/listings", {
     initialData: [],
@@ -36,6 +94,8 @@ export default function SellerListingsPage() {
   const [busyId, setBusyId] = useState("");
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
+
+  const listingCards = useMemo(() => data || [], [data]);
 
   function startEditing(row) {
     setEditingId(row.listingId);
@@ -68,7 +128,7 @@ export default function SellerListingsPage() {
     try {
       const amount = Number(formValues.price || 0);
 
-      await apiRequest(`/auctions/listings/${editingId}`, {
+      const result = await apiRequest(`/auctions/listings/${editingId}`, {
         method: "PATCH",
         body: {
           title: formValues.title,
@@ -85,6 +145,7 @@ export default function SellerListingsPage() {
           row.listingId === editingId
             ? {
                 ...row,
+                ...result.data,
                 title: formValues.title,
                 category: formValues.category,
                 description: formValues.description,
@@ -163,7 +224,7 @@ export default function SellerListingsPage() {
       <section className={shared.sectionHeader}>
         <div>
           <h1>Listings Management</h1>
-          <p>Create and manage your auction listings</p>
+          <p>Review every listed product with its live auction timing, pricing, and buyer engagement.</p>
         </div>
 
         <Link href="/seller/listings/new" className={shared.primaryCta}>
@@ -177,73 +238,171 @@ export default function SellerListingsPage() {
       {pageMessage ? <p className={shared.successText}>{pageMessage}</p> : null}
       {isLoading ? <p className={shared.mutedText}>Loading your listings...</p> : null}
 
-      <section className={`${shared.panel} ${shared.tablePanel}`}>
-        <div className={shared.tableWrap}>
-          <table className={shared.table}>
-            <thead>
-              <tr>
-                <th>Product Name</th>
-                <th>Status</th>
-                <th>Current Bid</th>
-                <th>Views</th>
-                <th>Watchers</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data.length ? (
-                <tr>
-                  <td colSpan={6} className={shared.mutedText}>
-                    No listings found yet.
-                  </td>
-                </tr>
-              ) : null}
+      <section className={shared.listingGrid}>
+        {!listingCards.length ? (
+          <article className={`${shared.panel} ${shared.listingCard}`}>
+            <div className={shared.listingBody}>
+              <h3>No listings found yet</h3>
+              <p>Create your first auction product to start tracking views, watchers, and auction timing here.</p>
+            </div>
+          </article>
+        ) : null}
 
-              {data.map((row, index) => (
-                <tr key={row.listingId || row.id || index}>
-                  <td>{row.title}</td>
-                  <td>
-                    <span
-                      className={`${shared.badge} ${
-                        row.status === "Live" || row.status === "Featured"
-                          ? shared.badgeActive
-                          : shared.badgePending
-                      }`}
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className={shared.accentText}>{row.currentBid || row.price}</td>
-                  <td className={shared.mutedText}>
+        {listingCards.map((row) => {
+          const activeAuction = row.auction;
+          const displayBid = activeAuction?.currentBid || row.currentBid || row.price;
+          const displayWatchers = activeAuction?.watcherCount || row.watchers || "0";
+          const displayBidCount = activeAuction?.bidCount || row.bidCount || "0";
+          const timeLeft = formatTimeLeft(activeAuction?.endAt);
+          const endTime = formatDateTime(activeAuction?.endAt);
+          const startTime = formatDateTime(activeAuction?.startAt);
+
+          return (
+            <article key={row.listingId} className={`${shared.panel} ${shared.listingCard}`}>
+              <div
+                className={`${shared.listingMedia} ${row.imageUrl ? shared.listingMediaImage : ""}`.trim()}
+                style={row.imageUrl ? { backgroundImage: `url(${row.imageUrl})` } : undefined}
+              >
+                {!row.imageUrl ? (
+                  <div className={shared.mediaPlaceholder}>
+                    <span>{row.category?.slice(0, 1) || "L"}</span>
+                  </div>
+                ) : null}
+
+                <div className={shared.listingBadgeRow}>
+                  <span className={`${shared.badge} ${statusClass(row.status)}`}>{row.status}</span>
+                  {row.premiumHighlight ? <span className={shared.featureTag}>Featured</span> : null}
+                </div>
+              </div>
+
+              <div className={shared.listingBody}>
+                <div className={shared.listingHeader}>
+                  <div>
+                    <span className={shared.cardCode}>{row.id}</span>
+                    <h3>{row.title}</h3>
+                    <p className={shared.listingCategory}>{row.category}</p>
+                  </div>
+                  <div className={shared.listingHeaderMeta}>
+                    <span className={shared.moneyValue}>{displayBid}</span>
+                    <small>{displayBidCount} bids</small>
+                  </div>
+                </div>
+
+                <p className={shared.listingDescription}>
+                  {row.description || "No product description has been added for this listing yet."}
+                </p>
+
+                <div className={shared.listingStatGrid}>
+                  <article className={shared.listingStatCard}>
+                    <span>Auction time</span>
+                    <strong>{row.auctionDurationDays} day auction</strong>
+                  </article>
+                  <article className={shared.listingStatCard}>
+                    <span>Time left</span>
+                    <strong>{timeLeft}</strong>
+                  </article>
+                  <article className={shared.listingStatCard}>
+                    <span>End time</span>
+                    <strong>{endTime}</strong>
+                  </article>
+                  <article className={shared.listingStatCard}>
+                    <span>Watchers</span>
+                    <strong>{displayWatchers}</strong>
+                  </article>
+                </div>
+
+                <div className={shared.listingInfoGrid}>
+                  <p className={shared.auctionMeta}>
+                    <span>Condition</span>
+                    <strong>{row.condition}</strong>
+                  </p>
+                  <p className={shared.auctionMeta}>
+                    <span>Delivery</span>
+                    <strong>{row.delivery}</strong>
+                  </p>
+                  <p className={shared.auctionMeta}>
+                    <span>Reserve price</span>
+                    <strong>{row.reservePrice}</strong>
+                  </p>
+                  <p className={shared.auctionMeta}>
+                    <span>Buy now</span>
+                    <strong>{row.buyNowPrice}</strong>
+                  </p>
+                  <p className={shared.auctionMeta}>
+                    <span>Views</span>
+                    <strong>{row.views}</strong>
+                  </p>
+                  <p className={shared.auctionMeta}>
+                    <span>Reserve status</span>
+                    <strong>{row.reserveStatus}</strong>
+                  </p>
+                  <p className={shared.auctionMeta}>
+                    <span>Start time</span>
+                    <strong>{startTime}</strong>
+                  </p>
+                  <p className={shared.auctionMeta}>
+                    <span>Auction status</span>
+                    <strong>{activeAuction?.status || "Not scheduled"}</strong>
+                  </p>
+                </div>
+
+                {row.notes?.length ? (
+                  <div className={shared.notesStrip}>
+                    {row.notes.slice(0, 2).map((note) => (
+                      <p key={note}>{note}</p>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className={shared.listingFooter}>
+                  <div className={shared.listingMetrics}>
                     <span className={shared.tableMetric}>
                       <span className={shared.tableIcon}><EyeIcon /></span>
-                      <span>{row.views || "0"}</span>
+                      <span>{row.views} views</span>
                     </span>
-                  </td>
-                  <td className={shared.mutedText}>
                     <span className={shared.tableMetric}>
                       <span className={shared.tableIcon}><UsersIcon /></span>
-                      <span>{row.watchers || "0"}</span>
+                      <span>{displayWatchers} watchers</span>
                     </span>
-                  </td>
-                  <td>
-                    <div className={shared.tableActions}>
-                      <button type="button" disabled={busyId === row.listingId} aria-label={`Edit ${row.title}`} onClick={() => startEditing(row)}>
-                        <EditIcon />
-                      </button>
-                      <button type="button" disabled={busyId === row.listingId} aria-label={`Change status for ${row.title}`} onClick={() => handleStatusToggle(row)}>
-                        <PauseIcon />
-                      </button>
-                      <button type="button" disabled={busyId === row.listingId} aria-label={`Delete ${row.title}`} onClick={() => handleDelete(row)}>
-                        <TrashIcon />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+
+                  <div className={shared.listingActions}>
+                    <button
+                      type="button"
+                      className={shared.darkButton}
+                      disabled={busyId === row.listingId}
+                      aria-label={`Edit ${row.title}`}
+                      onClick={() => startEditing(row)}
+                    >
+                      <EditIcon />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={shared.secondaryCta}
+                      disabled={busyId === row.listingId}
+                      aria-label={`Change status for ${row.title}`}
+                      onClick={() => handleStatusToggle(row)}
+                    >
+                      <PauseIcon />
+                      <span>{row.status === "Draft" || row.status === "Rejected" ? "Submit" : "Move to Draft"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={shared.listingDanger}
+                      disabled={busyId === row.listingId}
+                      aria-label={`Delete ${row.title}`}
+                      onClick={() => handleDelete(row)}
+                    >
+                      <TrashIcon />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </section>
 
       {editingId ? (

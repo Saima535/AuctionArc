@@ -1,5 +1,35 @@
 import { formatCompactNumber, formatCountdown, formatCurrency, formatRelativeTime } from "../utils/formatters.js";
 
+function dedupeThreadMessages(messages = []) {
+  const seen = new Set();
+  const normalized = [];
+
+  for (const [index, message] of messages.entries()) {
+    const sentAt = message.sentAt ? new Date(message.sentAt).toISOString() : "";
+    const fingerprint = [
+      message.senderName || "",
+      message.senderRole || "",
+      message.body || "",
+      sentAt,
+    ].join("|");
+
+    if (seen.has(fingerprint)) {
+      continue;
+    }
+
+    seen.add(fingerprint);
+    normalized.push({
+      key: `${sentAt || "message"}-${index}`,
+      from: message.senderName,
+      role: message.senderRole,
+      body: message.body,
+      sentAt: message.sentAt || null,
+    });
+  }
+
+  return normalized;
+}
+
 export function serializeUser(user) {
   return {
     id: user._id,
@@ -100,7 +130,8 @@ export function toBidRow(bid) {
 }
 
 export function toThreadRow(thread) {
-  const lastMessage = thread.messages.at(-1);
+  const messages = dedupeThreadMessages(thread.messages);
+  const lastMessage = messages.at(-1);
 
   return {
     threadId: thread._id,
@@ -108,12 +139,10 @@ export function toThreadRow(thread) {
     subject: thread.subject,
     priority: thread.priority,
     status: thread.status,
-    participants: thread.participants.map((item) => item.roleLabel).join(" + "),
+    participants: thread.participants.map((item) => item.name || item.roleLabel).join(", "),
+    participantRoles: thread.participants.map((item) => item.roleLabel).join(" + "),
     lastMessage: lastMessage?.body || "No messages yet",
-    messages: thread.messages.map((message) => ({
-      from: message.senderName,
-      body: message.body,
-    })),
+    messages,
   };
 }
 

@@ -309,11 +309,62 @@ export const getAdminInsights = asyncHandler(async (req, res) => {
 });
 
 export const getSellerListings = asyncHandler(async (req, res) => {
-  const listings = await Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 });
+  const listings = await Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 }).lean();
+  const listingIds = listings.map((listing) => listing._id);
+  const auctions = await Auction.find({ seller: req.user._id, listing: { $in: listingIds } })
+    .sort({ updatedAt: -1 })
+    .lean();
+  const auctionByListingId = new Map(
+    auctions.map((auction) => [String(auction.listing), auction]),
+  );
 
   res.json({
     success: true,
-    data: listings.map(toListingCard),
+    data: listings.map((listing) => {
+      const auction = auctionByListingId.get(String(listing._id));
+
+      return {
+        listingId: listing._id,
+        id: listing.code,
+        title: listing.title,
+        category: listing.category,
+        description: listing.description || "",
+        status: listing.status,
+        reserveStatus: listing.reserveStatus || "Pending",
+        condition: listing.condition || "Good",
+        price: formatCurrency(listing.price || 0),
+        currentBid: formatCurrency(listing.currentBid || listing.price || 0),
+        bidCount: String(listing.bidCount || 0),
+        watchers: String(
+          auction?.watcherCount ?? listing.watcherCount ?? 0,
+        ),
+        views: String(listing.viewCount || 0),
+        auctionDurationDays: listing.auctionDurationDays || 0,
+        delivery: listing.deliveryOption || "AuctionArc Delivery",
+        deliveryFee: formatCurrency(listing.deliveryFee || 0),
+        reservePrice: formatCurrency(listing.reservePrice || 0),
+        buyNowPrice: listing.buyNowPrice ? formatCurrency(listing.buyNowPrice) : "Not set",
+        premiumHighlight: Boolean(listing.premiumHighlight || auction?.featured),
+        imageUrl: listing.images?.[0]?.url || "",
+        createdAt: listing.createdAt,
+        updatedAt: listing.updatedAt,
+        notes: listing.notes || [],
+        auction: auction
+          ? {
+              auctionId: auction._id,
+              code: auction.code,
+              title: auction.title,
+              status: auction.status,
+              reserveStatus: auction.reserveStatus || "Pending",
+              currentBid: formatCurrency(auction.currentBid || listing.currentBid || listing.price || 0),
+              bidCount: String(auction.bidCount || listing.bidCount || 0),
+              watcherCount: String(auction.watcherCount || listing.watcherCount || 0),
+              startAt: auction.startAt || null,
+              endAt: auction.endAt || null,
+            }
+          : null,
+      };
+    }),
   });
 });
 

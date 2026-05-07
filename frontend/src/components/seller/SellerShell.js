@@ -2,50 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import styles from "./SellerShell.module.css";
 
-const sidebarItems = [
-  { href: "/seller", label: "Dashboard", icon: "grid" },
-  { href: "/seller/listings", label: "Listings", icon: "cube" },
-  { href: "/seller/messages", label: "Messages", icon: "message" },
+const primaryNavbarItems = [
+  { href: "/seller", label: "Dashboard" },
+  { href: "/seller/listings", label: "Listings" },
+  { href: "/seller/auctions", label: "Auctions" },
+  { href: "/seller/orders", label: "Orders" },
+  { href: "/seller/messages", label: "Messages" },
 ];
 
-const topLinks = [
-  { href: "/", label: "Home" },
-  { href: "/#how-it-works", label: "How It Works" },
-  { href: "/register", label: "Become Buyer" },
+const secondaryNavbarItems = [
+  { href: "/seller/analytics", label: "Analytics" },
+  { href: "/seller/wallet", label: "Wallet" },
+  { href: "/seller/notifications", label: "Notifications" },
+  { href: "/seller/profile", label: "Profile" },
+  { href: "/seller/settings", label: "Settings" },
 ];
 
 function LogoMark() {
   return <span className={styles.logoGlyph}>A</span>;
 }
 
-function GridIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="4" y="4" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <rect x="14" y="4" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <rect x="4" y="14" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <rect x="14" y="14" width="6" height="6" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
-function CubeIcon() {
+function ChevronIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
-        d="m12 3 7 4v10l-7 4-7-4V7l7-4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="m5 7 7 4 7-4M12 11v10"
+        d="m7 10 5 5 5-5"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
@@ -54,33 +40,6 @@ function CubeIcon() {
       />
     </svg>
   );
-}
-
-function MessageIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H10l-4.5 4v-4H7.5A2.5 2.5 0 0 1 5 13.5v-7Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function SidebarIcon({ icon }) {
-  if (icon === "cube") {
-    return <CubeIcon />;
-  }
-
-  if (icon === "message") {
-    return <MessageIcon />;
-  }
-
-  return <GridIcon />;
 }
 
 function initialsForName(name) {
@@ -113,6 +72,14 @@ function ProfileAvatar({ profile, className }) {
 export function SellerShell({ children }) {
   const pathname = usePathname();
   const { user: profile } = useAuth();
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const isAccountMenuActive = useMemo(
+    () =>
+      secondaryNavbarItems.some(
+        (item) => pathname === item.href || pathname?.startsWith(item.href),
+      ),
+    [pathname],
+  );
 
   return (
     <div className={styles.shell}>
@@ -124,37 +91,7 @@ export function SellerShell({ children }) {
           </Link>
 
           <nav className={styles.topnav} aria-label="Seller top navigation">
-            {topLinks.map((item) => (
-              <Link key={item.href} href={item.href} className={styles.topnavLink}>
-                {item.label}
-              </Link>
-            ))}
-            <Link href="/logout" className={styles.topnavLink}>
-              Logout
-            </Link>
-          </nav>
-
-          <div className={styles.topbarActions}>
-            <NotificationBell notificationsHref="/seller/notifications" />
-            <Link href="/seller/profile" className={styles.initialAvatar}>
-              <ProfileAvatar profile={profile} className={styles.avatarInner} />
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className={styles.workspace}>
-        <aside className={styles.sidebar}>
-          <div className={styles.profileBlock}>
-            <ProfileAvatar profile={profile} className={styles.profileBadge} />
-            <div>
-              <strong>{profile?.name || "Seller"}</strong>
-              <p>{profile?.email || "No email set"}</p>
-            </div>
-          </div>
-
-          <nav className={styles.sidebarNav} aria-label="Seller navigation">
-            {sidebarItems.map((item) => {
+            {primaryNavbarItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/seller" && pathname?.startsWith(item.href));
@@ -163,34 +100,79 @@ export function SellerShell({ children }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={isActive ? styles.sidebarItemActive : styles.sidebarItem}
+                  className={isActive ? styles.topnavLinkActive : styles.topnavLink}
                 >
-                  <SidebarIcon icon={item.icon} />
-                  <span>{item.label}</span>
+                  {item.label}
                 </Link>
               );
             })}
           </nav>
-        </aside>
 
-        <div className={styles.contentWrap}>
-          <main className={styles.content}>{children}</main>
+          <div className={styles.topbarActions}>
+            <NotificationBell notificationsHref="/seller/notifications" />
+            <div className={styles.moreMenuWrap}>
+              <button
+                type="button"
+                className={isAccountMenuActive || isAccountMenuOpen ? styles.avatarButtonActive : styles.avatarButton}
+                onClick={() => setIsAccountMenuOpen((current) => !current)}
+                aria-expanded={isAccountMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open seller account menu"
+              >
+                <ProfileAvatar profile={profile} className={styles.avatarInner} />
+                <ChevronIcon />
+              </button>
 
-          <footer className={styles.footer}>
-            <div className={styles.footerInner}>
-              <div className={styles.footerBrand}>
-                <LogoMark />
-                <span>&copy; 2026 AuctionArc. All rights reserved.</span>
-              </div>
+              {isAccountMenuOpen ? (
+                <div className={styles.moreMenu} role="menu" aria-label="Seller account menu">
+                  {secondaryNavbarItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/seller" && pathname?.startsWith(item.href));
 
-              <div className={styles.footerLinks}>
-                <Link href="/privacy">Privacy Policy</Link>
-                <Link href="/terms">Terms of Service</Link>
-                <Link href="/support">Help Center</Link>
-              </div>
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={isActive ? styles.moreMenuItemActive : styles.moreMenuItem}
+                        onClick={() => setIsAccountMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+
+                  <Link
+                    href="/logout"
+                    className={styles.moreMenuItem}
+                    onClick={() => setIsAccountMenuOpen(false)}
+                  >
+                    Logout
+                  </Link>
+                </div>
+              ) : null}
             </div>
-          </footer>
+          </div>
         </div>
+      </header>
+
+      <div className={styles.contentWrap}>
+        <main className={styles.content}>{children}</main>
+
+        <footer className={styles.footer}>
+          <div className={styles.footerInner}>
+            <div className={styles.footerBrand}>
+              <LogoMark />
+              <span>&copy; 2026 AuctionArc. All rights reserved.</span>
+            </div>
+
+            <div className={styles.footerLinks}>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/terms">Terms of Service</Link>
+              <Link href="/support">Help Center</Link>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
