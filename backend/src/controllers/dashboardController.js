@@ -24,10 +24,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
 
 export const getSellerOverview = asyncHandler(async (req, res) => {
-  const [listings, auctions, orders, threads, sellerAuctions] = await Promise.all([
+  const [seller, listings, auctions, orders, threads, sellerAuctions] = await Promise.all([
+    User.findById(req.user._id),
     Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
-    Auction.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(3),
-    Order.find({ seller: req.user._id }),
+    Auction.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
+    Order.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
     Thread.find({ "participants.user": req.user._id }).sort({ updatedAt: -1 }).limit(2),
     Auction.find({ seller: req.user._id }).select("_id"),
   ]);
@@ -37,6 +38,20 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
   }).distinct("bidder");
 
   const grossSales = orders.reduce((sum, order) => sum + order.amount, 0);
+  const liveListings = listings.filter((item) => ["Live", "Featured"].includes(item.status));
+  const processingOrders = orders.filter((item) => item.status !== "Completed").length;
+  const totalViews = listings.reduce((sum, listing) => sum + (listing.viewCount || 0), 0);
+  const totalWatchers = auctions.reduce((sum, auction) => sum + (auction.watcherCount || 0), 0);
+  const totalBids = auctions.reduce((sum, auction) => sum + (auction.bidCount || 0), 0);
+  const conversionRate = listings.length ? Math.round((orders.length / listings.length) * 100) : 0;
+  const locationQuery =
+    seller?.location?.trim() || seller?.country?.trim() || "";
+  const listingStatusGroups = [
+    { label: "Live", value: listings.filter((item) => item.status === "Live").length },
+    { label: "Featured", value: listings.filter((item) => item.status === "Featured").length },
+    { label: "Pending approval", value: listings.filter((item) => item.status === "Pending approval").length },
+    { label: "Draft", value: listings.filter((item) => item.status === "Draft").length },
+  ];
 
   res.json({
     success: true,
@@ -44,33 +59,72 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
       kpis: [
         toStats(
           "Live listings",
-          String(listings.filter((item) => ["Live", "Featured"].includes(item.status)).length),
-          `+${Math.max(listings.length - 1, 0)} this week`,
+          String(liveListings.length),
+          `${listings.length} total listings`,
           "good",
         ),
-        toStats("Active buyers", String(sellerBids.length), "+18%", "good"),
-        toStats("Gross sales", formatCurrency(grossSales), "+12.4%", "good"),
+        toStats("Active buyers", String(sellerBids.length), `${auctions.length} seller auctions`, "good"),
+        toStats("Gross sales", formatCurrency(grossSales), `${orders.length} completed orders`, "good"),
         toStats(
           "Pending payouts",
           formatCurrency(req.user.wallet.pendingPayout || 0),
-          `${orders.filter((item) => item.status !== "Completed").length} processing`,
+          `${processingOrders} orders in progress`,
           "warn",
         ),
+      ],
+      performance: [
+        toStats("Listing views", compactAmount(totalViews), `${listings.length} listings tracked`, "good"),
+        toStats("Watchers", compactAmount(totalWatchers), `${auctions.length} auction sessions`, "good"),
+        toStats("Bid activity", compactAmount(totalBids), `${sellerBids.length} buyers engaged`, "good"),
+        toStats("Conversion rate", `${conversionRate}%`, `${orders.length} orders won`, conversionRate >= 50 ? "good" : "warn"),
       ],
       activity: auctions.map((auction) => ({
         title: `${auction.title} updated`,
         meta: `${auction.status} auction refreshed ${auction.updatedAt.toISOString().slice(0, 10)}`,
       })),
-      listings: listings.slice(0, 3).map((listing) => ({
-        id: listing.code,
-        title: listing.title,
-        status: listing.status,
-        price: formatCurrency(listing.price),
-        bids: String(listing.bidCount),
+      auctionSummary: auctions.map((auction) => ({
+        id: auction.code,
+        title: auction.title,
+        status: auction.status,
+        currentBid: formatCurrency(auction.currentBid || 0),
+        bidCount: String(auction.bidCount || 0),
+        watchers: String(auction.watcherCount || 0),
+        startAt: auction.startAt || null,
+        endAt: auction.endAt || null,
       })),
+      listingPipeline: listingStatusGroups,
+      location: {
+        label: locationQuery || "Location not added yet",
+        query: locationQuery,
+      },
       messages: threads.map((thread) => ({
         title: thread.subject,
         meta: thread.messages.at(-1)?.body || "No recent message",
+      })),
+      currentListings: listings.slice(0, 4).map((listing) => ({
+        id: String(listing._id),
+        code: listing.code,
+        title: listing.title,
+        description: listing.description || "No product summary has been added yet.",
+        status: listing.status,
+        currentBid: formatCurrency(listing.currentBid || listing.price || 0),
+        watchers: String(
+          auctions.find((auction) => String(auction.listing) === String(listing._id))?.watcherCount ||
+            listing.watcherCount ||
+            0,
+        ),
+        views: String(listing.viewCount || 0),
+        delivery: listing.deliveryOption || "AuctionArc Delivery",
+        endTime:
+          auctions.find((auction) => String(auction.listing) === String(listing._id))?.endAt || null,
+        imageUrl: listing.images?.[0]?.url || "",
+        premiumHighlight: Boolean(listing.premiumHighlight || listing.status === "Featured"),
+      })),
+      salesHistory: orders.map((order) => ({
+        id: order.code,
+        title: order.item,
+        price: formatCurrency(order.amount || 0),
+        status: order.status,
       })),
     },
   });

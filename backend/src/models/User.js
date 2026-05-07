@@ -38,6 +38,7 @@ const walletSchema = new mongoose.Schema(
     heldBalance: { type: Number, default: 0 },
     pendingPayout: { type: Number, default: 0 },
     platformFees: { type: Number, default: 0 },
+    featureCredits: { type: Number, default: 0 },
     walletLabel: String,
   },
   { _id: false },

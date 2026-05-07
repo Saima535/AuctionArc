@@ -46,17 +46,25 @@ function formatStamp(value) {
 export function NotificationBell({ notificationsHref }) {
   const router = useRouter();
   const wrapRef = useRef(null);
+  const lastLiveRefreshAtRef = useRef(0);
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const liveChannels = user?.id ? [`user:${user.id}`, "market:notifications"] : [];
   const { data, setData, refresh, isRefreshing } = useApiData("/notifications?limit=10&unreadFirst=true", {
     initialData: { items: [], unreadCount: 0 },
-    refreshIntervalMs: 30000,
-    revalidateOnWindowFocus: true,
+    refreshIntervalMs: 0,
+    revalidateOnWindowFocus: false,
     enabled: Boolean(user?.id),
   });
 
   const handleLiveEvent = useCallback(() => {
+    const now = Date.now();
+
+    if (now - lastLiveRefreshAtRef.current < 2000) {
+      return;
+    }
+
+    lastLiveRefreshAtRef.current = now;
     refresh({ background: true });
   }, [refresh]);
 
@@ -78,6 +86,14 @@ export function NotificationBell({ notificationsHref }) {
       document.removeEventListener("mousedown", handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    refresh({ background: true });
+  }, [isOpen, refresh]);
 
   async function handleOpenNotification(notification) {
     if (!notification.isRead) {

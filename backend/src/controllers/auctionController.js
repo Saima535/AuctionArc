@@ -80,6 +80,7 @@ export const createListing = asyncHandler(async (req, res) => {
   const parsedBuyNowPrice = assertNumber(buyNowPrice || 0, "Buy now price", { min: 0, max: 100000000 });
   const parsedDuration = assertNumber(auctionDurationDays || 5, "Auction duration", { min: 1, max: 30 });
   const parsedDeliveryFee = assertNumber(deliveryFee || 0, "Delivery fee", { min: 0, max: 1000000 });
+  const wantsPremiumHighlight = premiumHighlight === "true" || premiumHighlight === true;
 
   const requestedStatus = status === "Pending approval" ? "Pending approval" : "Draft";
 
@@ -102,25 +103,70 @@ export const createListing = asyncHandler(async (req, res) => {
     ),
   );
 
-  const listing = await Listing.create({
-    code,
-    seller: req.user._id,
-    title: normalizedTitle,
-    category: normalizedCategory,
-    description: normalizedDescription,
-    price: parsedPrice,
-    reservePrice: parsedReservePrice,
-    buyNowPrice: parsedBuyNowPrice,
-    currentBid: parsedPrice,
-    status: requestedStatus,
-    reserveStatus: parsedReservePrice ? "Pending" : "Not set",
-    condition: assertOptionalText(condition, "Condition", { maxLength: 40 }) || "Good",
-    auctionDurationDays: parsedDuration,
-    deliveryOption: deliveryOption || "AuctionArc Delivery",
-    deliveryFee: parsedDeliveryFee,
-    premiumHighlight: premiumHighlight === "true" || premiumHighlight === true,
-    images: uploadedImages.filter(Boolean),
-  });
+  let featureCreditReserved = false;
+
+  if (wantsPremiumHighlight) {
+    const updatedSeller = await User.findOneAndUpdate(
+      {
+        _id: req.user._id,
+        role: "Seller",
+        "wallet.featureCredits": { $gte: 1 },
+      },
+      { $inc: { "wallet.featureCredits": -1 } },
+      { new: true },
+    );
+
+    if (!updatedSeller) {
+      throw new ApiError(400, "Complete the $1 feature payment before featuring this listing.");
+    }
+
+    featureCreditReserved = true;
+  }
+
+  let listing;
+
+  try {
+    listing = await Listing.create({
+      code,
+      seller: req.user._id,
+      title: normalizedTitle,
+      category: normalizedCategory,
+      description: normalizedDescription,
+      price: parsedPrice,
+      reservePrice: parsedReservePrice,
+      buyNowPrice: parsedBuyNowPrice,
+      currentBid: parsedPrice,
+      status: requestedStatus,
+      reserveStatus: parsedReservePrice ? "Pending" : "Not set",
+      condition: assertOptionalText(condition, "Condition", { maxLength: 40 }) || "Good",
+      auctionDurationDays: parsedDuration,
+      deliveryOption: deliveryOption || "AuctionArc Delivery",
+      deliveryFee: parsedDeliveryFee,
+      premiumHighlight: wantsPremiumHighlight,
+      images: uploadedImages.filter(Boolean),
+    });
+  } catch (error) {
+    if (featureCreditReserved) {
+      await User.findByIdAndUpdate(req.user._id, {
+        $inc: { "wallet.featureCredits": 1 },
+      });
+    }
+
+    throw error;
+  }
+
+  if (wantsPremiumHighlight) {
+    await createNotification({
+      userId: req.user._id,
+      title: "Feature credit applied",
+      body: `"${listing.title}" will receive featured placement once it is approved.`,
+      type: "listing-feature",
+      href: "/seller/listings",
+      metadata: {
+        listingId: listing._id,
+      },
+    });
+  }
 
   if (requestedStatus === "Pending approval") {
     const admins = await User.find({ role: "Admin", status: "Active" }).select("_id");

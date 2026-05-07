@@ -69,19 +69,33 @@ export function AuthProvider({ children }) {
           ...normalizeAuthData(authData, token),
         });
       } catch (error) {
-        clearStoredToken();
+        if (error.status === 401 || error.status === 403) {
+          clearStoredToken();
+
+          if (!isMounted) {
+            return;
+          }
+
+          setAuthState({
+            status: "guest",
+            token: null,
+            user: null,
+            destination: null,
+            error: error.message || "Your session could not be verified.",
+          });
+          return;
+        }
 
         if (!isMounted) {
           return;
         }
 
-        setAuthState({
-          status: "guest",
-          token: null,
-          user: null,
-          destination: null,
+        setAuthState((current) => ({
+          ...current,
+          status: current.user ? "authenticated" : "guest",
+          token,
           error: error.message || "Your session could not be verified.",
-        });
+        }));
       }
     }
 
@@ -136,14 +150,24 @@ export function AuthProvider({ children }) {
       setAuthState(nextState);
       return nextState;
     } catch (error) {
-      clearStoredToken();
-      setAuthState({
-        status: "guest",
-        token: null,
-        user: null,
-        destination: null,
+      if (error.status === 401 || error.status === 403) {
+        clearStoredToken();
+        setAuthState({
+          status: "guest",
+          token: null,
+          user: null,
+          destination: null,
+          error: error.message || "Your session could not be verified.",
+        });
+        return null;
+      }
+
+      setAuthState((current) => ({
+        ...current,
+        status: current.user ? "authenticated" : "guest",
+        token,
         error: error.message || "Your session could not be verified.",
-      });
+      }));
       return null;
     }
   }, []);

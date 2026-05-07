@@ -42,6 +42,14 @@ function buildAuthResponse(user) {
       role: user.role,
       status: user.status,
       profilePicture: user.profilePicture || null,
+      wallet: {
+        availableBalance: user.wallet?.availableBalance || 0,
+        heldBalance: user.wallet?.heldBalance || 0,
+        pendingPayout: user.wallet?.pendingPayout || 0,
+        platformFees: user.wallet?.platformFees || 0,
+        featureCredits: user.wallet?.featureCredits || 0,
+        walletLabel: user.wallet?.walletLabel || "",
+      },
     },
     destination:
       user.role === "Seller" ? "/seller" : user.role === "Bidder" ? "/bidder/auctions" : "/admin",
@@ -123,6 +131,7 @@ export const register = asyncHandler(async (req, res) => {
       heldBalance: 0,
       pendingPayout: 0,
       platformFees: 0,
+      featureCredits: 0,
       walletLabel: normalizedWalletLabel,
     },
     profilePicture,

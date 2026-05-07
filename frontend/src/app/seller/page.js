@@ -1,6 +1,6 @@
 "use client";
 
-
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import shared from "@/components/seller/SellerShared.module.css";
@@ -14,7 +14,7 @@ import {
   HeartIcon,
   MessageIcon,
   PlusIcon,
-  SparklesIcon,
+  StarIcon,
   TrendIcon,
   UsersIcon,
 } from "@/components/seller/SellerIcons";
@@ -42,15 +42,45 @@ function formatEndTime(value) {
   return date.toLocaleString();
 }
 
+function formatTimeLeft(value) {
+  if (!value) {
+    return "Schedule pending";
+  }
+
+  const endTime = new Date(value).getTime();
+
+  if (Number.isNaN(endTime)) {
+    return "Schedule pending";
+  }
+
+  const difference = endTime - Date.now();
+
+  if (difference <= 0) {
+    return "Closed";
+  }
+
+  const hours = Math.floor(difference / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days}d ${hours % 24}h left`;
+  }
+
+  const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+  return `${hours}h ${minutes}m left`;
+}
+
 export default function SellerDashboardPage() {
   const { data, isLoading, error } = useApiData("/dashboard/seller", {
     initialData: {
       kpis: [],
       performance: [],
       activity: [],
-      spotlight: {
-        greeting: "Welcome back!",
-        message: "We are loading your seller workspace.",
+      auctionSummary: [],
+      listingPipeline: [],
+      location: {
+        label: "",
+        query: "",
       },
       currentListings: [],
       salesHistory: [],
@@ -85,41 +115,28 @@ export default function SellerDashboardPage() {
     [data.activity],
   );
 
+  const auctionSummary = data.auctionSummary ?? [];
+  const listingPipeline = data.listingPipeline ?? [];
   const currentListings = data.currentListings ?? [];
   const salesHistory = data.salesHistory ?? [];
+  const featuredListings = currentListings.filter((item) => item.premiumHighlight);
 
   return (
     <div className={shared.page}>
-      <section className={`${shared.panel} ${shared.heroPanel}`}>
-        <div className={shared.heroRow}>
-          <div className={shared.heroLeft}>
-            <span className={shared.heroBadge}>
-              <SparklesIcon />
-            </span>
-            <div className={shared.heroText}>
-              <h2>{data.spotlight?.greeting || "Welcome back!"}</h2>
-              <p>{data.spotlight?.message || "Your live seller activity and buyer engagement will appear here shortly."}</p>
-              <div className={shared.heroActions}>
-                <Link href="/seller/messages" className={shared.primaryCta}>
-                  View Messages
-                </Link>
-                <Link href="/seller/profile" className={shared.secondaryCta}>
-                  View Profile
-                </Link>
-                <Link href="/seller/listings/new" className={shared.secondaryCta}>
-                  Create Listing
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section>
         <div className={shared.sectionHeader}>
           <div>
             <h1>Seller control center</h1>
             <p>Track listings, buyer attention, payouts, and active sales from one organized workspace.</p>
+          </div>
+          <div className={shared.dashboardHeaderActions}>
+            <Link href="/seller/auctions" className={shared.darkButton}>
+              Manage Auctions
+            </Link>
+            <Link href="/seller/listings/new" className={shared.primaryCta}>
+              <PlusIcon />
+              <span>Create Listing</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -139,14 +156,104 @@ export default function SellerDashboardPage() {
         ))}
       </section>
 
+      <section className={`${shared.panel} ${shared.analyticsPanel}`}>
+        <div className={shared.sectionTop}>
+          <div>
+            <h2 className={shared.panelTitle}>Analytics snapshot</h2>
+            <p className={shared.panelCopy}>Live seller performance across traffic, interest, bidding, and conversions.</p>
+          </div>
+          <Link href="/seller/analytics" className={shared.activityLink}>
+            Open analytics
+          </Link>
+        </div>
+
+        <div className={shared.analyticsGrid}>
+          {performance.map((item) => (
+            <article key={item.label} className={shared.analyticsMetric}>
+              <div className={shared.analyticsMetricTop}>
+                <span className={shared.analyticsMetricIcon}>{item.icon}</span>
+                <span className={shared.statDelta}>{item.delta}</span>
+              </div>
+              <strong>{item.value}</strong>
+              <p>{item.label}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className={shared.dashboardGrid}>
         <div className={shared.page}>
+          <section className={shared.productSection}>
+            <div className={shared.sectionTop}>
+              <h2 className={shared.panelTitle}>Auction overview</h2>
+              <Link href="/seller/auctions" className={shared.activityLink}>
+                View all auctions
+              </Link>
+            </div>
+
+            <div className={shared.auctionGrid}>
+              {!auctionSummary.length ? (
+                <article className={`${shared.panel} ${shared.auctionCard}`}>
+                  <div className={shared.auctionCardBody}>
+                    <h3>No auction sessions yet</h3>
+                    <p>Approved listings that get scheduled into auctions will appear here with timing and bid activity.</p>
+                  </div>
+                </article>
+              ) : null}
+
+              {auctionSummary.map((auction) => (
+                <article key={auction.id} className={`${shared.panel} ${shared.auctionCard}`}>
+                  <div className={shared.auctionCardBody}>
+                    <div className={shared.auctionCardTop}>
+                      <div>
+                        <span className={shared.auctionCode}>{auction.id}</span>
+                        <h3>{auction.title}</h3>
+                      </div>
+                      <span className={shared.statusTag}>{auction.status}</span>
+                    </div>
+
+                    <div className={shared.auctionMetrics}>
+                      <div>
+                        <span>Current bid</span>
+                        <strong>{auction.currentBid}</strong>
+                      </div>
+                      <div>
+                        <span>Buyers watching</span>
+                        <strong>{auction.watchers}</strong>
+                      </div>
+                      <div>
+                        <span>Bid count</span>
+                        <strong>{auction.bidCount}</strong>
+                      </div>
+                    </div>
+
+                    <div className={shared.detailStrip}>
+                      <div className={shared.detailRow}>
+                        <span>Starts</span>
+                        <span>{formatEndTime(auction.startAt)}</span>
+                      </div>
+                      <div className={shared.detailRow}>
+                        <span>Ends</span>
+                        <span>{formatEndTime(auction.endAt)}</span>
+                      </div>
+                      <div className={shared.detailRow}>
+                        <span>Time left</span>
+                        <span className={shared.detailHighlight}>{formatTimeLeft(auction.endAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
           <div className={shared.miniStats}>
-            {performance.map((item) => (
+            {listingPipeline.map((item, index) => (
               <article key={item.label} className={`${shared.panel} ${shared.miniStatCard}`}>
                 <div className={shared.miniStatTop}>
-                  <span className={shared.miniStatIcon}>{item.icon}</span>
-                  <span className={shared.statDelta}>{item.delta}</span>
+                  <span className={shared.miniStatIcon}>
+                    {index === 0 ? <BoxIcon /> : index === 1 ? <StarIcon /> : index === 2 ? <ClockIcon /> : <TrendIcon />}
+                  </span>
                 </div>
                 <div className={shared.miniStatValue}>{item.value}</div>
                 <p>{item.label}</p>
@@ -176,9 +283,13 @@ export default function SellerDashboardPage() {
               {currentListings.map((product) => (
                 <article key={product.id} className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productMedia}>
-                    <div className={shared.mediaPlaceholder}>
-                      <span>{product.code}</span>
-                    </div>
+                    {product.imageUrl ? (
+                      <Image src={product.imageUrl} alt={product.title} fill unoptimized />
+                    ) : (
+                      <div className={shared.mediaPlaceholder}>
+                        <span>{product.code}</span>
+                      </div>
+                    )}
                     <span className={shared.statusTag}>{product.status}</span>
                   </div>
 
@@ -225,6 +336,27 @@ export default function SellerDashboardPage() {
                 </article>
               ))}
             </div>
+          </section>
+
+          <section className={shared.productSection}>
+            <div className={shared.sectionTop}>
+              <h2 className={shared.panelTitle}>Listing spotlight</h2>
+              <Link href="/seller/listings" className={shared.activityLink}>
+                Open all listings
+              </Link>
+            </div>
+
+            {featuredListings.length ? (
+              <div className={shared.featuredRail}>
+                {featuredListings.map((item) => (
+                  <article key={item.id} className={shared.featuredChip}>
+                    <span className={shared.featureReadyBadge}>Featured</span>
+                    <strong>{item.title}</strong>
+                    <span>{item.currentBid}</span>
+                  </article>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           <section className={shared.productSection}>

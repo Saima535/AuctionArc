@@ -61,7 +61,9 @@ export async function fetchCurrentUser(token) {
   const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.message || "Could not verify your session.");
+    const error = new Error(result.message || "Could not verify your session.");
+    error.status = response.status;
+    throw error;
   }
 
   return result.data;

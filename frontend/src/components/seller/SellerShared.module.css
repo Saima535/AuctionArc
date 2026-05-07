@@ -23,6 +23,13 @@
   font-size: 1.1rem;
 }
 
+.dashboardHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
 .primaryCta,
 .secondaryCta,
 .darkButton {
@@ -158,6 +165,60 @@
   grid-template-columns: minmax(0, 1.75fr) minmax(340px, 0.85fr);
   gap: 28px;
   align-items: start;
+}
+
+.analyticsPanel {
+  padding: 28px;
+}
+
+.panelCopy {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.6;
+}
+
+.analyticsGrid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.analyticsMetric {
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.analyticsMetricTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.analyticsMetricIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 170, 0, 0.14);
+  color: #f3a500;
+}
+
+.analyticsMetric strong {
+  display: block;
+  margin-top: 18px;
+  font-size: 1.45rem;
+  color: #fff9ef;
+}
+
+.analyticsMetric p {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.66);
 }
 
 .heroPanel {
@@ -485,6 +546,69 @@
   gap: 28px;
 }
 
+.auctionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.auctionCard {
+  overflow: hidden;
+}
+
+.auctionCardBody {
+  padding: 24px 26px 26px;
+}
+
+.auctionCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.auctionCode {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auctionCardTop h3 {
+  margin-top: 10px;
+  font-size: 1.35rem;
+  color: #fff;
+}
+
+.auctionMetrics {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.auctionMetrics div {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.auctionMetrics span {
+  display: block;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 0.82rem;
+}
+
+.auctionMetrics strong {
+  display: block;
+  margin-top: 10px;
+  color: #fff7ee;
+  font-size: 1rem;
+}
+
 .productCard {
   overflow: hidden;
 }
@@ -601,6 +725,32 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.featuredRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.featuredChip {
+  min-width: 220px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: rgba(245, 170, 0, 0.08);
+  border: 1px solid rgba(245, 170, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.featuredChip strong {
+  color: #fff8ee;
+  font-size: 1rem;
+}
+
+.featuredChip span:last-child {
+  color: rgba(255, 255, 255, 0.74);
 }
 
 .rating {
@@ -763,6 +913,76 @@
   margin-bottom: 12px;
 }
 
+.uploadHeadline {
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 700;
+}
+
+.uploadCopy,
+.mediaHint {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.previewGrid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.previewCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(16, 16, 16, 0.92);
+}
+
+.previewImage {
+  min-height: 180px;
+  background-size: cover;
+  background-position: center;
+}
+
+.previewMeta {
+  padding: 14px 16px 16px;
+}
+
+.previewMeta strong {
+  display: block;
+  color: #fff;
+}
+
+.previewMeta span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.6);
+  word-break: break-word;
+}
+
+.previewRemove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(10, 10, 10, 0.74);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.previewRemove svg {
+  width: 18px;
+  height: 18px;
+}
+
 .radioGrid,
 .durationGrid {
   display: grid;
@@ -849,6 +1069,11 @@
   cursor: pointer;
 }
 
+.inputWrap select option {
+  color: #111111;
+  background: #ffffff;
+}
+
 .textarea {
   min-height: 140px;
   display: block;
@@ -865,32 +1090,17 @@
 }
 
 .premiumBox {
+  margin-top: 24px;
   padding: 30px;
   border-radius: 18px;
   border: 1px solid rgba(240, 165, 0, 0.38);
   background: rgba(82, 56, 12, 0.42);
 }
 
-.premiumHeader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #fff;
-}
-
-.premiumHeader svg {
-  width: 24px;
-  height: 24px;
-  color: #f4aa00;
-}
-
 .premiumOption {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  margin-top: 26px;
 }
 
 .premiumOption input {
@@ -904,9 +1114,103 @@
   font-size: 1.05rem;
 }
 
+.featureTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.featureReadyBadge {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 182, 88, 0.18);
+  border: 1px solid rgba(0, 212, 99, 0.32);
+  color: #35df82;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
 .premiumOption p {
   margin-top: 6px;
   color: rgba(255, 255, 255, 0.72);
+}
+
+.featurePaymentPanel {
+  margin-top: 20px;
+  padding: 22px 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(240, 165, 0, 0.18);
+  background: rgba(9, 9, 9, 0.42);
+}
+
+.featurePaymentHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.featurePaymentHeader strong {
+  display: block;
+  font-size: 1rem;
+  color: #fff8ea;
+}
+
+.featurePaymentHeader p {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.featurePrice {
+  min-width: 64px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 170, 0, 0.16);
+  color: #f7ab00;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.featurePaymentMeta {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.featurePaymentButton {
+  margin-top: 18px;
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f5aa00, #ea9a00);
+  color: #090909;
+  font-size: 0.98rem;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(245, 170, 0, 0.16);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.featurePaymentButton:hover {
+  transform: translateY(-1px);
+}
+
+.featurePaymentButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
 }
 
 .formActions {
@@ -1189,7 +1493,8 @@
   .statGrid,
   .miniStats,
   .fieldGrid,
-  .radioGrid {
+  .radioGrid,
+  .previewGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1199,6 +1504,7 @@
   }
 
   .listingGrid,
+  .auctionGrid,
   .listingStatGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1209,8 +1515,12 @@
   .deliveryGrid,
   .durationGrid,
   .listingGrid,
+  .auctionGrid,
   .listingStatGrid,
-  .listingInfoGrid {
+  .listingInfoGrid,
+  .previewGrid,
+  .analyticsGrid,
+  .auctionMetrics {
     grid-template-columns: 1fr;
   }
 
@@ -1219,9 +1529,15 @@
   .heroRow,
   .heroLeft,
   .heroActions,
-  .formActions {
+  .formActions,
+  .dashboardHeaderActions,
+  .auctionCardTop {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .featurePaymentHeader {
+    flex-direction: column;
   }
 
   .messagesArea {

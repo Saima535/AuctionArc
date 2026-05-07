@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { ApiEmptyState, ApiErrorNotice } from "@/components/feedback/ApiFeedback";
 import { useApiData } from "@/hooks/useApiData";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
@@ -23,14 +23,22 @@ function formatStamp(value) {
 
 export function NotificationsPage({ title, description }) {
   const { user } = useAuth();
+  const lastLiveRefreshAtRef = useRef(0);
   const { data, setData, error, isRefreshing, refresh } = useApiData("/notifications", {
     initialData: { items: [], unreadCount: 0 },
-    refreshIntervalMs: 30000,
+    refreshIntervalMs: 60000,
     revalidateOnWindowFocus: true,
     enabled: Boolean(user?.id),
   });
 
   const handleLiveEvent = useCallback(() => {
+    const now = Date.now();
+
+    if (now - lastLiveRefreshAtRef.current < 2000) {
+      return;
+    }
+
+    lastLiveRefreshAtRef.current = now;
     refresh({ background: true });
   }, [refresh]);
 
