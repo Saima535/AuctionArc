@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListingImageGallery } from "@/components/listing/ListingImageGallery";
 import styles from "./PublicAuctionGrid.module.css";
 
 export function PublicAuctionGrid({
@@ -14,13 +15,13 @@ export function PublicAuctionGrid({
     <section className={styles.grid}>
       {auctions.map((auction) => (
         <article key={auction.listingId || auction.auctionId || auction.id} className={styles.card}>
-          <div
-            className={`${styles.media} ${auction.imageUrl ? styles.mediaImage : ""}`.trim()}
-            style={auction.imageUrl ? { backgroundImage: `url(${auction.imageUrl})` } : undefined}
-          >
-            {!auction.imageUrl ? (
-              <span className={styles.mediaFallback}>{auction.category?.slice(0, 1) || "A"}</span>
-            ) : null}
+          <div className={styles.media}>
+            <ListingImageGallery
+              images={auction.images?.length ? auction.images : auction.imageUrl ? [auction.imageUrl] : []}
+              title={auction.title}
+              fallback={auction.category?.slice(0, 1) || "A"}
+              fallbackClassName={styles.mediaFallback}
+            />
             <div className={styles.badgeRow}>
               {auction.premiumHighlight ? <span className={styles.badge}>Featured</span> : null}
               <span className={styles.badgeMuted}>{auction.status}</span>

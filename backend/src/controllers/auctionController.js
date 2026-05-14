@@ -5,14 +5,17 @@ import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { BID_STATUSES, LISTING_STATUSES } from "../constants/enums.js";
 import { createNotification, createNotifications } from "../services/notificationService.js";
+import { finalizeAuctionIfEnded } from "../services/auctionSettlementService.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
+import { formatAuctionDuration, parseAuctionDurationValue } from "../utils/auctionDuration.js";
 import { formatCurrency } from "../utils/formatters.js";
 import {
   assertNumber,
+  assertOneOf,
   assertOptionalText,
   assertRequiredText,
 } from "../utils/validation.js";
@@ -29,6 +32,7 @@ export const getPublicAuctions = asyncHandler(async (req, res) => {
     success: true,
     data: listings.map((listing) => {
       const imageUrl = listing.images?.[0]?.url || null;
+      const images = (listing.images || []).map((image) => image?.url).filter(Boolean);
 
       return {
         listingId: listing._id,
@@ -38,7 +42,7 @@ export const getPublicAuctions = asyncHandler(async (req, res) => {
         seller: listing.seller?.name || "AuctionArc seller",
         status: listing.status,
         currentBid: formatCurrency(listing.currentBid || listing.price || 0),
-        auctionWindow: `${listing.auctionDurationDays || 5} day auction`,
+        auctionWindow: `${formatAuctionDuration(listing.auctionDurationDays || 5, listing.auctionDurationUnit || "day")} auction`,
         priceLabel: listing.currentBid > listing.price ? "Current bid" : "Starting price",
         secondaryLabel: "Auction window",
         description: listing.description || "Public visitors can browse this listed auction product before creating an account.",
@@ -46,6 +50,7 @@ export const getPublicAuctions = asyncHandler(async (req, res) => {
         delivery: listing.deliveryOption || "AuctionArc Delivery",
         watchers: String(listing.watcherCount || 0),
         imageUrl,
+        images,
         premiumHighlight: Boolean(listing.premiumHighlight || listing.status === "Featured"),
       };
     }),
@@ -62,10 +67,10 @@ export const createListing = asyncHandler(async (req, res) => {
     category,
     description,
     price,
-    reservePrice,
     buyNowPrice,
     condition,
     auctionDurationDays,
+    auctionDurationUnit,
     deliveryOption,
     deliveryFee,
     premiumHighlight,
@@ -76,9 +81,9 @@ export const createListing = asyncHandler(async (req, res) => {
   const normalizedCategory = assertRequiredText(category, "Category", { maxLength: 80 });
   const normalizedDescription = assertOptionalText(description, "Description", { maxLength: 3000 });
   const parsedPrice = assertNumber(price || 0, "Price", { min: 0, max: 100000000 });
-  const parsedReservePrice = assertNumber(reservePrice || 0, "Reserve price", { min: 0, max: 100000000 });
   const parsedBuyNowPrice = assertNumber(buyNowPrice || 0, "Buy now price", { min: 0, max: 100000000 });
-  const parsedDuration = assertNumber(auctionDurationDays || 5, "Auction duration", { min: 1, max: 30 });
+  const parsedDurationUnit = assertOneOf(auctionDurationUnit || "day", ["minute", "day"], "Auction duration unit");
+  const parsedDuration = parseAuctionDurationValue(auctionDurationDays || 5, parsedDurationUnit);
   const parsedDeliveryFee = assertNumber(deliveryFee || 0, "Delivery fee", { min: 0, max: 1000000 });
   const wantsPremiumHighlight = premiumHighlight === "true" || premiumHighlight === true;
 
@@ -133,13 +138,14 @@ export const createListing = asyncHandler(async (req, res) => {
       category: normalizedCategory,
       description: normalizedDescription,
       price: parsedPrice,
-      reservePrice: parsedReservePrice,
+      reservePrice: 0,
       buyNowPrice: parsedBuyNowPrice,
       currentBid: parsedPrice,
       status: requestedStatus,
-      reserveStatus: parsedReservePrice ? "Pending" : "Not set",
+      reserveStatus: "Not set",
       condition: assertOptionalText(condition, "Condition", { maxLength: 40 }) || "Good",
       auctionDurationDays: parsedDuration,
+      auctionDurationUnit: parsedDurationUnit,
       deliveryOption: deliveryOption || "AuctionArc Delivery",
       deliveryFee: parsedDeliveryFee,
       premiumHighlight: wantsPremiumHighlight,
@@ -212,10 +218,10 @@ export const updateListing = asyncHandler(async (req, res) => {
     category,
     description,
     price,
-    reservePrice,
     buyNowPrice,
     condition,
     auctionDurationDays,
+    auctionDurationUnit,
     deliveryOption,
     deliveryFee,
     premiumHighlight,
@@ -238,11 +244,6 @@ export const updateListing = asyncHandler(async (req, res) => {
     listing.price = assertNumber(price, "Price", { min: 0, max: 100000000 });
   }
 
-  if (reservePrice !== undefined) {
-    listing.reservePrice = assertNumber(reservePrice || 0, "Reserve price", { min: 0, max: 100000000 });
-    listing.reserveStatus = listing.reservePrice ? "Pending" : "Not set";
-  }
-
   if (buyNowPrice !== undefined) {
     listing.buyNowPrice = assertNumber(buyNowPrice || 0, "Buy now price", { min: 0, max: 100000000 });
   }
@@ -252,7 +253,15 @@ export const updateListing = asyncHandler(async (req, res) => {
   }
 
   if (auctionDurationDays !== undefined) {
-    listing.auctionDurationDays = assertNumber(auctionDurationDays || listing.auctionDurationDays, "Auction duration", { min: 1, max: 30 });
+    const nextUnit = auctionDurationUnit || listing.auctionDurationUnit || "day";
+    listing.auctionDurationDays = parseAuctionDurationValue(
+      auctionDurationDays || listing.auctionDurationDays,
+      nextUnit,
+    );
+  }
+
+  if (auctionDurationUnit !== undefined) {
+    listing.auctionDurationUnit = assertOneOf(auctionDurationUnit || "day", ["minute", "day"], "Auction duration unit");
   }
 
   if (deliveryOption) {
@@ -315,6 +324,11 @@ export const placeBid = asyncHandler(async (req, res) => {
 
   if (!auction) {
     throw new ApiError(404, "Auction not found.");
+  }
+
+  if (auction.endAt && auction.endAt.getTime() <= Date.now()) {
+    await finalizeAuctionIfEnded(auction._id);
+    throw new ApiError(400, "This auction has already ended.");
   }
 
   if (!["Live", "Extended"].includes(auction.status)) {

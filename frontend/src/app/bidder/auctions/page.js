@@ -9,6 +9,7 @@ import {
 } from "@/components/admin/AdminPrimitives";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ApiEmptyState, ApiErrorNotice } from "@/components/feedback/ApiFeedback";
+import { ListingImageGallery } from "@/components/listing/ListingImageGallery";
 import { useApiData } from "@/hooks/useApiData";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
@@ -255,15 +256,13 @@ export default function BidderAuctionsPage() {
 
             return (
               <article key={item.listingId || item.id} className={styles.auctionCard}>
-                <div
-                  className={`${styles.auctionMedia} ${item.imageUrl ? styles.auctionMediaImage : ""}`.trim()}
-                  style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
-                >
-                  {!item.imageUrl ? (
-                    <span className={styles.auctionMediaFallback}>
-                      {item.category?.slice(0, 1) || "A"}
-                    </span>
-                  ) : null}
+                <div className={styles.auctionMedia}>
+                  <ListingImageGallery
+                    images={item.images?.length ? item.images : item.imageUrl ? [item.imageUrl] : []}
+                    title={item.title}
+                    fallback={item.category?.slice(0, 1) || "A"}
+                    fallbackClassName={styles.auctionMediaFallback}
+                  />
                   <div className={styles.auctionBadgeRow}>
                     {item.premiumHighlight ? <span className={styles.featureBadge}>Featured</span> : null}
                     <StatusBadge tone={categoryTone(item.category)}>{item.category}</StatusBadge>

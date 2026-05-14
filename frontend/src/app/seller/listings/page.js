@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import shared from "@/components/seller/SellerShared.module.css";
 import { useApiData } from "@/hooks/useApiData";
+import { ListingImageGallery } from "@/components/listing/ListingImageGallery";
 import { apiRequest } from "@/lib/api";
 import {
   EditIcon,
@@ -21,7 +22,9 @@ const defaultForm = {
   price: "",
   condition: "Good",
   auctionDurationDays: "5",
+  auctionDurationUnit: "day",
 };
+const durationUnitOptions = ["minute", "day"];
 
 function toPlainAmount(value) {
   return String(value || "").replace(/[$,]/g, "");
@@ -77,6 +80,13 @@ function formatTimeLeft(value) {
   return `${minutes}m left`;
 }
 
+function formatAuctionDurationLabel(value, unit = "day") {
+  const amount = Number(value) || 0;
+  const normalizedUnit = unit === "minute" ? "minute" : "day";
+  const suffix = amount === 1 ? normalizedUnit : `${normalizedUnit}s`;
+  return `${amount} ${suffix} auction`;
+}
+
 function statusClass(status) {
   return status === "Live" || status === "Featured"
     ? shared.badgeActive
@@ -106,6 +116,7 @@ export default function SellerListingsPage() {
       price: toPlainAmount(row.currentBid || row.price),
       condition: row.condition || "Good",
       auctionDurationDays: String(row.auctionDurationDays || 5),
+      auctionDurationUnit: row.auctionDurationUnit || "day",
     });
     setPageError("");
     setPageMessage("");
@@ -137,6 +148,7 @@ export default function SellerListingsPage() {
           price: amount,
           condition: formValues.condition,
           auctionDurationDays: Number(formValues.auctionDurationDays || 5),
+          auctionDurationUnit: formValues.auctionDurationUnit,
         },
       });
 
@@ -151,6 +163,7 @@ export default function SellerListingsPage() {
                 description: formValues.description,
                 condition: formValues.condition,
                 auctionDurationDays: Number(formValues.auctionDurationDays || 5),
+                auctionDurationUnit: formValues.auctionDurationUnit,
                 price: `$${amount.toLocaleString()}`,
                 currentBid: `$${amount.toLocaleString()}`,
               }
@@ -259,15 +272,13 @@ export default function SellerListingsPage() {
 
           return (
             <article key={row.listingId} className={`${shared.panel} ${shared.listingCard}`}>
-              <div
-                className={`${shared.listingMedia} ${row.imageUrl ? shared.listingMediaImage : ""}`.trim()}
-                style={row.imageUrl ? { backgroundImage: `url(${row.imageUrl})` } : undefined}
-              >
-                {!row.imageUrl ? (
-                  <div className={shared.mediaPlaceholder}>
-                    <span>{row.category?.slice(0, 1) || "L"}</span>
-                  </div>
-                ) : null}
+              <div className={shared.listingMedia}>
+                <ListingImageGallery
+                  images={row.images?.length ? row.images : row.imageUrl ? [row.imageUrl] : []}
+                  title={row.title}
+                  fallback={row.category?.slice(0, 1) || "L"}
+                  fallbackClassName={shared.mediaPlaceholder}
+                />
 
                 <div className={shared.listingBadgeRow}>
                   <span className={`${shared.badge} ${statusClass(row.status)}`}>{row.status}</span>
@@ -295,7 +306,7 @@ export default function SellerListingsPage() {
                 <div className={shared.listingStatGrid}>
                   <article className={shared.listingStatCard}>
                     <span>Auction time</span>
-                    <strong>{row.auctionDurationDays} day auction</strong>
+                    <strong>{formatAuctionDurationLabel(row.auctionDurationDays, row.auctionDurationUnit)}</strong>
                   </article>
                   <article className={shared.listingStatCard}>
                     <span>Time left</span>
@@ -450,7 +461,7 @@ export default function SellerListingsPage() {
               </div>
             </div>
             <div className={shared.formSection}>
-              <label className={shared.fieldLabel} htmlFor="seller-listing-duration">Duration (days)</label>
+              <label className={shared.fieldLabel} htmlFor="seller-listing-duration">Duration</label>
               <div className={shared.inputWrap}>
                 <input
                   id="seller-listing-duration"
@@ -460,6 +471,18 @@ export default function SellerListingsPage() {
                   value={formValues.auctionDurationDays}
                   onChange={(event) => setFormValues((current) => ({ ...current, auctionDurationDays: event.target.value }))}
                 />
+              </div>
+              <div className={shared.inputWrap} style={{ marginTop: 10 }}>
+                <select
+                  value={formValues.auctionDurationUnit}
+                  onChange={(event) => setFormValues((current) => ({ ...current, auctionDurationUnit: event.target.value }))}
+                >
+                  {durationUnitOptions.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit === "minute" ? "Minutes" : "Days"}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

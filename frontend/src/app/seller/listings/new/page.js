@@ -24,6 +24,15 @@ const categories = [
 ];
 
 const deliveryOptions = ["AuctionArc Delivery"];
+const durationOptions = [
+  { value: "1", unit: "minute", label: "1 Minute" },
+  { value: "2", unit: "minute", label: "2 Minutes" },
+  { value: "3", unit: "minute", label: "3 Minutes" },
+  { value: "3", unit: "day", label: "3 Days" },
+  { value: "5", unit: "day", label: "5 Days" },
+  { value: "7", unit: "day", label: "7 Days" },
+  { value: "10", unit: "day", label: "10 Days" },
+];
 
 function createPreviewRecord(file) {
   return {
@@ -31,6 +40,10 @@ function createPreviewRecord(file) {
     file,
     previewUrl: URL.createObjectURL(file),
   };
+}
+
+function fileSignature(file) {
+  return `${file.name}-${file.lastModified}-${file.size}`;
 }
 
 export default function SellerNewListingPage() {
@@ -147,12 +160,19 @@ export default function SellerNewListingPage() {
     }
 
     for (const [key, value] of nativeFormData.entries()) {
-      if (key === "images") {
+      if (key === "images" || key === "auctionDurationPreset") {
         continue;
       }
 
       payload.append(key, value);
     }
+
+    const selectedDurationPreset = durationOptions.find(
+      (option) => `${option.value}:${option.unit}` === nativeFormData.get("auctionDurationPreset"),
+    ) || durationOptions[4];
+
+    payload.set("auctionDurationDays", selectedDurationPreset.value);
+    payload.set("auctionDurationUnit", selectedDurationPreset.unit);
 
     imageRecords.forEach((record) => {
       payload.append("images", record.file);
@@ -200,16 +220,25 @@ export default function SellerNewListingPage() {
     setSubmitError("");
     setSubmitSuccess("");
 
-    if (nextFiles.length > 3) {
-      event.target.value = "";
-      setSubmitError("You can upload a maximum of 3 images.");
-      return;
-    }
-
     setImageRecords((current) => {
-      current.forEach((record) => URL.revokeObjectURL(record.previewUrl));
-      return nextFiles.map(createPreviewRecord);
+      const existingSignatures = new Set(current.map((record) => fileSignature(record.file)));
+      const uniqueNewFiles = nextFiles.filter((file) => !existingSignatures.has(fileSignature(file)));
+      const remainingSlots = Math.max(3 - current.length, 0);
+
+      if (!remainingSlots) {
+        setSubmitError("You can upload a maximum of 3 images.");
+        return current;
+      }
+
+      if (uniqueNewFiles.length > remainingSlots) {
+        setSubmitError("You can upload a maximum of 3 images.");
+      }
+
+      const filesToAdd = uniqueNewFiles.slice(0, remainingSlots);
+      return [...current, ...filesToAdd.map(createPreviewRecord)];
     });
+
+    event.target.value = "";
   }
 
   function handleRemoveImage(imageId) {
@@ -325,13 +354,15 @@ export default function SellerNewListingPage() {
             <div>
               <label className={shared.fieldLabel} htmlFor="listing-duration">Auction duration *</label>
               <div className={shared.inputWrap}>
-                <select id="listing-duration" name="auctionDurationDays" defaultValue="5" required onChange={clearMessages}>
-                  <option value="3">3 Days</option>
-                  <option value="5">5 Days</option>
-                  <option value="7">7 Days</option>
-                  <option value="10">10 Days</option>
+                <select id="listing-duration" name="auctionDurationPreset" defaultValue="5:day" required onChange={clearMessages}>
+                  {durationOptions.map((option) => (
+                    <option key={`${option.value}-${option.unit}`} value={`${option.value}:${option.unit}`}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
+              <p className={shared.mutedText}>The auction start time is created when admin approval makes the listing live.</p>
             </div>
           </div>
         </section>
@@ -434,22 +465,6 @@ export default function SellerNewListingPage() {
                   step="0.01"
                   placeholder="0.00"
                   required
-                  onChange={clearMessages}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={shared.fieldLabel} htmlFor="listing-reserve-price">Reserve price</label>
-              <div className={shared.inputWrap}>
-                <span>$</span>
-                <input
-                  id="listing-reserve-price"
-                  name="reservePrice"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Optional"
                   onChange={clearMessages}
                 />
               </div>

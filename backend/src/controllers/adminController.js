@@ -17,6 +17,8 @@ import {
   toThreadRow,
   toTransactionRow,
 } from "../services/mapperService.js";
+import { syncAuctionForListing } from "../services/auctionLifecycleService.js";
+import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { createNotification } from "../services/notificationService.js";
 import { ApiError } from "../utils/apiError.js";
@@ -146,6 +148,20 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
 
   listing.status = assertOneOf(req.body.status || listing.status, LISTING_STATUSES, "Listing status");
   await listing.save();
+  const auction = await syncAuctionForListing(listing);
+
+  publishLiveEvent({
+    event: "listing.updated",
+    channels: ["market:auctions", "market:watchlist"],
+    userIds: [listing.seller],
+    roles: ["Admin", "Bidder"],
+    payload: {
+      listingId: listing._id,
+      auctionId: auction?._id || null,
+      status: listing.status,
+      auctionStatus: auction?.status || null,
+    },
+  });
 
   await createNotification({
     userId: listing.seller,
@@ -156,6 +172,7 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
     metadata: {
       listingId: listing._id,
       status: listing.status,
+      auctionId: auction?._id || null,
     },
   });
 
@@ -170,6 +187,8 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
 });
 
 export const getAuctions = asyncHandler(async (req, res) => {
+  await finalizeExpiredAuctions();
+
   const auctions = await Auction.find({}).sort({ updatedAt: -1 });
 
   res.json({
@@ -179,6 +198,8 @@ export const getAuctions = asyncHandler(async (req, res) => {
 });
 
 export const getAuctionDrilldown = asyncHandler(async (req, res) => {
+  await finalizeExpiredAuctions();
+
   const scope = req.params.scope;
 
   if (scope === "pending") {
@@ -274,6 +295,8 @@ export const updateAuctionStatus = asyncHandler(async (req, res) => {
 });
 
 export const getBids = asyncHandler(async (req, res) => {
+  await finalizeExpiredAuctions();
+
   const bids = await Bid.find({}).populate("auction bidder").sort({ createdAt: -1 });
 
   res.json({
@@ -411,6 +434,8 @@ export const getTransactions = asyncHandler(async (req, res) => {
 });
 
 export const getWinners = asyncHandler(async (req, res) => {
+  await finalizeExpiredAuctions();
+
   const orders = await Order.find({ status: { $in: ["Completed", "Paid", "Delivered", "Awaiting shipment", "In escrow"] } })
     .populate("seller bidder listing")
     .sort({ updatedAt: -1 });

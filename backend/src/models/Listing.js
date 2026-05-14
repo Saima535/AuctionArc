@@ -35,6 +35,7 @@ const listingSchema = new mongoose.Schema(
     viewCount: { type: Number, default: 0 },
     condition: { type: String, default: "Good" },
     auctionDurationDays: { type: Number, default: 5 },
+    auctionDurationUnit: { type: String, default: "day" },
     deliveryOption: { type: String, default: "AuctionArc Delivery" },
     deliveryFee: { type: Number, default: 0 },
     premiumHighlight: { type: Boolean, default: false },

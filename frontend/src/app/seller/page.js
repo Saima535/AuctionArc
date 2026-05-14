@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import shared from "@/components/seller/SellerShared.module.css";
 import { useApiData } from "@/hooks/useApiData";
+import { ListingImageGallery } from "@/components/listing/ListingImageGallery";
 import {
   BoxIcon,
   ClockIcon,
@@ -283,13 +284,12 @@ export default function SellerDashboardPage() {
               {currentListings.map((product) => (
                 <article key={product.id} className={`${shared.panel} ${shared.productCard}`}>
                   <div className={shared.productMedia}>
-                    {product.imageUrl ? (
-                      <Image src={product.imageUrl} alt={product.title} fill unoptimized />
-                    ) : (
-                      <div className={shared.mediaPlaceholder}>
-                        <span>{product.code}</span>
-                      </div>
-                    )}
+                    <ListingImageGallery
+                      images={product.images?.length ? product.images : product.imageUrl ? [product.imageUrl] : []}
+                      title={product.title}
+                      fallback={product.code}
+                      fallbackClassName={shared.mediaPlaceholder}
+                    />
                     <span className={shared.statusTag}>{product.status}</span>
                   </div>
 
@@ -411,8 +411,8 @@ export default function SellerDashboardPage() {
         <aside className={`${shared.panel} ${shared.activityPanel}`}>
           <h2>Recent seller activity</h2>
           <div className={shared.activityList}>
-            {activityItems.map((item) => (
-              <article key={item.title} className={shared.activityItem}>
+            {activityItems.map((item, index) => (
+              <article key={`${item.title}-${item.meta}-${index}`} className={shared.activityItem}>
                 <span className={`${shared.activityIcon} ${item.iconClass}`}>{item.icon}</span>
                 <div>
                   <strong>{item.title}</strong>
