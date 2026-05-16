@@ -11,6 +11,7 @@ export default function ChatWindow({
   loading,
   error,
   currentUser,
+  readOnly,
   onSendMessage,
   onTyping,
   onStopTyping,
@@ -74,15 +75,29 @@ export default function ChatWindow({
   if (!conversation) {
     return (
       <div className={styles.empty}>
-        <p>Select a conversation to start messaging</p>
+        <p>Select a conversation</p>
       </div>
     );
   }
 
   const otherUser =
-    currentUser?.role === "Seller"
-      ? { name: conversation.buyerName, avatar: conversation.buyerAvatar }
-      : { name: conversation.sellerName, avatar: conversation.sellerAvatar };
+    currentUser?.role === "Admin"
+      ? {
+          name: `${conversation.buyerName || "Buyer"} / ${conversation.sellerName || "Seller"}`,
+          avatar: "",
+          status: "Buyer and seller conversation",
+        }
+      : currentUser?.role === "Seller"
+        ? {
+            name: conversation.buyerName,
+            avatar: conversation.buyerAvatar,
+            status: "Buyer conversation",
+          }
+        : {
+            name: conversation.sellerName,
+            avatar: conversation.sellerAvatar,
+            status: "Seller conversation",
+          };
 
   return (
     <div className={styles.container}>
@@ -104,7 +119,7 @@ export default function ChatWindow({
           )}
           <div>
             <h3>{otherUser.name}</h3>
-            <p className={styles.status}>Conversation active</p>
+            <p className={styles.status}>{otherUser.status}</p>
           </div>
         </div>
       </div>
@@ -122,7 +137,7 @@ export default function ChatWindow({
           </div>
         ) : messages.length === 0 ? (
           <div className={styles.noMessages}>
-            <p>No messages yet. Start the conversation!</p>
+            <p>No messages</p>
           </div>
         ) : (
           <div className={styles.messages}>
@@ -138,23 +153,25 @@ export default function ChatWindow({
         )}
       </div>
 
-      <form onSubmit={handleSendMessage} className={styles.inputForm}>
-        <input
-          type="text"
-          value={inputValue}
-          onChange={handleTyping}
-          placeholder="Type a message..."
-          disabled={isSending}
-          className={styles.input}
-        />
-        <button
-          type="submit"
-          disabled={isSending || !inputValue.trim()}
-          className={styles.sendBtn}
-        >
-          {isSending ? "Sending..." : "Send"}
-        </button>
-      </form>
+      {!readOnly ? (
+        <form onSubmit={handleSendMessage} className={styles.inputForm}>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleTyping}
+            placeholder="Write a message"
+            disabled={isSending}
+            className={styles.input}
+          />
+          <button
+            type="submit"
+            disabled={isSending || !inputValue.trim()}
+            className={styles.sendBtn}
+          >
+            {isSending ? "Sending..." : "Send"}
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }

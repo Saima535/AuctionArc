@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { apiRequest } from "@/lib/api";
 
-export function useChatRoom() {
+export function useChatRoom(mode) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
@@ -21,7 +21,11 @@ export function useChatRoom() {
       setError(null);
 
       const endpoint =
-        user.role === "Seller" ? "/conversations/seller" : "/conversations/buyer";
+        mode === "admin" || user.role === "Admin"
+          ? "/conversations/admin"
+          : user.role === "Seller"
+            ? "/conversations/seller"
+            : "/conversations/buyer";
 
       const response = await apiRequest(endpoint);
       setConversations(response.data || []);
@@ -31,7 +35,7 @@ export function useChatRoom() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [mode, user]);
 
   const fetchMessages = useCallback(async (conversationId, page = 1) => {
     try {
@@ -153,7 +157,7 @@ export function useChatRoom() {
   );
 
   const fetchUnreadCount = useCallback(async () => {
-    if (!user) {
+    if (!user || mode === "admin" || user.role === "Admin") {
       return;
     }
 
@@ -163,7 +167,7 @@ export function useChatRoom() {
     } catch (requestError) {
       console.error("Error fetching unread count:", requestError);
     }
-  }, [user]);
+  }, [mode, user]);
 
   return {
     conversations,

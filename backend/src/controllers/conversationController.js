@@ -302,6 +302,28 @@ export const getBuyerConversations = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get all buyer/seller conversations for admins
+ */
+export const getAdminConversations = asyncHandler(async (req, res) => {
+  const conversations = await Conversation.find({
+    status: { $in: ["Active", "Archived"] },
+  })
+    .populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status")
+    .sort({ lastMessageAt: -1 })
+    .lean();
+
+  res.json({
+    success: true,
+    data: conversations.map((conversation) =>
+      formatConversation({
+        ...conversation,
+        unreadCount: 0,
+      }),
+    ),
+  });
+});
+
+/**
  * Get a specific conversation with authorization check
  */
 export const getConversation = asyncHandler(async (req, res) => {
@@ -318,7 +340,7 @@ export const getConversation = asyncHandler(async (req, res) => {
   }
 
   // Verify user is a participant
-  if (!hasParticipant(conversation, userId)) {
+  if (req.user.role !== "Admin" && !hasParticipant(conversation, userId)) {
     throw new ApiError(403, "Unauthorized access to this conversation");
   }
 
@@ -438,7 +460,7 @@ export const getConversationMessages = asyncHandler(async (req, res) => {
   }
 
   // Verify user is a participant
-  if (!hasParticipant(conversation, userId)) {
+  if (req.user.role !== "Admin" && !hasParticipant(conversation, userId)) {
     throw new ApiError(403, "Unauthorized access to this conversation");
   }
 

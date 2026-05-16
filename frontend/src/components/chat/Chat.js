@@ -9,7 +9,7 @@ import ConversationList from "./ConversationList";
 import ChatWindow from "./ChatWindow";
 import styles from "./Chat.module.css";
 
-export default function Chat() {
+export default function Chat({ mode = "default", readOnly = false }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -27,7 +27,7 @@ export default function Chat() {
     fetchMessages,
     sendMessage,
     fetchUnreadCount,
-  } = useChatRoom();
+  } = useChatRoom(mode);
   const [selectedConversationId, setSelectedConversationId] = useState("");
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const requestedConversationId = searchParams.get("conversation") || "";
@@ -159,6 +159,10 @@ export default function Chat() {
         });
       }, []),
       null,
+      useCallback(() => {
+        fetchConversations();
+        fetchUnreadCount();
+      }, [fetchConversations, fetchUnreadCount]),
     );
 
   useEffect(() => {
@@ -241,6 +245,7 @@ export default function Chat() {
           loading={loading}
           error={error}
           currentUser={user}
+          readOnly={readOnly}
           onSendMessage={handleSendMessage}
           onTyping={emitTyping}
           onStopTyping={emitStopTyping}

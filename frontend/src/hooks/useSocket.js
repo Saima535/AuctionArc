@@ -4,7 +4,14 @@ import { io } from "socket.io-client";
 /**
  * Hook for Socket.io connection and real-time messaging
  */
-export function useSocket(token, onNewMessage, onUserOnline, onUserOffline, onUserTyping) {
+export function useSocket(
+  token,
+  onNewMessage,
+  onUserOnline,
+  onUserOffline,
+  onUserTyping,
+  onMessageReceived,
+) {
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -27,6 +34,10 @@ export function useSocket(token, onNewMessage, onUserOnline, onUserOffline, onUs
     // Handle new messages
     socketRef.current.on("new-message", (message) => {
       onNewMessage && onNewMessage(message);
+    });
+
+    socketRef.current.on("message-received", (payload) => {
+      onMessageReceived && onMessageReceived(payload);
     });
 
     // Handle user online
@@ -58,7 +69,7 @@ export function useSocket(token, onNewMessage, onUserOnline, onUserOffline, onUs
         socketRef.current.disconnect();
       }
     };
-  }, [token, onNewMessage, onUserOnline, onUserOffline, onUserTyping]);
+  }, [token, onMessageReceived, onNewMessage, onUserOnline, onUserOffline, onUserTyping]);
 
   // Join conversation room
   const joinConversation = useCallback((conversationId) => {

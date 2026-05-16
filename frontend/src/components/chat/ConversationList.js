@@ -12,6 +12,14 @@ export default function ConversationList({
   onSelectConversation,
 }) {
   function getOtherUser(conversation) {
+    if (currentRole === "Admin") {
+      return {
+        name: `${conversation.buyerName || "Buyer"} / ${conversation.sellerName || "Seller"}`,
+        id: String(conversation.id || ""),
+        avatar: "",
+      };
+    }
+
     if (currentRole === "Seller") {
       return {
         name: conversation.buyerName,
@@ -39,7 +47,7 @@ export default function ConversationList({
           {unreadCount > 0 ? <span className={styles.badge}>{unreadCount}</span> : null}
         </div>
         <div className={styles.empty}>
-          <p>No conversations yet</p>
+          <p>No conversations</p>
         </div>
       </div>
     );
@@ -86,9 +94,7 @@ export default function ConversationList({
 
                 <div className={styles.info}>
                   <h3>{otherUser.name}</h3>
-                  <p className={styles.lastMessage}>
-                    {conversation.lastMessage || "No messages yet"}
-                  </p>
+                  <p className={styles.lastMessage}>{conversation.lastMessage || " "}</p>
                 </div>
 
                 <div className={styles.meta}>
