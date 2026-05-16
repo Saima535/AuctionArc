@@ -56,6 +56,7 @@ export default function Chat() {
       ) || null,
     [conversations, effectiveSelectedConversationId],
   );
+  const activeUnreadCount = selectedConversation?.unreadCount || 0;
 
   const moveConversationToTop = useCallback(
     (conversationId, patch = {}) => {
@@ -173,25 +174,29 @@ export default function Chat() {
       return;
     }
 
-    const activeUnreadCount =
-      conversations.find(
-        (conversation) => String(conversation.id) === String(effectiveSelectedConversationId),
-      )?.unreadCount || 0;
-
     joinConversation(effectiveSelectedConversationId);
     markAsRead(effectiveSelectedConversationId);
-    moveConversationToTop(effectiveSelectedConversationId, { unreadCount: 0 });
-    setUnreadCount((current) => Math.max(current - activeUnreadCount, 0));
 
     return () => {
       leaveConversation(effectiveSelectedConversationId);
     };
   }, [
-    conversations,
     effectiveSelectedConversationId,
     joinConversation,
     leaveConversation,
     markAsRead,
+  ]);
+
+  useEffect(() => {
+    if (!effectiveSelectedConversationId || !activeUnreadCount) {
+      return;
+    }
+
+    moveConversationToTop(effectiveSelectedConversationId, { unreadCount: 0 });
+    setUnreadCount((current) => Math.max(current - activeUnreadCount, 0));
+  }, [
+    activeUnreadCount,
+    effectiveSelectedConversationId,
     moveConversationToTop,
     setUnreadCount,
   ]);
