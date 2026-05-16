@@ -1,14 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useChatRoom } from "@/hooks/useChatRoom";
 import { useSocket } from "@/hooks/useSocket";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/auth/AuthProvider";
 import styles from "./ConversationList.module.css";
 
 export default function ConversationList({ onSelectConversation }) {
   const { user, token } = useAuth();
-  const { conversations, fetchConversations, unreadCount, fetchUnreadCount } = useChatRoom();
+  const { conversations, unreadCount, fetchUnreadCount } = useChatRoom();
   const [activeId, setActiveId] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
@@ -94,7 +95,7 @@ export default function ConversationList({ onSelectConversation }) {
               <div className={styles.itemHeader}>
                 <div className={styles.avatar}>
                   {otherUser.avatar ? (
-                    <img src={otherUser.avatar} alt={otherUser.name} />
+                    <Image src={otherUser.avatar} alt={otherUser.name} width={48} height={48} unoptimized />
                   ) : (
                     <div className={styles.avatarPlaceholder}>
                       {otherUser.name.charAt(0).toUpperCase()}

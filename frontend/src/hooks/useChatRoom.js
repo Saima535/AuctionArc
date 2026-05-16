@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { api } from "@/lib/api";
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { apiRequest } from "@/lib/api";
 
 /**
  * Hook for managing chat conversations and messages
@@ -15,35 +15,39 @@ export function useChatRoom() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Fetch user's conversations
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       const endpoint =
-        user?.role === "Seller" ? "/conversations/seller" : "/conversations/buyer";
+        user.role === "Seller" ? "/conversations/seller" : "/conversations/buyer";
 
-      const response = await api.get(endpoint);
-      setConversations(response.data.data);
+      const response = await apiRequest(endpoint);
+      setConversations(response.data || []);
     } catch (err) {
       setError(err.message);
       console.error("Error fetching conversations:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   // Fetch messages for a conversation
-  const fetchMessages = async (conversationId, page = 1) => {
+  const fetchMessages = useCallback(async (conversationId, page = 1) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get(`/conversations/${conversationId}/messages`, {
-        params: { page, limit: 50 },
-      });
+      const response = await apiRequest(
+        `/conversations/${conversationId}/messages?page=${page}&limit=50`,
+      );
 
-      setMessages(response.data.data.messages);
+      setMessages(response.data?.messages || []);
       setActiveConversation(conversationId);
     } catch (err) {
       setError(err.message);
@@ -51,20 +55,23 @@ export function useChatRoom() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Get or create conversation
-  const getOrCreateConversation = async (otherUserId, auctionId = null) => {
+  const getOrCreateConversation = useCallback(async (otherUserId, auctionId = null, listingId = null) => {
     try {
-      const response = await api.post("/conversations", {
-        otherUserId,
-        auctionId,
+      const response = await apiRequest("/conversations", {
+        method: "POST",
+        body: {
+          otherUserId,
+          auctionId,
+          listingId,
+        },
       });
 
-      const newConversation = response.data.data;
+      const newConversation = response.data;
       setActiveConversation(newConversation.id);
 
-      // Add to conversations list if not already there
       setConversations((prev) => {
         const exists = prev.find((c) => c.id === newConversation.id);
         if (exists) {
@@ -78,16 +85,19 @@ export function useChatRoom() {
       setError(err.message);
       console.error("Error creating conversation:", err);
     }
-  };
+  }, []);
 
   // Send message
-  const sendMessage = async (conversationId, text) => {
+  const sendMessage = useCallback(async (conversationId, text) => {
     try {
-      const response = await api.post(`/conversations/${conversationId}/messages`, {
-        text,
+      const response = await apiRequest(`/conversations/${conversationId}/messages`, {
+        method: "POST",
+        body: {
+          text,
+        },
       });
 
-      const newMessage = response.data.data;
+      const newMessage = response.data;
 
       // Add message to local state
       setMessages((prev) => [...prev, newMessage]);
@@ -113,12 +123,14 @@ export function useChatRoom() {
       console.error("Error sending message:", err);
       throw err;
     }
-  };
+  }, [user?.name]);
 
   // Archive conversation
-  const archiveConversation = async (conversationId) => {
+  const archiveConversation = useCallback(async (conversationId) => {
     try {
-      await api.patch(`/conversations/${conversationId}/archive`);
+      await apiRequest(`/conversations/${conversationId}/archive`, {
+        method: "PATCH",
+      });
 
       setConversations((prev) =>
         prev.filter((c) => c.id !== conversationId),
@@ -132,17 +144,21 @@ export function useChatRoom() {
       setError(err.message);
       console.error("Error archiving conversation:", err);
     }
-  };
+  }, [activeConversation]);
 
   // Fetch unread count
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
     try {
-      const response = await api.get("/conversations/unread-count");
-      setUnreadCount(response.data.data.unreadCount);
+      const response = await apiRequest("/conversations/unread-count");
+      setUnreadCount(response.data?.unreadCount || 0);
     } catch (err) {
       console.error("Error fetching unread count:", err);
     }
-  };
+  }, [user]);
 
   // Load conversations on mount
   useEffect(() => {
@@ -150,7 +166,7 @@ export function useChatRoom() {
       fetchConversations();
       fetchUnreadCount();
     }
-  }, [user]);
+  }, [user, fetchConversations, fetchUnreadCount]);
 
   return {
     conversations,

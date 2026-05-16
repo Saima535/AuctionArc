@@ -49,7 +49,7 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
 
   // Determine buyer and seller
   let buyerId, sellerId;
-  if (req.user.role === "Buyer") {
+  if (req.user.role === "Bidder") {
     buyerId = userId;
     sellerId = otherUserId;
   } else if (req.user.role === "Seller") {
@@ -270,11 +270,13 @@ export const sendMessage = asyncHandler(async (req, res) => {
     const senderUser = await User.findById(senderId);
     
     if (receiverUser) {
-      await createNotification(receiverId, {
-        type: "message",
+      await createNotification({
+        userId: receiverId,
         title: `New message from ${senderUser.name}`,
         body: text.trim().substring(0, 100),
-        data: {
+        type: "message",
+        href: receiverUser.role === "Seller" ? "/seller/messages" : "/bidder/messages",
+        metadata: {
           conversationId: conversationId.toString(),
           senderId: senderId.toString(),
         },

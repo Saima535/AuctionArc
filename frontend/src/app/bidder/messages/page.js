@@ -10,12 +10,12 @@ export default function BidderMessagesPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user && user.role !== "Buyer") {
+    if (user && user.role !== "Bidder") {
       router.push("/");
     }
   }, [user, router]);
 
-  if (!user || user.role !== "Buyer") {
+  if (!user || user.role !== "Bidder") {
     return null;
   }
 

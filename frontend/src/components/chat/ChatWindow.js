@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useChatRoom } from "@/hooks/useChatRoom";
 import { useSocket } from "@/hooks/useSocket";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/auth/AuthProvider";
 import MessageItem from "./MessageItem";
 import styles from "./ChatWindow.module.css";
 
@@ -111,9 +112,9 @@ export default function ChatWindow({ conversation }) {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.userInfo}>
-          {otherUser.avatar && (
-            <img src={otherUser.avatar} alt={otherUser.name} className={styles.avatar} />
-          )}
+          {otherUser.avatar ? (
+            <Image src={otherUser.avatar} alt={otherUser.name} className={styles.avatar} width={44} height={44} unoptimized />
+          ) : null}
           <div>
             <h3>{otherUser.name}</h3>
             <p className={styles.status}>Online</p>
@@ -137,7 +138,7 @@ export default function ChatWindow({ conversation }) {
               <MessageItem
                 key={message.id}
                 message={message}
-                isOwn={String(message.senderId) === String(user?._id)}
+                isOwn={String(message.senderId) === String(user?.id)}
               />
             ))}
             {typingUsers.size > 0 && (

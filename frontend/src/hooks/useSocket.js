@@ -11,13 +11,18 @@ export function useSocket(token, onNewMessage, onUserOnline, onUserOffline, onUs
     if (!token) return;
 
     // Initialize Socket.io connection
-    socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL, {
+    socketRef.current = io(
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
+        process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/v1$/, "") ||
+        process.env.NEXT_PUBLIC_API_BASE_URL,
+      {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
-    });
+      },
+    );
 
     // Handle new messages
     socketRef.current.on("new-message", (message) => {
@@ -98,7 +103,6 @@ export function useSocket(token, onNewMessage, onUserOnline, onUserOffline, onUs
   }, []);
 
   return {
-    socket: socketRef.current,
     joinConversation,
     leaveConversation,
     emitMessage,

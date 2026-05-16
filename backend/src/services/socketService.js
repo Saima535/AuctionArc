@@ -32,7 +32,7 @@ export function initializeSocket(httpServer) {
       }
 
       const decoded = jwt.verify(token, env.jwtSecret);
-      socket.userId = decoded._id;
+      socket.userId = decoded.userId;
       socket.userRole = decoded.role;
       next();
     } catch (error) {
