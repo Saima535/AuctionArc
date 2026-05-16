@@ -1,11 +1,20 @@
+import mongoose from "mongoose";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
 import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { BID_STATUSES, LISTING_STATUSES } from "../constants/enums.js";
-import { createNotification, createNotifications } from "../services/notificationService.js";
+import {
+  createNotification,
+  createNotifications,
+  createNotificationsOnce,
+} from "../services/notificationService.js";
 import { finalizeAuctionIfEnded } from "../services/auctionSettlementService.js";
+import {
+  buildActiveAuctionFilter,
+  isAuctionWatchable,
+} from "../services/auctionQueryService.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
@@ -21,37 +30,43 @@ import {
 } from "../utils/validation.js";
 
 export const getPublicAuctions = asyncHandler(async (req, res) => {
-  const listings = await Listing.find({
-    status: { $in: ["Live", "Featured"] },
-  })
+  const now = new Date();
+  const auctions = await Auction.find(buildActiveAuctionFilter(now))
+    .populate("listing")
     .populate("seller", "name")
-    .sort({ premiumHighlight: -1, updatedAt: -1 })
+    .sort({ featured: -1, updatedAt: -1 })
     .limit(18);
 
   res.json({
     success: true,
-    data: listings.map((listing) => {
+    data: auctions
+      .filter((auction) => auction.listing)
+      .map((auction) => {
+      const listing = auction.listing;
       const imageUrl = listing.images?.[0]?.url || null;
       const images = (listing.images || []).map((image) => image?.url).filter(Boolean);
 
       return {
         listingId: listing._id,
-        id: listing.code,
-        title: listing.title,
-        category: listing.category || "Uncategorized",
-        seller: listing.seller?.name || "AuctionArc seller",
-        status: listing.status,
-        currentBid: formatCurrency(listing.currentBid || listing.price || 0),
+        auctionId: auction._id,
+        id: auction.code,
+        title: auction.title || listing.title,
+        category: auction.category || listing.category || "Uncategorized",
+        seller: auction.seller?.name || "AuctionArc seller",
+        status: auction.status,
+        currentBid: formatCurrency(auction.currentBid || listing.currentBid || listing.price || 0),
         auctionWindow: `${formatAuctionDuration(listing.auctionDurationDays || 5, listing.auctionDurationUnit || "day")} auction`,
-        priceLabel: listing.currentBid > listing.price ? "Current bid" : "Starting price",
+        priceLabel: (auction.currentBid || listing.currentBid || 0) > listing.price ? "Current bid" : "Starting price",
         secondaryLabel: "Auction window",
         description: listing.description || "Public visitors can browse this listed auction product before creating an account.",
         condition: listing.condition || "Good",
         delivery: listing.deliveryOption || "AuctionArc Delivery",
-        watchers: String(listing.watcherCount || 0),
+        watchers: String(auction.watcherCount || listing.watcherCount || 0),
+        startAt: auction.startAt || null,
+        endAt: auction.endAt || null,
         imageUrl,
         images,
-        premiumHighlight: Boolean(listing.premiumHighlight || listing.status === "Featured"),
+        premiumHighlight: Boolean(auction.featured || listing.premiumHighlight || listing.status === "Featured"),
       };
     }),
   });
@@ -228,6 +243,15 @@ export const updateListing = asyncHandler(async (req, res) => {
     status,
   } = req.body;
 
+  const previousListingState = {
+    title: listing.title,
+    description: listing.description || "",
+    condition: listing.condition || "",
+    deliveryOption: listing.deliveryOption || "",
+    price: Number(listing.price || 0),
+    buyNowPrice: Number(listing.buyNowPrice || 0),
+  };
+
   if (title) {
     listing.title = assertRequiredText(title, "Title", { maxLength: 160 });
   }
@@ -286,6 +310,67 @@ export const updateListing = asyncHandler(async (req, res) => {
 
   await listing.save();
 
+  const detailsChanged =
+    previousListingState.title !== listing.title ||
+    previousListingState.description !== (listing.description || "") ||
+    previousListingState.condition !== (listing.condition || "") ||
+    previousListingState.deliveryOption !== (listing.deliveryOption || "") ||
+    previousListingState.price !== Number(listing.price || 0) ||
+    previousListingState.buyNowPrice !== Number(listing.buyNowPrice || 0);
+  const priceDropped =
+    Number(listing.price || 0) < previousListingState.price ||
+    (previousListingState.buyNowPrice > 0 &&
+      Number(listing.buyNowPrice || 0) > 0 &&
+      Number(listing.buyNowPrice || 0) < previousListingState.buyNowPrice);
+
+  if (detailsChanged) {
+    const auction = await Auction.findOne({ listing: listing._id }).select("_id");
+
+    if (auction?._id) {
+      const watchlistUserIds = await Watchlist.find({ auction: auction._id }).distinct("user");
+
+      if (watchlistUserIds.length) {
+        const baseMetadata = {
+          listingId: listing._id,
+          auctionId: auction._id,
+          sellerId: req.user._id,
+        };
+
+        if (priceDropped) {
+          await createNotificationsOnce(
+            watchlistUserIds.map((userId) => ({
+              userId,
+              title: "Price dropped on watched item",
+              body: `The price for "${listing.title}" moved from ${formatCurrency(previousListingState.price)} to ${formatCurrency(listing.price || 0)}.`,
+              type: "listing",
+              href: "/bidder/watchlist",
+              dedupKey: `watchlist-price-drop:${auction._id}:${Number(listing.price || 0)}:${Number(listing.buyNowPrice || 0)}`,
+              metadata: {
+                ...baseMetadata,
+                previousPrice: previousListingState.price,
+                currentPrice: Number(listing.price || 0),
+                previousBuyNowPrice: previousListingState.buyNowPrice,
+                currentBuyNowPrice: Number(listing.buyNowPrice || 0),
+              },
+            })),
+          );
+        } else {
+          await createNotificationsOnce(
+            watchlistUserIds.map((userId) => ({
+              userId,
+              title: "Listing information updated",
+              body: `The seller updated details for "${listing.title}".`,
+              type: "listing",
+              href: "/bidder/watchlist",
+              dedupKey: `watchlist-listing-update:${auction._id}:${listing.updatedAt?.getTime?.() || Date.now()}`,
+              metadata: baseMetadata,
+            })),
+          );
+        }
+      }
+    }
+  }
+
   res.json({
     success: true,
     message: "Listing updated successfully.",
@@ -320,69 +405,121 @@ export const placeBid = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only buyers can place bids.");
   }
 
-  const auction = await Auction.findById(req.params.auctionId);
-
-  if (!auction) {
-    throw new ApiError(404, "Auction not found.");
-  }
-
-  if (auction.endAt && auction.endAt.getTime() <= Date.now()) {
-    await finalizeAuctionIfEnded(auction._id);
-    throw new ApiError(400, "This auction has already ended.");
-  }
-
-  if (!["Live", "Extended"].includes(auction.status)) {
-    throw new ApiError(400, "Bids can only be placed on live or extended auctions.");
-  }
-
   const amount = Number(req.body.amount);
+  const MIN_BID_INCREMENT = 1;
 
-  if (!amount || Number.isNaN(amount) || amount <= auction.currentBid) {
-    throw new ApiError(400, "Bid amount must be higher than the current bid.");
+  if (!amount || Number.isNaN(amount) || amount <= 0) {
+    throw new ApiError(400, "Enter a valid bid amount.");
   }
 
   if (amount > 100000000) {
     throw new ApiError(400, "Bid amount is too large.");
   }
 
-  const code = await generateUniqueCode(Bid, "BID-", { digits: 4, min: 7101 });
+  const session = await mongoose.startSession();
+  let auction;
+  let bid;
+  let outbidBuyerIds = [];
 
-  const bid = await Bid.create({
-    code,
-    auction: auction._id,
-    listing: auction.listing,
-    bidder: req.user._id,
-    amount,
-    status: BID_STATUSES.includes("Top bid") ? "Top bid" : "Valid",
-    signal: amount > auction.currentBid * 1.15 ? "High intent" : "Normal",
-  });
+  try {
+    await session.withTransaction(async () => {
+      auction = await Auction.findById(req.params.auctionId).session(session);
 
-  const outbidBids = await Bid.find({
-    auction: auction._id,
-    bidder: { $ne: req.user._id },
-    status: { $nin: ["Held", "Review", "Pending check"] },
-  })
-    .select("bidder")
-    .populate("bidder", "_id");
+      if (!auction) {
+        throw new ApiError(404, "Auction not found.");
+      }
 
-  await Bid.updateMany(
-    {
-      auction: auction._id,
-      _id: { $ne: bid._id },
-      bidder: { $ne: req.user._id },
-      status: { $nin: ["Held", "Review", "Pending check"] },
-    },
-    { $set: { status: "Outbid" } },
-  );
+      const now = new Date();
 
-  auction.currentBid = amount;
-  auction.bidCount += 1;
-  await auction.save();
+      if (String(auction.seller) === String(req.user._id)) {
+        throw new ApiError(400, "You cannot bid on your own auction.");
+      }
 
-  await Listing.findByIdAndUpdate(auction.listing, {
-    currentBid: amount,
-    $inc: { bidCount: 1 },
-  });
+      if (auction.startAt && auction.startAt.getTime() > now.getTime()) {
+        throw new ApiError(400, "This auction has not started yet.");
+      }
+
+      if (auction.endAt && auction.endAt.getTime() <= now.getTime()) {
+        throw new ApiError(400, "This auction has already ended.");
+      }
+
+      if (!["Live", "Extended"].includes(auction.status)) {
+        throw new ApiError(400, "Bids can only be placed on live or extended auctions.");
+      }
+
+      const minimumAllowedBid = Number(auction.currentBid || 0) + MIN_BID_INCREMENT;
+
+      if (amount < minimumAllowedBid) {
+        throw new ApiError(400, `Bid amount must be at least ${formatCurrency(minimumAllowedBid)}.`);
+      }
+
+      outbidBuyerIds = await Bid.find({
+        auction: auction._id,
+        bidder: { $ne: req.user._id },
+        status: { $nin: ["Held", "Review", "Pending check"] },
+      })
+        .session(session)
+        .distinct("bidder");
+
+      const updatedAuction = await Auction.findOneAndUpdate(
+        {
+          _id: auction._id,
+          currentBid: auction.currentBid,
+          ...buildActiveAuctionFilter(now),
+        },
+        {
+          $set: { currentBid: amount },
+          $inc: { bidCount: 1 },
+        },
+        { new: true, session },
+      );
+
+      if (!updatedAuction) {
+        throw new ApiError(409, "Another bid was accepted first. Refresh and try again.");
+      }
+
+      const code = await generateUniqueCode(Bid, "BID-", { digits: 4, min: 7101 });
+      const createdBids = await Bid.create([{
+        code,
+        auction: updatedAuction._id,
+        listing: updatedAuction.listing,
+        bidder: req.user._id,
+        amount,
+        status: BID_STATUSES.includes("Top bid") ? "Top bid" : "Valid",
+        signal: amount > Number(auction.currentBid || 0) * 1.15 ? "High intent" : "Normal",
+      }], { session });
+      bid = createdBids[0];
+
+      await Bid.updateMany(
+        {
+          auction: updatedAuction._id,
+          _id: { $ne: bid._id },
+          status: { $nin: ["Held", "Review", "Pending check"] },
+        },
+        { $set: { status: "Outbid" } },
+        { session },
+      );
+
+      await Listing.findByIdAndUpdate(
+        updatedAuction.listing,
+        {
+          $set: { currentBid: amount },
+          $inc: { bidCount: 1 },
+        },
+        { session },
+      );
+
+      auction = updatedAuction;
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.message === "This auction has already ended.") {
+      await finalizeAuctionIfEnded(req.params.auctionId);
+    }
+
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 
   publishLiveEvent({
     event: "bid.updated",
@@ -421,16 +558,12 @@ export const placeBid = asyncHandler(async (req, res) => {
     },
   });
 
-  const outbidBuyerIds = Array.from(
-    new Set(
-      outbidBids
-        .map((item) => String(item.bidder?._id || ""))
-        .filter((bidderId) => bidderId && bidderId !== String(req.user._id)),
-    ),
+  const normalizedOutbidBuyerIds = Array.from(
+    new Set(outbidBuyerIds.map((bidderId) => String(bidderId || "")).filter(Boolean)),
   );
 
   await createNotifications(
-    outbidBuyerIds.map((bidderId) => ({
+    normalizedOutbidBuyerIds.map((bidderId) => ({
       userId: bidderId,
       title: "You were outbid",
       body: `Another buyer moved ahead of you on "${auction.title}".`,
@@ -464,6 +597,10 @@ export const addToWatchlist = asyncHandler(async (req, res) => {
 
   if (!auction) {
     throw new ApiError(404, "Auction not found.");
+  }
+
+  if (!isAuctionWatchable(auction)) {
+    throw new ApiError(400, "Only scheduled or active auctions can be added to the watchlist.");
   }
 
   const existingWatch = await Watchlist.findOne({

@@ -1,6 +1,7 @@
 import { Auction } from "../models/Auction.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { addAuctionDuration } from "../utils/auctionDuration.js";
+import { hasAuctionStarted, isAuctionExpired } from "./auctionQueryService.js";
 
 function deriveAuctionStatus(listingStatus) {
   if (listingStatus === "Live" || listingStatus === "Featured") {
@@ -14,8 +15,31 @@ function deriveAuctionStatus(listingStatus) {
   return "Paused";
 }
 
+function resolveTimedAuctionStatus(auction, listingStatus, now = new Date()) {
+  if (auction.status === "Closed") {
+    return "Closed";
+  }
+
+  const listingDrivenStatus = deriveAuctionStatus(listingStatus);
+
+  if (!["Live", "Featured"].includes(listingStatus)) {
+    return listingDrivenStatus;
+  }
+
+  if (isAuctionExpired(auction, now)) {
+    return "Closed";
+  }
+
+  if (!hasAuctionStarted(auction, now)) {
+    return "Scheduled";
+  }
+
+  return auction.status === "Extended" ? "Extended" : "Live";
+}
+
 export async function syncAuctionForListing(listing) {
   const existingAuction = await Auction.findOne({ listing: listing._id }).sort({ createdAt: -1 });
+  const now = new Date();
   const nextStatus = deriveAuctionStatus(listing.status);
   const shouldFeature = listing.status === "Featured" || Boolean(listing.premiumHighlight);
 
@@ -24,7 +48,6 @@ export async function syncAuctionForListing(listing) {
       return null;
     }
 
-    const now = new Date();
     const startAt = now;
     const endAt = addAuctionDuration(
       startAt,
@@ -56,7 +79,7 @@ export async function syncAuctionForListing(listing) {
   existingAuction.reserveStatus = listing.reserveStatus || existingAuction.reserveStatus || "Pending";
   existingAuction.currentBid = listing.currentBid || listing.price || existingAuction.currentBid || 0;
   existingAuction.featured = shouldFeature;
-  existingAuction.status = nextStatus;
+  existingAuction.status = resolveTimedAuctionStatus(existingAuction, listing.status, now);
 
   if (["Live", "Featured"].includes(listing.status)) {
     const startAt = existingAuction.startAt || new Date();
@@ -86,4 +109,34 @@ export async function syncAuctionsForListings(listings = []) {
   }
 
   return synced;
+}
+
+export async function syncStaleAuctionStates({ now = new Date() } = {}) {
+  const auctions = await Auction.find({
+    status: { $in: ["Scheduled", "Live", "Extended"] },
+  }).select("_id status startAt endAt winner");
+  const updates = [];
+
+  for (const auction of auctions) {
+    let nextStatus = auction.status;
+
+    if (isAuctionExpired(auction, now)) {
+      nextStatus = "Closed";
+    } else if (!hasAuctionStarted(auction, now)) {
+      nextStatus = "Scheduled";
+    } else if (auction.status === "Scheduled") {
+      nextStatus = "Live";
+    }
+
+    if (nextStatus !== auction.status) {
+      auction.status = nextStatus;
+      updates.push(auction.save());
+    }
+  }
+
+  if (!updates.length) {
+    return [];
+  }
+
+  return Promise.all(updates);
 }

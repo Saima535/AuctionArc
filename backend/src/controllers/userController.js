@@ -319,3 +319,33 @@ export const updateCurrentSettings = asyncHandler(async (req, res) => {
     data: user.preferences,
   });
 });
+
+export const updatePassword = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, "Both current and new passwords are required.");
+  }
+
+  const { comparePassword, hashPassword } = await import("../utils/security.js");
+  const { assertPassword } = await import("../utils/validation.js");
+
+  const matches = await comparePassword(currentPassword, user.passwordHash);
+
+  if (!matches) {
+    throw new ApiError(401, "Current password is incorrect.");
+  }
+
+  assertPassword(newPassword);
+
+  user.passwordHash = await hashPassword(newPassword);
+  await user.save();
+
+  res.json({ success: true, message: "Password updated successfully." });
+});

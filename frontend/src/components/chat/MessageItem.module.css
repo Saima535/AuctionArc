@@ -1,0 +1,79 @@
+.container {
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+
+.container.own {
+  justify-content: flex-end;
+}
+
+.container.other {
+  justify-content: flex-start;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  max-width: 70%;
+}
+
+.own .message {
+  align-items: flex-end;
+}
+
+.bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.container.own .bubble {
+  background: #3b82f6;
+  color: white;
+}
+
+.container.other .bubble {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.bubble p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.edited {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 0.25rem;
+}
+
+.time {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  padding: 0 0.5rem;
+}
+
+.readReceipt {
+  font-size: 0.75rem;
+  color: #60a5fa;
+  margin-left: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .message {
+    max-width: 85%;
+  }
+
+  .bubble {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .bubble p {
+    font-size: 0.9rem;
+  }
+}

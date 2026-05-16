@@ -9,8 +9,14 @@ import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { ApiError } from "../utils/apiError.js";
+import {
+  buildActiveAuctionFilter,
+  buildWatchableAuctionFilter,
+  deriveAuctionLifecycleLabel,
+  isAuctionActive,
+  isAuctionWatchable,
+} from "../services/auctionQueryService.js";
 import { createNotification } from "../services/notificationService.js";
-import { syncAuctionsForListings } from "../services/auctionLifecycleService.js";
 import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js";
 import {
   compactAmount,
@@ -42,10 +48,12 @@ function buildAuctionWindow(startAt, endAt, fallbackValue = 5, fallbackUnit = "d
 }
 
 function buildBuyerAuctionRow({ auction, listing, watchlisted = false }) {
-  const isBiddable = ["Live", "Extended"].includes(auction.status);
-  const isWatchable = ["Scheduled", "Live", "Extended"].includes(auction.status);
+  const now = new Date();
+  const isBiddable = isAuctionActive(auction, now);
+  const isWatchable = isAuctionWatchable(auction, now);
   const currentAmount = auction.currentBid || listing.currentBid || listing.price || 0;
   const startingAmount = listing.price || 0;
+  const lifecycleLabel = deriveAuctionLifecycleLabel(auction, now);
 
   return {
     auctionId: auction._id,
@@ -55,7 +63,7 @@ function buildBuyerAuctionRow({ auction, listing, watchlisted = false }) {
     title: listing.title || auction.title,
     description: listing.description || "",
     category: listing.category || auction.category || "Uncategorized",
-    stage: auction.status,
+    stage: lifecycleLabel,
     status: auction.status,
     seller: auction.seller?.name || listing.seller?.name || "AuctionArc seller",
     sellerId: auction.seller?._id || listing.seller?._id || null,
@@ -102,7 +110,11 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
   }).distinct("bidder");
 
   const grossSales = orders.reduce((sum, order) => sum + order.amount, 0);
-  const liveListings = listings.filter((item) => ["Live", "Featured"].includes(item.status));
+  // derive live / active auction count from Auction documents, not Listing.status
+  const activeAuctionCount = await Auction.countDocuments({
+    seller: req.user._id,
+    ...buildActiveAuctionFilter(),
+  });
   const processingOrders = orders.filter((item) => item.status !== "Completed").length;
   const totalViews = listings.reduce((sum, listing) => sum + (listing.viewCount || 0), 0);
   const totalWatchers = auctions.reduce((sum, auction) => sum + (auction.watcherCount || 0), 0);
@@ -123,7 +135,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
       kpis: [
         toStats(
           "Live listings",
-          String(liveListings.length),
+          String(activeAuctionCount),
           `${listings.length} total listings`,
           "good",
         ),
@@ -144,12 +156,12 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
       ],
       activity: auctions.map((auction) => ({
         title: `${auction.title} updated`,
-        meta: `${auction.status} auction refreshed ${auction.updatedAt.toISOString().slice(0, 10)}`,
+        meta: `${deriveAuctionLifecycleLabel(auction)} auction refreshed ${auction.updatedAt.toISOString().slice(0, 10)}`,
       })),
       auctionSummary: auctions.map((auction) => ({
         id: auction.code,
         title: auction.title,
-        status: auction.status,
+        status: deriveAuctionLifecycleLabel(auction),
         currentBid: formatCurrency(auction.currentBid || 0),
         bidCount: String(auction.bidCount || 0),
         watchers: String(auction.watcherCount || 0),
@@ -221,7 +233,7 @@ export const getBidderOverview = asyncHandler(async (req, res) => {
       watchlist: watchlist.slice(0, 3).map((item) => ({
         id: item.auction?.code,
         title: item.auction?.title,
-        status: item.auction?.status,
+        status: item.auction ? deriveAuctionLifecycleLabel(item.auction) : "Unavailable",
         currentBid: item.auction?.currentBid ? formatCurrency(item.auction.currentBid) : "--",
         seller: "AuctionArc seller",
       })),
@@ -279,7 +291,7 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
     soldTransactions,
     pendingListings
   ] = await Promise.all([
-    Auction.countDocuments({ status: { $in: ["Live", "Extended"] } }),
+    Auction.countDocuments(buildActiveAuctionFilter()),
     Auction.countDocuments({ status: { $in: ["Scheduled", "Under review", "Paused"] } }),
     Auction.countDocuments({ status: "Closed" }),
     Transaction.countDocuments({ type: /package|registration/i }),
@@ -307,7 +319,7 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
       kpis: [
         toStats(
           "Active auctions",
-          String(await Auction.countDocuments({ status: { $in: ["Live", "Extended"] } })),
+          String(await Auction.countDocuments(buildActiveAuctionFilter())),
           "+12%",
           "good",
         ),
@@ -344,7 +356,7 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
       ],
       activity: auctions.map((auction) => ({
         title: `${auction.title} status changed`,
-        meta: `${auction.status} auction updated ${auction.updatedAt.toISOString().slice(0, 10)}`,
+        meta: `${deriveAuctionLifecycleLabel(auction)} auction updated ${auction.updatedAt.toISOString().slice(0, 10)}`,
       })),
       categories,
       registrations: users.slice(0, 3).map((user) => ({
@@ -498,16 +510,22 @@ export const getSellerListings = asyncHandler(async (req, res) => {
 export const getSellerAuctions = asyncHandler(async (req, res) => {
   await finalizeExpiredAuctions({ seller: req.user._id });
 
-  const auctions = await Auction.find({ seller: req.user._id }).sort({ updatedAt: -1 });
+  // Only show LIVE auctions for the seller (not Scheduled, not Closed)
+  const auctions = await Auction.find({
+    seller: req.user._id,
+    status: "Live", // Only show live auctions
+    endAt: { $gt: new Date() }, // Must have future end date
+  }).sort({ updatedAt: -1 });
 
   res.json({
     success: true,
     data: auctions.map((auction) => ({
       id: auction.code,
       title: auction.title,
-      stage: auction.status,
+      stage: deriveAuctionLifecycleLabel(auction),
       currentBid: auction.currentBid ? formatCurrency(auction.currentBid) : "--",
       watchers: String(auction.watcherCount || 0),
+      endAt: auction.endAt || null,
       ends: auction.endAt ? `${Math.max(Math.round((auction.endAt.getTime() - Date.now()) / 60000), 0)}m` : "Pending",
     })),
   });
@@ -573,14 +591,8 @@ export const getSellerAnalytics = asyncHandler(async (req, res) => {
 export const getBidderDiscover = asyncHandler(async (req, res) => {
   await finalizeExpiredAuctions();
 
-  const activeListings = await Listing.find({ status: { $in: ["Live", "Featured"] } })
-    .sort({ premiumHighlight: -1, updatedAt: -1 })
-    .limit(24);
-
-  await syncAuctionsForListings(activeListings);
-
   const [auctions, watchlist] = await Promise.all([
-    Auction.find({ status: { $in: ["Scheduled", "Live", "Extended"] } })
+    Auction.find(buildActiveAuctionFilter())
       .populate("listing")
       .populate("seller", "name")
       .sort({ featured: -1, updatedAt: -1 })
@@ -588,9 +600,7 @@ export const getBidderDiscover = asyncHandler(async (req, res) => {
     Watchlist.find({ user: req.user._id }).select("auction").lean(),
   ]);
   const watchlistIds = new Set(watchlist.map((item) => String(item.auction)));
-  const visibleAuctions = auctions.filter((auction) =>
-    auction.listing && ["Live", "Featured"].includes(auction.listing.status),
-  );
+  const visibleAuctions = auctions.filter((auction) => auction.listing);
 
   res.json({
     success: true,
@@ -671,7 +681,8 @@ export const getWatchlist = asyncHandler(async (req, res) => {
           seller: row.seller,
           sellerId: row.sellerId,
           currentBid: row.currentBid,
-          status: row.status,
+          status: row.stage,
+          endAt: row.endAt,
         };
       }),
   });

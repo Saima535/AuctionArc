@@ -14,6 +14,16 @@ const auctionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    winner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    winnerBid: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bid",
+      default: null,
+    },
     title: { type: String, required: true },
     status: {
       type: String,
@@ -28,6 +38,10 @@ const auctionSchema = new mongoose.Schema(
     endAt: Date,
     featured: { type: Boolean, default: false },
     category: String,
+    settling: { type: Boolean, default: false },
+    settlingAt: Date,
+    settledAt: Date,
+    closedReason: { type: String, default: "" },
   },
   {
     timestamps: true,
@@ -35,5 +49,7 @@ const auctionSchema = new mongoose.Schema(
 );
 
 auctionSchema.index({ seller: 1, status: 1 });
+auctionSchema.index({ status: 1, startAt: 1, endAt: 1 });
+auctionSchema.index({ endAt: 1, status: 1 });
 
 export const Auction = mongoose.model("Auction", auctionSchema);

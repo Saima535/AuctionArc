@@ -31,6 +31,8 @@ export default function BidderWinsPage() {
         method: "POST",
         body: {
           recipientId: row.sellerId,
+          listingId: row.listingId,
+          auctionId: row.auctionId,
           subject: `${row.item} order follow-up`,
           body: `Hi, I am reaching out about my order for ${row.item}. Could you share the latest delivery or payment update?`,
         },

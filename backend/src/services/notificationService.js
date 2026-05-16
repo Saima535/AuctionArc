@@ -27,6 +27,17 @@ function notificationPreviewPayload(notification) {
   };
 }
 
+function withDedupKey(metadata = {}, dedupKey) {
+  if (!dedupKey) {
+    return metadata || {};
+  }
+
+  return {
+    ...(metadata || {}),
+    dedupKey,
+  };
+}
+
 export async function createNotification({
   userId,
   title,
@@ -58,6 +69,28 @@ export async function createNotification({
   });
 
   return notification;
+}
+
+export async function createNotificationOnce({
+  dedupKey,
+  metadata = {},
+  ...entry
+}) {
+  if (dedupKey) {
+    const existing = await Notification.findOne({
+      user: entry.userId,
+      "metadata.dedupKey": dedupKey,
+    }).select("_id");
+
+    if (existing) {
+      return null;
+    }
+  }
+
+  return createNotification({
+    ...entry,
+    metadata: withDedupKey(metadata, dedupKey),
+  });
 }
 
 export async function createNotifications(entries = []) {
@@ -93,6 +126,62 @@ export async function createNotifications(entries = []) {
   }
 
   return notifications;
+}
+
+export async function createNotificationsOnce(entries = []) {
+  const validEntries = entries.filter(
+    (entry) => entry?.userId && entry?.title && entry?.body,
+  );
+
+  if (!validEntries.length) {
+    return [];
+  }
+
+  const dedupEntries = validEntries
+    .map((entry) => ({
+      userId: String(entry.userId),
+      dedupKey: entry.dedupKey || entry.metadata?.dedupKey || "",
+    }))
+    .filter((entry) => entry.dedupKey);
+
+  let existingKeys = new Set();
+
+  if (dedupEntries.length) {
+    const existingNotifications = await Notification.find({
+      $or: dedupEntries.map((entry) => ({
+        user: entry.userId,
+        "metadata.dedupKey": entry.dedupKey,
+      })),
+    }).select("user metadata");
+
+    existingKeys = new Set(
+      existingNotifications.map(
+        (notification) =>
+          `${String(notification.user)}:${notification.metadata?.dedupKey || ""}`,
+      ),
+    );
+  }
+
+  const entriesToCreate = validEntries.filter((entry) => {
+    const dedupKey = entry.dedupKey || entry.metadata?.dedupKey || "";
+
+    if (!dedupKey) {
+      return true;
+    }
+
+    return !existingKeys.has(`${String(entry.userId)}:${dedupKey}`);
+  });
+
+  if (!entriesToCreate.length) {
+    return [];
+  }
+
+  return createNotifications(
+    entriesToCreate.map(({ dedupKey, metadata = {}, ...entry }) => ({
+      ...entry,
+      metadata: withDedupKey(metadata, dedupKey),
+    })),
+  );
 }
 
 export async function listNotificationsForUser(

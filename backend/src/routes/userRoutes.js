@@ -4,6 +4,7 @@ import {
   getCurrentSettings,
   updateCurrentProfile,
   updateCurrentSettings,
+  updatePassword,
 } from "../controllers/userController.js";
 import { requireAuth } from "../middleware/auth.js";
 import { upload } from "../middleware/upload.js";
@@ -15,5 +16,6 @@ router.get("/me/profile", getCurrentProfile);
 router.patch("/me/profile", upload.single("profilePicture"), updateCurrentProfile);
 router.get("/me/settings", getCurrentSettings);
 router.patch("/me/settings", updateCurrentSettings);
+router.patch("/me/password", updatePassword);
 
 export default router;

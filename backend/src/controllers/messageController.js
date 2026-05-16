@@ -52,10 +52,28 @@ export const getThreads = asyncHandler(async (req, res) => {
 });
 
 export const createThread = asyncHandler(async (req, res) => {
-  const { recipientId, subject, body } = req.body;
+  let { recipientId, subject, body, listingId, auctionId } = req.body;
+
+  if (!recipientId && listingId) {
+    // resolve seller from listing
+    const { Listing } = await import("../models/Listing.js");
+    const listing = await Listing.findById(listingId).select("seller");
+    if (listing && listing.seller) {
+      recipientId = listing.seller;
+    }
+  }
+
+  if (!recipientId && auctionId) {
+    // resolve seller from auction
+    const { Auction } = await import("../models/Auction.js");
+    const auction = await Auction.findById(auctionId).select("seller");
+    if (auction && auction.seller) {
+      recipientId = auction.seller;
+    }
+  }
 
   if (!recipientId || !subject || !body) {
-    throw new ApiError(400, "Recipient, subject, and message body are required.");
+    throw new ApiError(400, "Recipient (or listing/auction), subject, and message body are required.");
   }
 
   const normalizedSubject = assertRequiredText(subject, "Subject", { maxLength: 160 });

@@ -60,8 +60,22 @@ async function applyCompletedSessionEffects(session) {
     channel: "Stripe",
   });
 
-  await User.findByIdAndUpdate(userId, {
+  const user = await User.findByIdAndUpdate(userId, {
     $inc: { "wallet.availableBalance": amount },
+  }).select("role");
+
+  await createNotification({
+    userId,
+    title: "Payment successful",
+    body: `Your wallet top-up of $${amount.toFixed(2)} was completed successfully.`,
+    type: "payment",
+    href: user?.role === "Seller" ? "/seller/wallet" : "/bidder/wallet",
+    metadata: {
+      sessionId: session.id,
+      amount,
+      transactionCode: code,
+      purpose: "wallet-top-up",
+    },
   });
 
   return null;

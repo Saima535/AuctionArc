@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DataTable,
   FilterBar,
@@ -34,6 +34,7 @@ const auctionColumns = [
 
 export default function SellerAuctionsPage() {
   const { user } = useAuth();
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const { data, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/seller/auctions", {
     initialData: [],
     refreshIntervalMs: 12000,
@@ -46,6 +47,28 @@ export default function SellerAuctionsPage() {
       refresh({ background: true });
     }, [refresh]),
   });
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const visibleRows = useMemo(
+    () =>
+      data.filter((row) => {
+        if (!row.endAt) {
+          return true;
+        }
+
+        return new Date(row.endAt).getTime() > nowTick;
+      }),
+    [data, nowTick],
+  );
 
   return (
     <div className={styles.page}>
@@ -66,7 +89,7 @@ export default function SellerAuctionsPage() {
       <FilterBar items={["Live", "Extended", "Scheduled", "Completed"]} />
 
       <Panel title="Selling activity" description="A focused view of auctions tied to your inventory.">
-        {error ? <ApiErrorNotice title="Seller auctions unavailable" message={error} /> : <DataTable columns={auctionColumns} rows={data} />}
+        {error ? <ApiErrorNotice title="Seller auctions unavailable" message={error} /> : <DataTable columns={auctionColumns} rows={visibleRows} />}
       </Panel>
     </div>
   );

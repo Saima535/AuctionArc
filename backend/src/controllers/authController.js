@@ -2,6 +2,7 @@ import { sendMail } from "../config/mailer.js";
 import { PUBLIC_ROLES } from "../constants/enums.js";
 import { assertUserCanAccess } from "../middleware/auth.js";
 import { User } from "../models/User.js";
+import { createNotifications } from "../services/notificationService.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -141,6 +142,25 @@ export const register = asyncHandler(async (req, res) => {
       isWalletVerified: false,
     },
   });
+
+  if (user.role === "Seller") {
+    const admins = await User.find({ role: "Admin", status: "Active" }).select("_id");
+
+    await createNotifications(
+      admins.map((admin) => ({
+        userId: admin._id,
+        title: "Seller verification request",
+        body: `${user.name} registered as a seller and is awaiting verification.`,
+        type: "admin-review",
+        href: "/admin/users",
+        metadata: {
+          sellerId: user._id,
+          sellerEmail: user.email,
+          source: "registration",
+        },
+      })),
+    );
+  }
 
   await sendMail({
     to: user.email,

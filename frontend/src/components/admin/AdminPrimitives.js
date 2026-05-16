@@ -381,7 +381,7 @@ export function ChatWorkspace({
   );
 }
 
-export function SettingsGrid({ sections }) {
+export function SettingsGrid({ sections, onManage = () => {} }) {
   return (
     <div className={styles.settingsGrid}>
       {sections.map((section) => (
@@ -393,7 +393,7 @@ export function SettingsGrid({ sections }) {
               <li key={item}>{item}</li>
             ))}
           </ul>
-          <button type="button" className={styles.actionButton}>
+          <button type="button" className={styles.actionButton} onClick={() => onManage(section.title)}>
             Manage
           </button>
         </article>

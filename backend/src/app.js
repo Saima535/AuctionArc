@@ -12,6 +12,7 @@ import authRoutes from "./routes/authRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import liveRoutes from "./routes/liveRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -55,6 +56,7 @@ export function createApp() {
   app.use("/api/v1/users", userRoutes);
   app.use("/api/v1/auctions", auctionRoutes);
   app.use("/api/v1/messages", messageRoutes);
+  app.use("/api/v1/conversations", conversationRoutes);
   app.use("/api/v1/admin", adminRoutes);
   app.use("/api/v1/payments", paymentRoutes);
 

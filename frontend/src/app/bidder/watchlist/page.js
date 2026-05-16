@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DataTable,
   FilterBar,
@@ -28,6 +28,7 @@ export default function BidderWatchlistPage() {
   const [activeAuctionId, setActiveAuctionId] = useState("");
   const [pageMessage, setPageMessage] = useState("");
   const [pageError, setPageError] = useState("");
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const live = useLiveRefresh({
     channels: useMemo(
       () => ["market:auctions", "market:watchlist", user?.id ? `user:${user.id}` : ""],
@@ -38,6 +39,28 @@ export default function BidderWatchlistPage() {
       refresh({ background: true });
     }, [refresh]),
   });
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const visibleRows = useMemo(
+    () =>
+      data.filter((row) => {
+        if (!row.endAt) {
+          return true;
+        }
+
+        return new Date(row.endAt).getTime() > nowTick || row.status === "Sold" || row.status === "Expired";
+      }),
+    [data, nowTick],
+  );
 
   async function handleRemove(row) {
     setPageError("");
@@ -69,6 +92,8 @@ export default function BidderWatchlistPage() {
         method: "POST",
         body: {
           recipientId: row.sellerId,
+          listingId: row.listingId,
+          auctionId: row.auctionId,
           subject: `${row.title} inquiry`,
           body: `Hi, I am following ${row.title} in my watchlist and want to know more before bidding.`,
         },
@@ -145,7 +170,7 @@ export default function BidderWatchlistPage() {
       {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
 
       <Panel title="Tracked auctions" description="A cleaner view of your watched opportunities and seller context.">
-        {error ? <ApiErrorNotice title="Watchlist unavailable" message={error} /> : <DataTable columns={watchlistColumns} rows={data} />}
+        {error ? <ApiErrorNotice title="Watchlist unavailable" message={error} /> : <DataTable columns={watchlistColumns} rows={visibleRows} />}
       </Panel>
     </div>
   );

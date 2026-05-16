@@ -29,5 +29,6 @@ export const env = {
   emailPassword: process.env.EMAIL_PASSWORD || "",
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
+  auctionSchedulerEnabled: process.env.AUCTION_SCHEDULER_ENABLED !== "false",
   seedOnBoot: process.env.SEED_ON_BOOT !== "false",
 };

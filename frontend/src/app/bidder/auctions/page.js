@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LiveRefreshControls,
   SectionIntro,
@@ -43,6 +43,7 @@ export default function BidderAuctionsPage() {
   const [busyAuctionId, setBusyAuctionId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const liveChannels = useMemo(
     () => ["market:auctions", "market:bids", "market:watchlist", user?.id ? `user:${user.id}` : ""],
     [user?.id],
@@ -55,6 +56,16 @@ export default function BidderAuctionsPage() {
     enabled: Boolean(user?.id),
     onEvent: handleLiveEvent,
   });
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(
@@ -69,12 +80,20 @@ export default function BidderAuctionsPage() {
   }, [data]);
 
   const filteredData = useMemo(() => {
+    const liveData = data.filter((item) => {
+      if (!item.endAt) {
+        return true;
+      }
+
+      return new Date(item.endAt).getTime() > nowTick;
+    });
+
     if (selectedCategory === "All") {
-      return data;
+      return liveData;
     }
 
-    return data.filter((item) => item.category === selectedCategory);
-  }, [data, selectedCategory]);
+    return liveData.filter((item) => item.category === selectedCategory);
+  }, [data, nowTick, selectedCategory]);
 
   async function handleWatchToggle(item) {
     setPageError("");
@@ -131,6 +150,12 @@ export default function BidderAuctionsPage() {
       return;
     }
 
+    if (item.endAt && new Date(item.endAt).getTime() <= nowTick) {
+      setPageError("This auction has already ended.");
+      refresh({ background: true });
+      return;
+    }
+
     setBusyAuctionId(item.auctionId);
 
     try {
@@ -166,6 +191,8 @@ export default function BidderAuctionsPage() {
         method: "POST",
         body: {
           recipientId: item.sellerId,
+          listingId: item.listingId,
+          auctionId: item.auctionId,
           subject: `${item.title} inquiry`,
           body: `Hi, I am interested in ${item.title}. Could you share more details about the auction item?`,
         },
@@ -253,6 +280,10 @@ export default function BidderAuctionsPage() {
         <section className={styles.auctionGrid}>
           {filteredData.map((item) => {
             const busyKey = item.auctionId || item.listingId;
+            const isExpired = item.endAt ? new Date(item.endAt).getTime() <= nowTick : false;
+            const canBidNow = item.canBid && !isExpired;
+            const canWatchNow = item.canWatch && !isExpired;
+            const stageLabel = isExpired ? "Closed" : item.stage;
 
             return (
               <article key={item.listingId || item.id} className={styles.auctionCard}>
@@ -275,8 +306,8 @@ export default function BidderAuctionsPage() {
                       <span className={styles.cardCode}>{item.id}</span>
                       <h3>{item.title}</h3>
                     </div>
-                    <StatusBadge tone={item.canBid ? "danger" : item.canWatch ? "warn" : "good"}>
-                      {item.stage}
+                    <StatusBadge tone={canBidNow ? "danger" : canWatchNow ? "warn" : "good"}>
+                      {stageLabel}
                     </StatusBadge>
                   </div>
 
@@ -320,7 +351,7 @@ export default function BidderAuctionsPage() {
                       type="number"
                       min="1"
                       step="0.01"
-                      placeholder={item.canBid ? "Enter bid amount" : "Bidding opens when session goes live"}
+                      placeholder={canBidNow ? "Enter bid amount" : isExpired ? "Auction closed" : "Bidding opens when session goes live"}
                       value={bidValues[busyKey] || ""}
                       onChange={(event) =>
                         setBidValues((current) => ({
@@ -332,10 +363,10 @@ export default function BidderAuctionsPage() {
                     <button
                       type="button"
                       className={styles.actionButton}
-                      disabled={busyAuctionId === busyKey || !item.canBid}
+                      disabled={busyAuctionId === busyKey || !canBidNow}
                       onClick={() => handlePlaceBid(item)}
                     >
-                      {busyAuctionId === busyKey ? "Working..." : item.canBid ? "Place Bid" : "Not Open Yet"}
+                      {busyAuctionId === busyKey ? "Working..." : canBidNow ? "Place Bid" : isExpired ? "Closed" : "Not Open Yet"}
                     </button>
                   </div>
 
@@ -343,10 +374,10 @@ export default function BidderAuctionsPage() {
                     <button
                       type="button"
                       className={item.watchlisted ? styles.secondaryAction : styles.actionButton}
-                      disabled={busyAuctionId === busyKey || !item.canWatch}
+                      disabled={busyAuctionId === busyKey || !canWatchNow}
                       onClick={() => handleWatchToggle(item)}
                     >
-                      {item.canWatch ? (item.watchlisted ? "Remove Watch" : "Add Watch") : "Watch Later"}
+                      {canWatchNow ? (item.watchlisted ? "Remove Watch" : "Add Watch") : isExpired ? "Closed" : "Watch Later"}
                     </button>
                     <button
                       type="button"

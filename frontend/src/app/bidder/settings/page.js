@@ -6,7 +6,9 @@ import {
   SectionIntro,
   SettingsGrid,
 } from "@/components/admin/AdminPrimitives";
-import { SettingsEditor } from "@/components/account/ProfileForms";
+import { SettingsEditor, ProfileEditor } from "@/components/account/ProfileForms";
+import Modal from "@/components/ui/Modal";
+import PasswordForm from "@/components/account/PasswordForm";
 import { useApiData } from "@/hooks/useApiData";
 import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
@@ -41,6 +43,62 @@ export default function BidderSettingsPage() {
   const [message, setMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalContent, setModalContent] = useState(null);
+  function handleManage(sectionTitle) {
+    setModalTitle(sectionTitle);
+
+    if (sectionTitle === "Profile") {
+      setModalContent(
+        <ProfileEditor
+          title="Edit profile"
+          description="Update your contact, identity, and country settings."
+          fields={[
+            { name: "name", label: "Display name" },
+            { name: "email", label: "Email" },
+            { name: "contact", label: "Contact number" },
+            { name: "country", label: "Country" },
+          ]}
+          onSubmit={async (values) => {
+            // call profile update endpoint directly
+            try {
+              await apiRequest("/users/me/profile", { method: "PATCH", body: values });
+              setModalOpen(false);
+            } catch (err) {
+              // show error inside modal component if needed
+            }
+          }}
+        />,
+      );
+    } else if (sectionTitle === "Bidding preferences") {
+      setModalContent(
+        <SettingsEditor
+          title="Bidding preferences"
+          description="Manage watchlist alerts, categories, and reminders."
+          fields={[
+            { name: "outbidAlerts", label: "Outbid alerts", type: "select", options: ["Instant", "Hourly", "Daily"], defaultValue: data.outbidAlerts || "Instant" },
+            { name: "endingAlerts", label: "Ending soon reminders", type: "select", options: ["Enabled", "Disabled"], defaultValue: data.endingAlerts || "Enabled" },
+            { name: "categoryFocus", label: "Category focus", defaultValue: data.categoryFocus || "General" },
+          ]}
+          onSubmit={async (values) => {
+            await handleSubmit(values);
+            setModalOpen(false);
+          }}
+        />,
+      );
+    } else if (sectionTitle === "Payments") {
+      // navigate to wallet page for payment management
+      window.location.href = "/bidder/wallet";
+      return;
+    } else if (sectionTitle === "Security") {
+      setModalContent(<PasswordForm onSaved={() => setModalOpen(false)} />);
+    } else {
+      setModalContent(null);
+    }
+
+    setModalOpen(true);
+  }
 
   async function handleSubmit(values) {
     setMessage("");
@@ -72,8 +130,12 @@ export default function BidderSettingsPage() {
       {error ? <p>{error}</p> : null}
 
       <Panel title="Buyer controls" description="Personal preferences and account settings ready for backend integration.">
-        <SettingsGrid sections={bidderSettings} />
+        <SettingsGrid sections={bidderSettings} onManage={handleManage} />
       </Panel>
+
+      <Modal open={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)}>
+        {modalContent}
+      </Modal>
 
       <section className={styles.secondaryGrid}>
         <SettingsEditor

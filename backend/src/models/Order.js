@@ -34,5 +34,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.index({ seller: 1, bidder: 1, status: 1 });
+orderSchema.index({ listing: 1, status: 1 });
+orderSchema.index({ listing: 1, bidder: 1, amount: 1 }, { unique: true, sparse: true });
 
 export const Order = mongoose.model("Order", orderSchema);
