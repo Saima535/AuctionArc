@@ -1,10 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { apiRequest } from "@/lib/api";
 
-/**
- * Hook for managing chat conversations and messages
- */
 export function useChatRoom() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
@@ -14,7 +11,6 @@ export function useChatRoom() {
   const [error, setError] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch user's conversations
   const fetchConversations = useCallback(async () => {
     if (!user) {
       return;
@@ -29,15 +25,14 @@ export function useChatRoom() {
 
       const response = await apiRequest(endpoint);
       setConversations(response.data || []);
-    } catch (err) {
-      setError(err.message);
-      console.error("Error fetching conversations:", err);
+    } catch (requestError) {
+      setError(requestError.message);
+      console.error("Error fetching conversations:", requestError);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
-  // Fetch messages for a conversation
   const fetchMessages = useCallback(async (conversationId, page = 1) => {
     try {
       setLoading(true);
@@ -49,104 +44,114 @@ export function useChatRoom() {
 
       setMessages(response.data?.messages || []);
       setActiveConversation(conversationId);
-    } catch (err) {
-      setError(err.message);
-      console.error("Error fetching messages:", err);
+    } catch (requestError) {
+      setError(requestError.message);
+      console.error("Error fetching messages:", requestError);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Get or create conversation
-  const getOrCreateConversation = useCallback(async (otherUserId, auctionId = null, listingId = null) => {
-    try {
-      const response = await apiRequest("/conversations", {
-        method: "POST",
-        body: {
-          otherUserId,
-          auctionId,
-          listingId,
-        },
-      });
+  const getOrCreateConversation = useCallback(
+    async (otherUserId, auctionId = null, listingId = null) => {
+      try {
+        const response = await apiRequest("/conversations", {
+          method: "POST",
+          body: {
+            otherUserId,
+            auctionId,
+            listingId,
+          },
+        });
 
-      const newConversation = response.data;
-      setActiveConversation(newConversation.id);
+        const newConversation = response.data;
+        setActiveConversation(newConversation.id);
 
-      setConversations((prev) => {
-        const exists = prev.find((c) => c.id === newConversation.id);
-        if (exists) {
-          return prev.map((c) => (c.id === newConversation.id ? newConversation : c));
-        }
-        return [newConversation, ...prev];
-      });
+        setConversations((current) => {
+          const exists = current.find(
+            (conversation) => String(conversation.id) === String(newConversation.id),
+          );
 
-      return newConversation;
-    } catch (err) {
-      setError(err.message);
-      console.error("Error creating conversation:", err);
-    }
-  }, []);
-
-  // Send message
-  const sendMessage = useCallback(async (conversationId, text) => {
-    try {
-      const response = await apiRequest(`/conversations/${conversationId}/messages`, {
-        method: "POST",
-        body: {
-          text,
-        },
-      });
-
-      const newMessage = response.data;
-
-      // Add message to local state
-      setMessages((prev) => [...prev, newMessage]);
-
-      // Update last message in conversation
-      setConversations((prev) =>
-        prev.map((conv) => {
-          if (conv.id === conversationId) {
-            return {
-              ...conv,
-              lastMessage: text.substring(0, 100),
-              lastMessageAt: new Date().toISOString(),
-              lastMessageSenderName: user?.name,
-            };
+          if (exists) {
+            return current.map((conversation) =>
+              String(conversation.id) === String(newConversation.id)
+                ? newConversation
+                : conversation,
+            );
           }
-          return conv;
-        }),
-      );
 
-      return newMessage;
-    } catch (err) {
-      setError(err.message);
-      console.error("Error sending message:", err);
-      throw err;
-    }
-  }, [user?.name]);
+          return [newConversation, ...current];
+        });
 
-  // Archive conversation
-  const archiveConversation = useCallback(async (conversationId) => {
-    try {
-      await apiRequest(`/conversations/${conversationId}/archive`, {
-        method: "PATCH",
-      });
-
-      setConversations((prev) =>
-        prev.filter((c) => c.id !== conversationId),
-      );
-
-      if (activeConversation === conversationId) {
-        setActiveConversation(null);
-        setMessages([]);
+        return newConversation;
+      } catch (requestError) {
+        setError(requestError.message);
+        console.error("Error creating conversation:", requestError);
+        return null;
       }
-    } catch (err) {
-      setError(err.message);
-      console.error("Error archiving conversation:", err);
-    }
-  }, [activeConversation]);
+    },
+    [],
+  );
 
-  // Fetch unread count
+  const sendMessage = useCallback(
+    async (conversationId, text) => {
+      try {
+        const response = await apiRequest(`/conversations/${conversationId}/messages`, {
+          method: "POST",
+          body: {
+            text,
+          },
+        });
+
+        const newMessage = response.data;
+        setMessages((current) => [...current, newMessage]);
+
+        setConversations((current) =>
+          current.map((conversation) =>
+            String(conversation.id) === String(conversationId)
+              ? {
+                  ...conversation,
+                  lastMessage: text.substring(0, 100),
+                  lastMessageAt: new Date().toISOString(),
+                  lastMessageSenderName: user?.name,
+                }
+              : conversation,
+          ),
+        );
+
+        return newMessage;
+      } catch (requestError) {
+        setError(requestError.message);
+        console.error("Error sending message:", requestError);
+        throw requestError;
+      }
+    },
+    [user?.name],
+  );
+
+  const archiveConversation = useCallback(
+    async (conversationId) => {
+      try {
+        await apiRequest(`/conversations/${conversationId}/archive`, {
+          method: "PATCH",
+        });
+
+        setConversations((current) =>
+          current.filter((conversation) => String(conversation.id) !== String(conversationId)),
+        );
+
+        if (String(activeConversation) === String(conversationId)) {
+          setActiveConversation(null);
+          setMessages([]);
+        }
+      } catch (requestError) {
+        setError(requestError.message);
+        console.error("Error archiving conversation:", requestError);
+      }
+    },
+    [activeConversation],
+  );
+
   const fetchUnreadCount = useCallback(async () => {
     if (!user) {
       return;
@@ -155,26 +160,22 @@ export function useChatRoom() {
     try {
       const response = await apiRequest("/conversations/unread-count");
       setUnreadCount(response.data?.unreadCount || 0);
-    } catch (err) {
-      console.error("Error fetching unread count:", err);
+    } catch (requestError) {
+      console.error("Error fetching unread count:", requestError);
     }
   }, [user]);
 
-  // Load conversations on mount
-  useEffect(() => {
-    if (user) {
-      fetchConversations();
-      fetchUnreadCount();
-    }
-  }, [user, fetchConversations, fetchUnreadCount]);
-
   return {
     conversations,
+    setConversations,
     activeConversation,
+    setActiveConversation,
     messages,
+    setMessages,
     loading,
     error,
     unreadCount,
+    setUnreadCount,
     fetchConversations,
     fetchMessages,
     getOrCreateConversation,

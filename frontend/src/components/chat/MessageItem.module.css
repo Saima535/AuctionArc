@@ -1,6 +1,6 @@
 .container {
   display: flex;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
 }
 
 .container.own {
@@ -24,20 +24,22 @@
 }
 
 .bubble {
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  border-radius: 18px;
   word-wrap: break-word;
   white-space: pre-wrap;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
 }
 
 .container.own .bubble {
-  background: #3b82f6;
-  color: white;
+  background: linear-gradient(135deg, #ffca2f, #ff9800);
+  color: #241400;
 }
 
 .container.other .bubble {
-  background: #e5e7eb;
-  color: #1f2937;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff4de;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .bubble p {
@@ -54,13 +56,13 @@
 
 .time {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: rgba(255, 247, 229, 0.54);
   padding: 0 0.5rem;
 }
 
 .readReceipt {
   font-size: 0.75rem;
-  color: #60a5fa;
+  color: #7df4a8;
   margin-left: 0.25rem;
 }
 

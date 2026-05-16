@@ -4,10 +4,19 @@ import { Conversation } from "../models/Conversation.js";
 import { User } from "../models/User.js";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
+import { createNotification } from "./notificationService.js";
 
 // Store active user connections
 const activeUsers = new Map(); // userId -> socketId
 const userSockets = new Map(); // socketId -> userId
+
+function sameId(left, right) {
+  return String(left) === String(right);
+}
+
+function profileImageUrl(user) {
+  return user?.profilePicture?.url || "";
+}
 
 /**
  * Initialize Socket.io server
@@ -104,14 +113,14 @@ export function initializeSocket(httpServer) {
         }
 
         // Verify user is participant
-        if (!conversation.participants.some((p) => p.equals(userId))) {
+        if (!conversation.participants.some((participantId) => sameId(participantId, userId))) {
           return socket.emit("message-error", {
             error: "Unauthorized: Not a conversation participant",
           });
         }
 
         // Determine receiver
-        const receiverId = conversation.buyerId.equals(userId)
+        const receiverId = sameId(conversation.buyerId, userId)
           ? conversation.sellerId
           : conversation.buyerId;
 
@@ -141,7 +150,10 @@ export function initializeSocket(httpServer) {
         await conversation.save();
 
         // Get sender info
-        const sender = await User.findById(userId).select("name avatar role");
+        const [sender, receiver] = await Promise.all([
+          User.findById(userId).select("name profilePicture role"),
+          User.findById(receiverId).select("role"),
+        ]);
 
         // Format message for broadcast
         const formattedMessage = {
@@ -149,7 +161,7 @@ export function initializeSocket(httpServer) {
           conversationId,
           senderId: userId,
           senderName: sender.name,
-          senderAvatar: sender.avatar,
+          senderAvatar: profileImageUrl(sender),
           senderRole: sender.role,
           receiverId,
           text: message.text,
@@ -157,6 +169,20 @@ export function initializeSocket(httpServer) {
           isRead: false,
           createdAt: message.createdAt,
         };
+
+        if (receiver) {
+          await createNotification({
+            userId: receiverId,
+            title: `New message from ${sender.name}`,
+            body: text.trim().substring(0, 100),
+            type: "message",
+            href: receiver.role === "Seller" ? "/seller/messages" : "/bidder/messages",
+            metadata: {
+              conversationId: String(conversationId),
+              senderId: String(userId),
+            },
+          });
+        }
 
         // Emit to all in conversation room
         io.to(`conversation:${conversationId}`).emit("new-message", formattedMessage);
@@ -196,6 +222,18 @@ export function initializeSocket(httpServer) {
             readAt: new Date(),
           },
         );
+
+        const conversation = await Conversation.findById(conversationId);
+
+        if (conversation) {
+          if (sameId(conversation.buyerId, userId)) {
+            conversation.buyerLastReadAt = new Date();
+          } else {
+            conversation.sellerLastReadAt = new Date();
+          }
+
+          await conversation.save();
+        }
 
         // Notify conversation of read status
         io.to(`conversation:${conversationId}`).emit("messages-read", {

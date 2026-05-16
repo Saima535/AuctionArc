@@ -3,9 +3,128 @@ import { Message } from "../models/Message.js";
 import { User } from "../models/User.js";
 import { Auction } from "../models/Auction.js";
 import { Listing } from "../models/Listing.js";
+import { Thread } from "../models/Thread.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { createNotification } from "../services/notificationService.js";
+
+function sameId(left, right) {
+  return String(left) === String(right);
+}
+
+function hasParticipant(conversation, userId) {
+  return conversation.participants?.some((participantId) => sameId(participantId, userId));
+}
+
+function profileImageUrl(user) {
+  return user?.profilePicture?.url || "";
+}
+
+function legacyRoleLabel(roleLabel) {
+  if (roleLabel === "Bidder") {
+    return "Buyer";
+  }
+
+  return roleLabel;
+}
+
+async function migrateLegacyThreadsForUser(userId) {
+  const legacyThreads = await Thread.find({
+    "participants.user": userId,
+    "participants.roleLabel": { $nin: ["Admin"] },
+  }).lean();
+
+  for (const thread of legacyThreads) {
+    const buyerParticipant = thread.participants.find(
+      (participant) => legacyRoleLabel(participant.roleLabel) === "Buyer",
+    );
+    const sellerParticipant = thread.participants.find(
+      (participant) => participant.roleLabel === "Seller",
+    );
+
+    if (!buyerParticipant?.user || !sellerParticipant?.user) {
+      continue;
+    }
+
+    let conversation = await Conversation.findOne({
+      buyerId: buyerParticipant.user,
+      sellerId: sellerParticipant.user,
+    });
+
+    if (!conversation) {
+      const lastLegacyMessage = thread.messages.at(-1);
+      const lastLegacySenderId =
+        legacyRoleLabel(lastLegacyMessage?.senderRole) === "Buyer"
+          ? buyerParticipant.user
+          : sellerParticipant.user;
+
+      conversation = await Conversation.create({
+        buyerId: buyerParticipant.user,
+        sellerId: sellerParticipant.user,
+        participants: [buyerParticipant.user, sellerParticipant.user],
+        lastMessage: lastLegacyMessage?.body?.substring(0, 100) || null,
+        lastMessageAt: lastLegacyMessage?.sentAt || thread.updatedAt,
+        lastMessageSenderId: lastLegacyMessage ? lastLegacySenderId : null,
+        buyerLastReadAt: lastLegacyMessage?.sentAt || thread.updatedAt,
+        sellerLastReadAt: lastLegacyMessage?.sentAt || thread.updatedAt,
+        status: thread.status === "Resolved" ? "Archived" : "Active",
+        createdAt: thread.createdAt,
+        updatedAt: thread.updatedAt,
+      });
+    }
+
+    const existingMessageCount = await Message.countDocuments({
+      conversationId: conversation._id,
+    });
+
+    if (existingMessageCount > 0) {
+      continue;
+    }
+
+    const legacyMessages = thread.messages.map((legacyMessage, index) => {
+      const normalizedSenderRole = legacyRoleLabel(legacyMessage.senderRole);
+      const senderId =
+        normalizedSenderRole === "Buyer" ? buyerParticipant.user : sellerParticipant.user;
+      const receiverId =
+        normalizedSenderRole === "Buyer" ? sellerParticipant.user : buyerParticipant.user;
+      const sentAt = legacyMessage.sentAt || thread.createdAt || new Date();
+
+      return {
+        conversationId: conversation._id,
+        senderId,
+        receiverId,
+        text: legacyMessage.body,
+        type: "text",
+        isRead: true,
+        readAt: sentAt,
+        createdAt: sentAt,
+        updatedAt: sentAt,
+        isEdited: false,
+        editedAt: null,
+        isDeleted: false,
+        deletedAt: null,
+        __order: index,
+      };
+    });
+
+    if (legacyMessages.length) {
+      await Message.insertMany(
+        legacyMessages
+          .sort((left, right) => {
+            const leftTime = new Date(left.createdAt).getTime();
+            const rightTime = new Date(right.createdAt).getTime();
+
+            if (leftTime === rightTime) {
+              return left.__order - right.__order;
+            }
+
+            return leftTime - rightTime;
+          })
+          .map(({ __order, ...message }) => message),
+      );
+    }
+  }
+}
 
 /**
  * Get or create a conversation between buyer and seller
@@ -63,7 +182,7 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
   let conversation = await Conversation.findOne({
     buyerId,
     sellerId,
-  }).populate("buyerId sellerId lastMessageSenderId", "name role avatar");
+  }).populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status");
 
   if (!conversation) {
     // Create new conversation
@@ -75,7 +194,7 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
       listingId: listingId || null,
     });
     await conversation.save();
-    await conversation.populate("buyerId sellerId lastMessageSenderId", "name role avatar");
+    await conversation.populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status");
   }
 
   res.json({
@@ -91,12 +210,14 @@ export const getMyConversations = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { status = "Active" } = req.query;
 
+  await migrateLegacyThreadsForUser(userId);
+
   // Get conversations where user is participant
   const conversations = await Conversation.find({
     participants: userId,
     status: status,
   })
-    .populate("buyerId sellerId lastMessageSenderId", "name role avatar status")
+    .populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status")
     .sort({ lastMessageAt: -1 })
     .lean();
 
@@ -112,11 +233,13 @@ export const getMyConversations = asyncHandler(async (req, res) => {
 export const getSellerConversations = asyncHandler(async (req, res) => {
   const sellerId = req.user._id;
 
+  await migrateLegacyThreadsForUser(sellerId);
+
   const conversations = await Conversation.find({
     sellerId,
     status: "Active",
   })
-    .populate("buyerId sellerId lastMessageSenderId", "name role avatar status")
+    .populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status")
     .sort({ lastMessageAt: -1 })
     .lean();
 
@@ -147,11 +270,13 @@ export const getSellerConversations = asyncHandler(async (req, res) => {
 export const getBuyerConversations = asyncHandler(async (req, res) => {
   const buyerId = req.user._id;
 
+  await migrateLegacyThreadsForUser(buyerId);
+
   const conversations = await Conversation.find({
     buyerId,
     status: "Active",
   })
-    .populate("buyerId sellerId lastMessageSenderId", "name role avatar status")
+    .populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status")
     .sort({ lastMessageAt: -1 })
     .lean();
 
@@ -185,7 +310,7 @@ export const getConversation = asyncHandler(async (req, res) => {
 
   const conversation = await Conversation.findById(conversationId).populate(
     "buyerId sellerId lastMessageSenderId",
-    "name role avatar status",
+    "name role profilePicture status",
   );
 
   if (!conversation) {
@@ -193,7 +318,7 @@ export const getConversation = asyncHandler(async (req, res) => {
   }
 
   // Verify user is a participant
-  if (!conversation.participants.includes(userId)) {
+  if (!hasParticipant(conversation, userId)) {
     throw new ApiError(403, "Unauthorized access to this conversation");
   }
 
@@ -227,7 +352,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
 
   // Verify sender is a participant
-  if (!conversation.participants.includes(senderId)) {
+  if (!hasParticipant(conversation, senderId)) {
     throw new ApiError(403, "Unauthorized to send message in this conversation");
   }
 
@@ -237,7 +362,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
 
   // Determine receiver
-  const receiverId = conversation.buyerId._id === senderId ? conversation.sellerId : conversation.buyerId;
+  const receiverId = sameId(conversation.buyerId, senderId)
+    ? conversation.sellerId
+    : conversation.buyerId;
 
   // Create message
   const message = new Message({
@@ -288,7 +415,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
 
   // Populate sender and receiver info
-  await message.populate("senderId receiverId", "name avatar role");
+  await message.populate("senderId receiverId", "name profilePicture role");
 
   res.status(201).json({
     success: true,
@@ -311,7 +438,7 @@ export const getConversationMessages = asyncHandler(async (req, res) => {
   }
 
   // Verify user is a participant
-  if (!conversation.participants.includes(userId)) {
+  if (!hasParticipant(conversation, userId)) {
     throw new ApiError(403, "Unauthorized access to this conversation");
   }
 
@@ -321,7 +448,7 @@ export const getConversationMessages = asyncHandler(async (req, res) => {
     conversationId,
     isDeleted: false,
   })
-    .populate("senderId receiverId", "name avatar role")
+    .populate("senderId receiverId", "name profilePicture role")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit))
@@ -342,6 +469,14 @@ export const getConversationMessages = asyncHandler(async (req, res) => {
       readAt: new Date(),
     },
   );
+
+  if (sameId(conversation.buyerId, userId)) {
+    conversation.buyerLastReadAt = new Date();
+  } else {
+    conversation.sellerLastReadAt = new Date();
+  }
+
+  await conversation.save();
 
   // Get total count
   const totalMessages = await Message.countDocuments({
@@ -395,7 +530,7 @@ export const archiveConversation = asyncHandler(async (req, res) => {
   }
 
   // Verify user is a participant
-  if (!conversation.participants.includes(userId)) {
+  if (!hasParticipant(conversation, userId)) {
     throw new ApiError(403, "Unauthorized to archive this conversation");
   }
 
@@ -421,7 +556,7 @@ export const deleteConversation = asyncHandler(async (req, res) => {
   }
 
   // Verify user is a participant
-  if (!conversation.participants.includes(userId)) {
+  if (!hasParticipant(conversation, userId)) {
     throw new ApiError(403, "Unauthorized to delete this conversation");
   }
 
@@ -438,14 +573,17 @@ export const deleteConversation = asyncHandler(async (req, res) => {
  * Helper function to format conversation response
  */
 function formatConversation(conversation) {
+  const buyer = conversation.buyerId;
+  const seller = conversation.sellerId;
+
   return {
     id: conversation._id,
-    buyerId: conversation.buyerId?._id,
-    buyerName: conversation.buyerId?.name,
-    buyerAvatar: conversation.buyerId?.avatar,
-    sellerId: conversation.sellerId?._id,
-    sellerName: conversation.sellerId?.name,
-    sellerAvatar: conversation.sellerId?.avatar,
+    buyerId: buyer?._id || buyer,
+    buyerName: buyer?.name,
+    buyerAvatar: profileImageUrl(buyer),
+    sellerId: seller?._id || seller,
+    sellerName: seller?.name,
+    sellerAvatar: profileImageUrl(seller),
     lastMessage: conversation.lastMessage,
     lastMessageAt: conversation.lastMessageAt,
     lastMessageSenderName: conversation.lastMessageSenderId?.name,
@@ -457,6 +595,7 @@ function formatConversation(conversation) {
     updatedAt: conversation.updatedAt,
     buyerLastReadAt: conversation.buyerLastReadAt,
     sellerLastReadAt: conversation.sellerLastReadAt,
+    unreadCount: conversation.unreadCount || 0,
   };
 }
 
@@ -467,11 +606,11 @@ function formatMessage(message) {
   return {
     id: message._id,
     conversationId: message.conversationId,
-    senderId: message.senderId?._id,
+    senderId: message.senderId?._id || message.senderId,
     senderName: message.senderId?.name,
-    senderAvatar: message.senderId?.avatar,
+    senderAvatar: profileImageUrl(message.senderId),
     senderRole: message.senderId?.role,
-    receiverId: message.receiverId?._id,
+    receiverId: message.receiverId?._id || message.receiverId,
     receiverName: message.receiverId?.name,
     text: message.text,
     type: message.type,

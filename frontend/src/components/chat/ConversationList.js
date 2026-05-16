@@ -1,71 +1,42 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useChatRoom } from "@/hooks/useChatRoom";
-import { useSocket } from "@/hooks/useSocket";
-import { useAuth } from "@/components/auth/AuthProvider";
 import styles from "./ConversationList.module.css";
 
-export default function ConversationList({ onSelectConversation }) {
-  const { user, token } = useAuth();
-  const { conversations, unreadCount, fetchUnreadCount } = useChatRoom();
-  const [activeId, setActiveId] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState(new Set());
-
-  const { joinConversation } = useSocket(
-    token,
-    null,
-    (userId) => {
-      setOnlineUsers((prev) => new Set([...prev, userId]));
-    },
-    (userId) => {
-      setOnlineUsers((prev) => {
-        const updated = new Set(prev);
-        updated.delete(userId);
-        return updated;
-      });
-    },
-    null,
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchUnreadCount();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
-
-  const handleSelectConversation = (conversation) => {
-    setActiveId(conversation.id);
-    joinConversation(conversation.id);
-    onSelectConversation(conversation);
-  };
-
-  const getOtherUser = (conversation) => {
-    if (user?.role === "Seller") {
+export default function ConversationList({
+  conversations,
+  unreadCount,
+  activeId,
+  currentRole,
+  onlineUsers,
+  onSelectConversation,
+}) {
+  function getOtherUser(conversation) {
+    if (currentRole === "Seller") {
       return {
         name: conversation.buyerName,
-        id: conversation.buyerId,
+        id: String(conversation.buyerId || ""),
         avatar: conversation.buyerAvatar,
       };
     }
+
     return {
       name: conversation.sellerName,
-      id: conversation.sellerId,
+      id: String(conversation.sellerId || ""),
       avatar: conversation.sellerAvatar,
     };
-  };
+  }
 
-  const isUserOnline = (userId) => onlineUsers.has(userId);
+  function isUserOnline(userId) {
+    return onlineUsers.has(String(userId));
+  }
 
-  if (conversations.length === 0) {
+  if (!conversations.length) {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
           <h2>Conversations</h2>
-          {unreadCount > 0 && <span className={styles.badge}>{unreadCount}</span>}
+          {unreadCount > 0 ? <span className={styles.badge}>{unreadCount}</span> : null}
         </div>
         <div className={styles.empty}>
           <p>No conversations yet</p>
@@ -78,7 +49,7 @@ export default function ConversationList({ onSelectConversation }) {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>Conversations</h2>
-        {unreadCount > 0 && <span className={styles.badge}>{unreadCount}</span>}
+        {unreadCount > 0 ? <span className={styles.badge}>{unreadCount}</span> : null}
       </div>
 
       <div className={styles.list}>
@@ -87,26 +58,37 @@ export default function ConversationList({ onSelectConversation }) {
           const isOnline = isUserOnline(otherUser.id);
 
           return (
-            <div
+            <button
               key={conversation.id}
-              className={`${styles.item} ${activeId === conversation.id ? styles.active : ""}`}
-              onClick={() => handleSelectConversation(conversation)}
+              type="button"
+              className={`${styles.item} ${
+                activeId === String(conversation.id) ? styles.active : ""
+              }`}
+              onClick={() => onSelectConversation(conversation)}
             >
               <div className={styles.itemHeader}>
                 <div className={styles.avatar}>
                   {otherUser.avatar ? (
-                    <Image src={otherUser.avatar} alt={otherUser.name} width={48} height={48} unoptimized />
+                    <Image
+                      src={otherUser.avatar}
+                      alt={otherUser.name}
+                      width={48}
+                      height={48}
+                      unoptimized
+                    />
                   ) : (
                     <div className={styles.avatarPlaceholder}>
-                      {otherUser.name.charAt(0).toUpperCase()}
+                      {otherUser.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
                   )}
-                  {isOnline && <div className={styles.onlineIndicator} />}
+                  {isOnline ? <div className={styles.onlineIndicator} /> : null}
                 </div>
 
                 <div className={styles.info}>
                   <h3>{otherUser.name}</h3>
-                  <p className={styles.lastMessage}>{conversation.lastMessage || "No messages yet"}</p>
+                  <p className={styles.lastMessage}>
+                    {conversation.lastMessage || "No messages yet"}
+                  </p>
                 </div>
 
                 <div className={styles.meta}>
@@ -118,9 +100,14 @@ export default function ConversationList({ onSelectConversation }) {
                         })
                       : ""}
                   </span>
+                  {conversation.unreadCount ? (
+                    <span className={styles.rowUnreadBadge}>
+                      {conversation.unreadCount}
+                    </span>
+                  ) : null}
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

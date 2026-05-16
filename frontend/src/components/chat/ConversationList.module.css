@@ -2,8 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
+  background: rgba(13, 13, 13, 0.96);
   overflow: hidden;
 }
 
@@ -11,28 +10,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .header h2 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff3d8;
+  letter-spacing: 0.02em;
 }
 
 .badge {
-  background: #ef4444;
-  color: white;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  background: linear-gradient(135deg, #ffca2f, #ff9800);
+  color: #1a1200;
+  border-radius: 999px;
+  min-width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .empty {
@@ -40,7 +41,7 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  color: #6b7280;
+  color: rgba(255, 243, 216, 0.62);
   text-align: center;
   padding: 2rem;
 }
@@ -53,22 +54,33 @@
 .list {
   flex: 1;
   overflow-y: auto;
+  padding: 0.45rem;
 }
 
 .item {
-  padding: 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
+  width: 100%;
+  padding: 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background: transparent;
+  margin-bottom: 0.45rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  text-align: left;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 
 .item:hover {
-  background-color: #f9fafb;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 184, 0, 0.16);
+  transform: translateY(-1px);
 }
 
 .item.active {
-  background-color: #f0f9ff;
-  border-left: 3px solid #3b82f6;
+  background:
+    linear-gradient(135deg, rgba(255, 184, 0, 0.16), rgba(255, 184, 0, 0.05)),
+    rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 184, 0, 0.34);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
 }
 
 .itemHeader {
@@ -93,12 +105,12 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: rgba(255, 184, 0, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  color: #6b7280;
+  font-weight: 700;
+  color: #ffd66b;
 }
 
 .onlineIndicator {
@@ -108,7 +120,7 @@
   width: 12px;
   height: 12px;
   background: #10b981;
-  border: 2px solid white;
+  border: 2px solid #111;
   border-radius: 50%;
 }
 
@@ -120,8 +132,8 @@
 .info h3 {
   margin: 0 0 0.25rem 0;
   font-size: 0.95rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: 700;
+  color: #fff7e5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -130,7 +142,7 @@
 .lastMessage {
   margin: 0;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: rgba(255, 247, 229, 0.66);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -146,14 +158,24 @@
 
 .time {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: rgba(255, 247, 229, 0.52);
+}
+
+.rowUnreadBadge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #f5fff8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {
-  .container {
-    border-right: none;
-  }
-
   .item {
     padding: 1rem 0.5rem;
   }

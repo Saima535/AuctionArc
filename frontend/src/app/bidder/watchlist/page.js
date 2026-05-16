@@ -88,19 +88,17 @@ export default function BidderWatchlistPage() {
     setActiveAuctionId(row.auctionId);
 
     try {
-      await apiRequest("/messages", {
+      const response = await apiRequest("/conversations", {
         method: "POST",
         body: {
-          recipientId: row.sellerId,
+          otherUserId: row.sellerId,
           listingId: row.listingId,
           auctionId: row.auctionId,
-          subject: `${row.title} inquiry`,
-          body: `Hi, I am following ${row.title} in my watchlist and want to know more before bidding.`,
         },
       });
 
       refresh({ background: true });
-      router.push("/bidder/messages");
+      router.push(`/bidder/messages?conversation=${response.data?.id}`);
     } catch (requestError) {
       setPageError(requestError.message || "Could not start a conversation with the seller.");
     } finally {

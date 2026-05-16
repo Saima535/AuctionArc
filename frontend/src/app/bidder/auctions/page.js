@@ -187,18 +187,16 @@ export default function BidderAuctionsPage() {
     setBusyAuctionId(item.auctionId || item.listingId);
 
     try {
-      await apiRequest("/messages", {
+      const response = await apiRequest("/conversations", {
         method: "POST",
         body: {
-          recipientId: item.sellerId,
+          otherUserId: item.sellerId,
           listingId: item.listingId,
           auctionId: item.auctionId,
-          subject: `${item.title} inquiry`,
-          body: `Hi, I am interested in ${item.title}. Could you share more details about the auction item?`,
         },
       });
 
-      router.push("/bidder/messages");
+      router.push(`/bidder/messages?conversation=${response.data?.id}`);
     } catch (requestError) {
       setPageError(requestError.message || "Could not start the conversation.");
     } finally {

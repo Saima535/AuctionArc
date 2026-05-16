@@ -27,18 +27,16 @@ export default function BidderWinsPage() {
     setActiveWinId(row.id);
 
     try {
-      await apiRequest("/messages", {
+      const response = await apiRequest("/conversations", {
         method: "POST",
         body: {
-          recipientId: row.sellerId,
+          otherUserId: row.sellerId,
           listingId: row.listingId,
           auctionId: row.auctionId,
-          subject: `${row.item} order follow-up`,
-          body: `Hi, I am reaching out about my order for ${row.item}. Could you share the latest delivery or payment update?`,
         },
       });
 
-      router.push("/bidder/messages");
+      router.push(`/bidder/messages?conversation=${response.data?.id}`);
     } catch (requestError) {
       setPageError(requestError.message || "Could not start the conversation.");
     } finally {
