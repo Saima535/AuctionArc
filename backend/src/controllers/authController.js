@@ -17,6 +17,7 @@ import {
   assertEmail,
   assertOptionalText,
   assertPassword,
+  assertPhoneNumber,
   assertRequiredText,
 } from "../utils/validation.js";
 
@@ -80,7 +81,7 @@ export const register = asyncHandler(async (req, res) => {
   const normalizedName = assertRequiredText(name, "Name", { maxLength: 120 });
   const normalizedEmail = assertEmail(email);
   const normalizedCountry = assertOptionalText(country, "Country", { maxLength: 120 });
-  const normalizedContact = assertOptionalText(contact, "Contact number", { maxLength: 40 });
+  const normalizedContact = assertPhoneNumber(contact, "Contact number");
   const normalizedWalletLabel = assertOptionalText(wallet, "Wallet label", { maxLength: 120 });
   assertPassword(password);
 

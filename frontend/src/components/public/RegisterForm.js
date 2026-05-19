@@ -158,6 +158,11 @@ export function RegisterForm() {
     setSubmitSuccess("");
   }
 
+  function handleContactChange(event) {
+    event.target.value = event.target.value.replace(/\D/g, "").slice(0, 15);
+    handleFieldChange();
+  }
+
   return (
     <form className={styles.authForm} onSubmit={handleSubmit}>
       <div className={styles.fieldGrid}>
@@ -313,7 +318,10 @@ export function RegisterForm() {
             type="tel"
             placeholder="Enter phone number"
             required
-            onChange={handleFieldChange}
+            inputMode="numeric"
+            pattern="[0-9]{7,15}"
+            maxLength={15}
+            onChange={handleContactChange}
           />
         </div>
       </div>

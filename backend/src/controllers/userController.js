@@ -14,6 +14,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {
   assertEmail,
   assertOptionalText,
+  assertPhoneNumber,
   assertRequiredText,
   pickAllowedKeys,
 } from "../utils/validation.js";
@@ -259,7 +260,7 @@ export const updateCurrentProfile = asyncHandler(async (req, res) => {
   user.name = name ? assertRequiredText(name, "Name", { maxLength: 120 }) : user.name;
   user.email = email ? assertEmail(email) : user.email;
   user.location = location ? assertOptionalText(location, "Location", { maxLength: 120 }) : user.location;
-  user.contact = contact ? assertOptionalText(contact, "Contact number", { maxLength: 40 }) : user.contact;
+  user.contact = contact ? assertPhoneNumber(contact, "Contact number") : user.contact;
   user.country = country ? assertOptionalText(country, "Country", { maxLength: 120 }) : user.country;
   user.publicRoleLabel = publicRoleLabel
     ? assertOptionalText(publicRoleLabel, "Public role label", { maxLength: 80 })

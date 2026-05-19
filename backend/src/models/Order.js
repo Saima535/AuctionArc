@@ -22,6 +22,9 @@ const orderSchema = new mongoose.Schema(
     },
     amount: { type: Number, required: true },
     escrowAmount: { type: Number, default: 0 },
+    paymentSessionId: { type: String, default: "" },
+    paymentIntentId: { type: String, default: "" },
+    paidAt: { type: Date, default: null },
     status: {
       type: String,
       enum: ORDER_STATUSES,

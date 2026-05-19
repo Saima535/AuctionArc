@@ -54,6 +54,20 @@ export function assertPassword(value) {
   return value;
 }
 
+export function assertPhoneNumber(value, label = "Phone number") {
+  const normalized = cleanString(value);
+
+  if (!normalized) {
+    throw new ApiError(400, `${label} is required.`);
+  }
+
+  if (!/^\d{7,15}$/.test(normalized)) {
+    throw new ApiError(400, `${label} must contain only digits and be between 7 and 15 characters.`);
+  }
+
+  return normalized;
+}
+
 export function assertNumber(value, label, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
   const parsed = Number(value);
 

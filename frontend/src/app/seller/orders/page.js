@@ -15,7 +15,13 @@ import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
-const statusFlow = ["Awaiting payout", "In escrow", "Paid", "Awaiting shipment", "Delivered", "Completed"];
+const nextStatusByCurrent = {
+  "Awaiting payout": "In escrow",
+  "In escrow": "Paid",
+  "Paid": "Awaiting shipment",
+  "Awaiting shipment": "Delivered",
+  "Delivered": "Completed",
+};
 
 export default function SellerOrdersPage() {
   const { user } = useAuth();
@@ -36,8 +42,7 @@ export default function SellerOrdersPage() {
   });
 
   async function handleAdvanceStatus(row) {
-    const currentIndex = statusFlow.indexOf(row.status);
-    const nextStatus = statusFlow[currentIndex + 1];
+    const nextStatus = nextStatusByCurrent[row.status];
 
     if (!nextStatus) {
       return;
@@ -48,16 +53,13 @@ export default function SellerOrdersPage() {
     setBusyOrderId(row.orderId);
 
     try {
-      const result = await apiRequest(`/dashboard/seller/orders/${row.orderId}`, {
+      await apiRequest(`/dashboard/seller/orders/${row.orderId}`, {
         method: "PATCH",
         body: { status: nextStatus },
       });
 
-      setData((current) =>
-        current.map((order) => (order.orderId === row.orderId ? result.data : order)),
-      );
       setPageMessage(`${row.item} moved to ${nextStatus}.`);
-      refresh({ background: true });
+      await refresh({ background: true });
     } catch (requestError) {
       setPageError(requestError.message || "Could not update the order status.");
     } finally {
@@ -83,8 +85,7 @@ export default function SellerOrdersPage() {
       key: "actions",
       label: "Actions",
       render: (_, row) => {
-        const currentIndex = statusFlow.indexOf(row.status);
-        const nextStatus = statusFlow[currentIndex + 1];
+        const nextStatus = nextStatusByCurrent[row.status];
 
         return (
           <button

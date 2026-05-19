@@ -635,17 +635,26 @@ export const getBidderWins = asyncHandler(async (req, res) => {
   await finalizeExpiredAuctions();
 
   const orders = await Order.find({ bidder: req.user._id }).populate("seller");
+  const listingIds = orders.map((order) => order.listing).filter(Boolean);
+  const auctions = await Auction.find({ listing: { $in: listingIds } }).select("_id listing");
+  const auctionByListingId = new Map(
+    auctions.map((auction) => [String(auction.listing), String(auction._id)]),
+  );
 
   res.json({
     success: true,
     data: orders.map((order) => ({
       orderId: order._id,
+      listingId: order.listing,
+      auctionId: auctionByListingId.get(String(order.listing)) || null,
       id: order.code,
       item: order.item,
       seller: order.seller?.name || "Unknown seller",
       sellerId: order.seller?._id || null,
       amount: formatCurrency(order.amount),
       status: order.status,
+      canPay: order.status === "Payment pending",
+      paidAt: order.paidAt || null,
     })),
   });
 });
@@ -719,13 +728,30 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You can only update your own orders");
   }
 
-  const validStatuses = ["Awaiting payout", "Completed", "In escrow", "Awaiting shipment", "Paid", "Delivered"];
-  if (!validStatuses.includes(status)) {
-    throw new ApiError(400, "Invalid status");
+  const statusTransitions = {
+    "Awaiting payout": "In escrow",
+    "In escrow": "Paid",
+    "Paid": "Awaiting shipment",
+    "Awaiting shipment": "Delivered",
+    "Delivered": "Completed",
+  };
+  const expectedNextStatus = statusTransitions[order.status];
+
+  if (!expectedNextStatus || status !== expectedNextStatus) {
+    throw new ApiError(400, "Invalid order status transition");
   }
 
   order.status = status;
   await order.save();
+
+  if (status === "Completed") {
+    await User.findByIdAndUpdate(order.seller._id, {
+      $inc: {
+        "wallet.pendingPayout": -Math.min(order.amount, order.seller.wallet?.pendingPayout || 0),
+        "wallet.availableBalance": order.amount,
+      },
+    });
+  }
 
   if (order.bidder?._id) {
     await createNotification({

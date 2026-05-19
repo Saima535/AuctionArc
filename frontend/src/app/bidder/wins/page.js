@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   DataTable,
   Panel,
@@ -14,12 +15,44 @@ import styles from "@/components/member/MemberDashboard.module.css";
 
 export default function BidderWinsPage() {
   const router = useRouter();
-  const { data, error } = useApiData("/dashboard/bidder/wins", {
+  const searchParams = useSearchParams();
+  const { data, error, refresh } = useApiData("/dashboard/bidder/wins", {
     initialData: [],
   });
   const [activeWinId, setActiveWinId] = useState("");
   const [pageMessage, setPageMessage] = useState("");
   const [pageError, setPageError] = useState("");
+  const confirmAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get("status");
+    const sessionId = searchParams.get("session_id");
+
+    if (paymentStatus !== "success" || !sessionId || confirmAttemptedRef.current) {
+      return;
+    }
+
+    confirmAttemptedRef.current = true;
+    setPageError("");
+    setPageMessage("Confirming your Stripe payment...");
+
+    async function confirmPayment() {
+      try {
+        const result = await apiRequest("/payments/confirm-session", {
+          method: "POST",
+          body: { sessionId },
+        });
+
+        setPageMessage(result.message || "Winning order payment confirmed.");
+        refresh({ background: true });
+      } catch (requestError) {
+        setPageError(requestError.message || "The payment was completed but confirmation failed.");
+        setPageMessage("");
+      }
+    }
+
+    confirmPayment();
+  }, [refresh, searchParams]);
 
   async function handleMessageSeller(row) {
     setPageError("");
@@ -44,6 +77,33 @@ export default function BidderWinsPage() {
     }
   }
 
+  async function handlePayNow(row) {
+    setPageError("");
+    setPageMessage("");
+    setActiveWinId(row.id);
+
+    try {
+      const result = await apiRequest("/payments/checkout-session", {
+        method: "POST",
+        body: {
+          purpose: "winner-order",
+          orderId: row.orderId,
+        },
+      });
+
+      if (result.data?.url) {
+        window.location.href = result.data.url;
+        return;
+      }
+
+      setPageError("The Stripe checkout session could not be started.");
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not start the payment flow.");
+    } finally {
+      setActiveWinId("");
+    }
+  }
+
   const winColumns = [
   { key: "id", label: "Win ID" },
   { key: "item", label: "Item" },
@@ -53,7 +113,7 @@ export default function BidderWinsPage() {
     key: "status",
     label: "Status",
     render: (value) => (
-      <StatusBadge tone={value === "Delivered" || value === "Paid" ? "good" : "warn"}>
+      <StatusBadge tone={value === "Completed" || value === "Delivered" || value === "Paid" ? "good" : value === "Payment pending" ? "warn" : "neutral"}>
         {value}
       </StatusBadge>
     ),
@@ -62,14 +122,26 @@ export default function BidderWinsPage() {
     key: "actions",
     label: "Actions",
     render: (_, row) => (
-      <button
-        type="button"
-        className={styles.secondaryAction}
-        disabled={activeWinId === row.id || !row.sellerId}
-        onClick={() => handleMessageSeller(row)}
-      >
-        Message Seller
-      </button>
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        {row.canPay ? (
+          <button
+            type="button"
+            className={styles.actionButton}
+            disabled={activeWinId === row.id}
+            onClick={() => handlePayNow(row)}
+          >
+            {activeWinId === row.id ? "Redirecting..." : "Pay Now"}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={styles.secondaryAction}
+          disabled={activeWinId === row.id || !row.sellerId}
+          onClick={() => handleMessageSeller(row)}
+        >
+          Message Seller
+        </button>
+      </div>
     ),
   },
 ];
@@ -83,6 +155,7 @@ export default function BidderWinsPage() {
 
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
+      {searchParams.get("status") === "cancelled" ? <p className={styles.inlineNotice}>Stripe checkout was cancelled before payment completed.</p> : null}
 
       <Panel title="Won auctions" description="Commercial follow-through after successful bidding.">
         {error ? <p>{error}</p> : <DataTable columns={winColumns} rows={data} />}
