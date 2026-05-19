@@ -1,3 +1,6 @@
+/**
+ * Maintains the legacy thread-based messaging workflow still used by parts of the UI.
+ */
 import { User } from "../models/User.js";
 import { Thread } from "../models/Thread.js";
 import mongoose from "mongoose";

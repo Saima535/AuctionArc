@@ -1,3 +1,6 @@
+/**
+ * Converts thrown errors into consistent JSON API responses.
+ */
 export function errorHandler(error, req, res, next) {
   const statusCode = error.statusCode || 500;
 

@@ -1,3 +1,6 @@
+/**
+ * Creates the mail transport and provides a safe email sending helper.
+ */
 import nodemailer from "nodemailer";
 import { env } from "./env.js";
 

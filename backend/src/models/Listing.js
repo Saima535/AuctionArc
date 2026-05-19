@@ -1,3 +1,6 @@
+/**
+ * Represents seller-owned inventory that can become an auction listing.
+ */
 import mongoose from "mongoose";
 import { LISTING_STATUSES } from "../constants/enums.js";
 

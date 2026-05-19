@@ -1,3 +1,6 @@
+/**
+ * Stores bidder offers placed against auction sessions.
+ */
 import mongoose from "mongoose";
 import { BID_STATUSES } from "../constants/enums.js";
 

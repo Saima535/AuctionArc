@@ -1,3 +1,6 @@
+/**
+ * Declares notification retrieval and read-state endpoints.
+ */
 import { Router } from "express";
 import {
   getNotifications,

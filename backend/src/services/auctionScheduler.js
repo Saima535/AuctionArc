@@ -1,3 +1,6 @@
+/**
+ * Runs recurring maintenance tasks that keep auctions synchronized and settled.
+ */
 import cron from "node-cron";
 import { Auction } from "../models/Auction.js";
 import { env } from "../config/env.js";

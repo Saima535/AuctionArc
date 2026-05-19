@@ -1,3 +1,6 @@
+/**
+ * Runs the database bootstrap routine manually from the command line.
+ */
 import { connectDatabase } from "../config/db.js";
 import { bootstrapDatabase } from "../services/bootstrapService.js";
 

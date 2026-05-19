@@ -1,3 +1,6 @@
+/**
+ * Declares Stripe checkout, confirmation, and webhook endpoints.
+ */
 import { Router } from "express";
 import {
   confirmCheckoutSession,

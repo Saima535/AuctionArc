@@ -1,3 +1,6 @@
+/**
+ * Lists and marks user notifications as read.
+ */
 import {
   listNotificationsForUser,
   markAllNotificationsRead,

@@ -1,3 +1,6 @@
+/**
+ * Transforms database records into frontend-friendly cards, rows, and summary objects.
+ */
 import { formatCompactNumber, formatCountdown, formatCurrency, formatRelativeTime } from "../utils/formatters.js";
 
 function dedupeThreadMessages(messages = []) {

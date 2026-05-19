@@ -1,3 +1,6 @@
+/**
+ * Represents a completed auction outcome that continues through payment and fulfilment.
+ */
 import mongoose from "mongoose";
 import { ORDER_STATUSES } from "../constants/enums.js";
 

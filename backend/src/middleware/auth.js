@@ -1,3 +1,6 @@
+/**
+ * Resolves authenticated users and enforces route-level access control.
+ */
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/apiError.js";

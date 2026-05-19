@@ -1,3 +1,6 @@
+/**
+ * Represents the newer direct-message conversation model.
+ */
 import mongoose from "mongoose";
 
 const conversationSchema = new mongoose.Schema(

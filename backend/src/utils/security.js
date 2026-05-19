@@ -1,3 +1,6 @@
+/**
+ * Provides password hashing, JWT signing, and reset-token helpers.
+ */
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";

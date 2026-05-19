@@ -1,3 +1,6 @@
+/**
+ * Represents an auction session attached to a seller listing.
+ */
 import mongoose from "mongoose";
 import { AUCTION_STATUSES } from "../constants/enums.js";
 

@@ -1,3 +1,6 @@
+/**
+ * Finalizes ended auctions, selects winners, creates orders, and emits follow-up notifications.
+ */
 import mongoose from "mongoose";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
@@ -20,6 +23,8 @@ const ORDER_ACTIVE_STATUSES = ["Awaiting payout", "In escrow", "Paid", "Awaiting
 const AUCTION_SETTLEMENT_BATCH_SIZE = parseInt(process.env.AUCTION_SETTLEMENT_BATCH_SIZE, 10) || 50;
 const SETTLING_STALE_THRESHOLD_MS = 5 * 60 * 1000;
 
+// Settlement reuses an existing winner order when possible so repeat scheduler
+// passes do not create duplicate order records.
 async function createWinnerOrder({ auction, listing, winningBid, session }) {
   const code = await generateUniqueCode(Order, "ORD-", { digits: 4, min: 5001 });
 
@@ -52,6 +57,8 @@ async function createWinnerOrder({ auction, listing, winningBid, session }) {
   return order;
 }
 
+// Settlement is the bridge from bidding to commerce. Once an auction ends, this
+// routine decides whether it sold, expired, or missed reserve.
 async function settleAuction(auction) {
   const now = new Date();
 
@@ -73,6 +80,7 @@ async function settleAuction(auction) {
 
   try {
     await session.withTransaction(async () => {
+      // Claim the auction first so only one backend worker can settle it.
       const claimedAuction = await Auction.findOneAndUpdate(
         {
           _id: auction._id,
@@ -132,6 +140,7 @@ async function settleAuction(auction) {
         return;
       }
 
+      // Reserve checks happen after selecting the highest eligible bid.
       if (listing.reservePrice && winningBid.amount < listing.reservePrice) {
         auction.winner = null;
         auction.winnerBid = null;
@@ -191,6 +200,7 @@ async function settleAuction(auction) {
   }
 
   if (noWinner) {
+    // "No eligible winner" has a different user message than "you were outbid".
     const [bidderIds, watchlistUserIds] = await Promise.all([
       Bid.find({
         auction: auction._id,
@@ -298,6 +308,7 @@ async function settleAuction(auction) {
     return result;
   }
 
+  // Once an order exists, the follow-up path shifts from auction closing to payment.
   const order = result.order;
   const allBids = await Bid.find({ auction: auction._id, status: { $nin: REVIEW_BID_STATUSES } }).sort({ amount: -1, createdAt: 1 });
   const losingBidderIds = Array.from(
@@ -459,6 +470,7 @@ async function notifyEndingSoonAuctions(filters = {}) {
 }
 
 export async function finalizeExpiredAuctions(filters = {}) {
+  // Maintenance sends ending-soon nudges before final settlement.
   await notifyEndingSoonAuctions(filters);
 
   const query = {

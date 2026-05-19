@@ -1,3 +1,6 @@
+/**
+ * Central list of enum values shared across models, controllers, and services.
+ */
 export const USER_ROLES = ["Seller", "Bidder", "Admin"];
 export const PUBLIC_ROLES = ["Seller", "Bidder"];
 export const USER_STATUSES = [

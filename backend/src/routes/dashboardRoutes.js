@@ -1,3 +1,6 @@
+/**
+ * Declares dashboard, wallet, and seller-order endpoints.
+ */
 import { Router } from "express";
 import {
   getAdminInsights,

@@ -1,3 +1,6 @@
+/**
+ * Manages Socket.io presence, room membership, and realtime messaging broadcasts.
+ */
 import { Server } from "socket.io";
 import { Message } from "../models/Message.js";
 import { Conversation } from "../models/Conversation.js";

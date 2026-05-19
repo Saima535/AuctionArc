@@ -1,3 +1,6 @@
+/**
+ * Configures Multer for in-memory image uploads with basic validation.
+ */
 import multer from "multer";
 import { ApiError } from "../utils/apiError.js";
 

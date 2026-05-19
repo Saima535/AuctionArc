@@ -1,3 +1,6 @@
+/**
+ * Generates unique prefixed codes for marketplace records.
+ */
 import crypto from "crypto";
 import { ApiError } from "./apiError.js";
 

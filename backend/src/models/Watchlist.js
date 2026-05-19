@@ -1,3 +1,6 @@
+/**
+ * Tracks bidder watchlist subscriptions for auction updates.
+ */
 import mongoose from "mongoose";
 
 const watchlistSchema = new mongoose.Schema(

@@ -1,3 +1,6 @@
+/**
+ * Provides reusable auction filters and lifecycle predicate helpers.
+ */
 const ACTIVE_VISIBLE_AUCTION_STATUSES = ["Live", "Extended"];
 const OPEN_AUCTION_STATUSES = ["Scheduled", "Live", "Extended"];
 

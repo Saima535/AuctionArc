@@ -1,3 +1,6 @@
+/**
+ * Serves profile/settings data and applies user-managed account updates.
+ */
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
@@ -19,6 +22,8 @@ import {
   pickAllowedKeys,
 } from "../utils/validation.js";
 
+// Role-specific profile builders gather secondary counts and health indicators for
+// the profile UI without bloating the core User document.
 async function buildSellerProfileContext(user) {
   const [listings, orders, threads] = await Promise.all([
     Listing.find({ seller: user._id }).select("status"),
@@ -302,6 +307,7 @@ export const updateCurrentSettings = asyncHandler(async (req, res) => {
     "sessionTimeout",
     "auditEmail",
   ];
+  // Only explicitly whitelisted settings keys are allowed through.
   const incomingPreferences = pickAllowedKeys(req.body, allowedSettings);
 
   if (incomingPreferences.auditEmail) {

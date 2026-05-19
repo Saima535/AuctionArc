@@ -1,3 +1,6 @@
+/**
+ * Starts Stripe checkout sessions and applies payment side effects after confirmation.
+ */
 import Stripe from "stripe";
 import mongoose from "mongoose";
 import { env } from "../config/env.js";
@@ -12,6 +15,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { assertNumber } from "../utils/validation.js";
 import { formatCurrency } from "../utils/formatters.js";
 
+// Route each Stripe session into the matching marketplace workflow.
 async function applyCompletedSessionEffects(session) {
   const type = session.metadata?.type;
 
@@ -22,6 +26,7 @@ async function applyCompletedSessionEffects(session) {
   return applyWalletSessionEffects(session);
 }
 
+// Wallet and feature-credit purchases only mutate the paying user's account state.
 async function applyWalletSessionEffects(session) {
   const userId = session.metadata?.userId;
   const type = session.metadata?.type;
@@ -95,6 +100,8 @@ async function applyWalletSessionEffects(session) {
   return null;
 }
 
+// Winner checkout touches buyer, order, seller, and ledger state together, so it
+// runs inside a database transaction.
 async function applyWinnerOrderSessionEffects(session) {
   const userId = session.metadata?.userId;
   const orderId = session.metadata?.orderId;
@@ -111,6 +118,8 @@ async function applyWinnerOrderSessionEffects(session) {
 
   try {
     await dbSession.withTransaction(async () => {
+      // A completed winner payment should eventually have one buyer-side ledger row
+      // and one seller-side ledger row. Their presence acts as an idempotency check.
       const existingTransactions = await Transaction.find({
         code: { $in: [buyerTransactionCode, sellerTransactionCode] },
       }).session(dbSession);
@@ -133,6 +142,7 @@ async function applyWinnerOrderSessionEffects(session) {
         throw new ApiError(400, "This winning order is not awaiting payment anymore.");
       }
 
+      // Persist Stripe references directly on the order for reconciliation/support.
       order.status = "Paid";
       order.paymentSessionId = session.id;
       order.paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : "";
@@ -250,6 +260,7 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
     cancelUrl = `${env.clientUrl}/seller/listings/new?featurePayment=cancelled`;
     productName = "AuctionArc listing feature credit";
   } else if (purpose === "winner-order") {
+    // The payable amount comes from the stored order, not the client request.
     if (req.user.role !== "Bidder") {
       throw new ApiError(403, "Only bidders can pay for winning orders.");
     }
@@ -323,6 +334,8 @@ export const confirmCheckoutSession = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Session ID is required.");
   }
 
+  // The frontend confirms after redirect so local state still updates in
+  // development even when no webhook tunnel is configured.
   const session = await stripe.checkout.sessions.retrieve(sessionId);
 
   if (!session || session.payment_status !== "paid") {
@@ -363,6 +376,8 @@ export async function handleStripeWebhook(req, res, next) {
       env.stripeWebhookSecret,
     );
 
+    // Webhooks provide the durable production path when the user never returns to
+    // the app after completing payment.
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       await applyCompletedSessionEffects(session);

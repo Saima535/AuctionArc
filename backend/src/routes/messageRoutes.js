@@ -1,3 +1,6 @@
+/**
+ * Declares the legacy thread-messaging endpoints.
+ */
 import { Router } from "express";
 import { createThread, getThreads, postThreadMessage } from "../controllers/messageController.js";
 import { requireAuth } from "../middleware/auth.js";

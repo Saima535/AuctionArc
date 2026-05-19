@@ -1,3 +1,6 @@
+/**
+ * Wraps async Express handlers so rejections flow into the error middleware.
+ */
 export function asyncHandler(handler) {
   return async function wrappedHandler(req, res, next) {
     try {

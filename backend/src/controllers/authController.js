@@ -1,3 +1,6 @@
+/**
+ * Handles registration, login, password recovery, and authenticated account bootstrap data.
+ */
 import { sendMail } from "../config/mailer.js";
 import { PUBLIC_ROLES } from "../constants/enums.js";
 import { assertUserCanAccess } from "../middleware/auth.js";
@@ -21,6 +24,8 @@ import {
   assertRequiredText,
 } from "../utils/validation.js";
 
+// Registration is restricted to adults because auction participation carries
+// payment obligations and identity-review implications.
 function isAdult(birthdate) {
   const today = new Date();
   const adultDate = new Date(
@@ -115,6 +120,8 @@ export const register = asyncHandler(async (req, res) => {
       )
     : null;
 
+  // Initialize the full wallet and verification shape here so downstream code can
+  // safely assume these nested objects exist.
   const user = await User.create({
     name: normalizedName,
     email: normalizedEmail,
@@ -229,6 +236,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     throw new ApiError(404, "No account matched the provided email and role.");
   }
 
+  // Only a hash is stored in the database; the raw code is delivered by email.
   const code = generateNumericCode(6);
 
   user.resetPasswordCodeHash = createTokenHash(code);

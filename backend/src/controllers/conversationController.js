@@ -1,3 +1,6 @@
+/**
+ * Powers the newer conversation and direct-message experience across marketplace roles.
+ */
 import { Conversation } from "../models/Conversation.js";
 import { Message } from "../models/Message.js";
 import { User } from "../models/User.js";

@@ -1,3 +1,6 @@
+/**
+ * Stores in-app notification records shown to users.
+ */
 import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema(

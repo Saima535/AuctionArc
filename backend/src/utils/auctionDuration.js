@@ -1,3 +1,6 @@
+/**
+ * Normalizes, validates, converts, and formats auction duration values.
+ */
 import { ApiError } from "./apiError.js";
 
 const DURATION_UNITS = ["minute", "day"];

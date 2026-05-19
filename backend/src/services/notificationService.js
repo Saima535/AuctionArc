@@ -1,3 +1,6 @@
+/**
+ * Creates, deduplicates, lists, and updates in-app notifications.
+ */
 import { Notification } from "../models/Notification.js";
 import { publishLiveEvent } from "./liveUpdateService.js";
 

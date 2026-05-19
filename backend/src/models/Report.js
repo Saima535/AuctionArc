@@ -1,3 +1,6 @@
+/**
+ * Stores moderation or dispute reports raised inside the marketplace.
+ */
 import mongoose from "mongoose";
 
 const reportSchema = new mongoose.Schema(

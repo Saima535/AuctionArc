@@ -1,3 +1,6 @@
+/**
+ * Uploads in-memory image buffers to Cloudinary and returns normalized metadata.
+ */
 import { cloudinary, cloudinaryConfigured } from "../config/cloudinary.js";
 
 export async function uploadImageBuffer(fileBuffer, folder, filename) {

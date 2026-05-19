@@ -1,3 +1,6 @@
+/**
+ * Represents the legacy thread model used by older messaging surfaces.
+ */
 import mongoose from "mongoose";
 import { THREAD_PRIORITIES, THREAD_STATUSES } from "../constants/enums.js";
 

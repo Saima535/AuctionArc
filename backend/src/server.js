@@ -1,3 +1,6 @@
+/**
+ * Bootstraps infrastructure dependencies and starts the HTTP + Socket.io server.
+ */
 import { createApp } from "./app.js";
 import { connectDatabase } from "./config/db.js";
 import { env } from "./config/env.js";

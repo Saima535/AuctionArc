@@ -1,3 +1,6 @@
+/**
+ * Declares conversation and direct-message endpoints.
+ */
 import { Router } from "express";
 import {
   getOrCreateConversation,

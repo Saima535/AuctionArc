@@ -1,3 +1,6 @@
+/**
+ * Declares profile, settings, and password management endpoints.
+ */
 import { Router } from "express";
 import {
   getCurrentProfile,

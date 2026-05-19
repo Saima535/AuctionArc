@@ -1,3 +1,6 @@
+/**
+ * Stores message documents used by the newer conversation system.
+ */
 import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema(

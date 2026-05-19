@@ -1,3 +1,6 @@
+/**
+ * Loads environment variables and exposes validated runtime configuration.
+ */
 import dotenv from "dotenv";
 
 dotenv.config();

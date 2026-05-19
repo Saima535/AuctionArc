@@ -1,3 +1,6 @@
+/**
+ * Configures the Cloudinary client used for image uploads.
+ */
 import { v2 as cloudinary } from "cloudinary";
 import { env } from "./env.js";
 

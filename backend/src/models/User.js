@@ -1,3 +1,6 @@
+/**
+ * Represents marketplace users, their profile data, verification state, and wallet balances.
+ */
 import mongoose from "mongoose";
 import { PUBLIC_ROLES, USER_ROLES, USER_STATUSES } from "../constants/enums.js";
 

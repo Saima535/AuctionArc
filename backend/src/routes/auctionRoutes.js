@@ -1,3 +1,6 @@
+/**
+ * Declares public auction, listing, bid, and watchlist endpoints.
+ */
 import { Router } from "express";
 import {
   addToWatchlist,

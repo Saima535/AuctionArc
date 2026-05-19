@@ -1,3 +1,6 @@
+/**
+ * Streams server-sent live update events to subscribed clients.
+ */
 import crypto from "node:crypto";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {

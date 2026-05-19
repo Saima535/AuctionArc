@@ -1,3 +1,6 @@
+/**
+ * Drives public auction browsing plus seller listing and bidder bidding actions.
+ */
 import mongoose from "mongoose";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";

@@ -1,3 +1,6 @@
+/**
+ * Shapes dashboard-specific API responses for seller, bidder, admin, and wallet views.
+ */
 import { AppSettings } from "../models/AppSettings.js";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
@@ -31,6 +34,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatAuctionDuration } from "../utils/auctionDuration.js";
 import { formatCurrency } from "../utils/formatters.js";
 
+// Buyer dashboard rows combine listing merchandising, auction timing, and
+// user-specific interaction state in one frontend-ready object.
 function buildAuctionWindow(startAt, endAt, fallbackValue = 5, fallbackUnit = "day") {
   if (startAt && endAt) {
     const diffMs = endAt.getTime() - startAt.getTime();
@@ -94,6 +99,7 @@ function buildBuyerAuctionRow({ auction, listing, watchlisted = false }) {
 }
 
 export const getSellerOverview = asyncHandler(async (req, res) => {
+  // Refresh settlement first so overview KPIs include auctions that just ended.
   await finalizeExpiredAuctions({ seller: req.user._id });
 
   const [seller, listings, auctions, orders, threads, sellerAuctions] = await Promise.all([
@@ -246,6 +252,7 @@ export const getBidderOverview = asyncHandler(async (req, res) => {
 });
 
 export const getAdminOverview = asyncHandler(async (req, res) => {
+  // This endpoint feeds both marketplace KPI cards and the admin operations queue.
   await finalizeExpiredAuctions();
 
   const [users, auctions, bids, listings, threads] = await Promise.all([
@@ -636,6 +643,7 @@ export const getBidderWins = asyncHandler(async (req, res) => {
 
   const orders = await Order.find({ bidder: req.user._id }).populate("seller");
   const listingIds = orders.map((order) => order.listing).filter(Boolean);
+  // Orders point at listings directly, so we recover auction ids here for wins UI.
   const auctions = await Auction.find({ listing: { $in: listingIds } }).select("_id listing");
   const auctionByListingId = new Map(
     auctions.map((auction) => [String(auction.listing), String(auction._id)]),
@@ -728,6 +736,7 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You can only update your own orders");
   }
 
+  // Sellers can only advance fulfilment one step at a time.
   const statusTransitions = {
     "Awaiting payout": "In escrow",
     "In escrow": "Paid",
@@ -745,6 +754,7 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
   await order.save();
 
   if (status === "Completed") {
+    // Seller funds become available only after the fulfilment pipeline is complete.
     await User.findByIdAndUpdate(order.seller._id, {
       $inc: {
         "wallet.pendingPayout": -Math.min(order.amount, order.seller.wallet?.pendingPayout || 0),

@@ -1,3 +1,6 @@
+/**
+ * Manages server-sent-event subscribers and pushes live marketplace events to them.
+ */
 const clients = new Map();
 
 function toChannelSet(channels = []) {

@@ -1,3 +1,6 @@
+/**
+ * Declares admin API endpoints and binds them to controller actions.
+ */
 import { Router } from "express";
 import {
   getAdminProfile,

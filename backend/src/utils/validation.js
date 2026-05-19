@@ -1,3 +1,6 @@
+/**
+ * Validates and normalizes common API input values before persistence.
+ */
 import { ApiError } from "./apiError.js";
 
 export function cleanString(value) {

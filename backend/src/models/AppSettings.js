@@ -1,3 +1,6 @@
+/**
+ * Stores editable admin-controlled marketplace settings sections.
+ */
 import mongoose from "mongoose";
 
 const sectionSchema = new mongoose.Schema(

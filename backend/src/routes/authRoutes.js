@@ -1,3 +1,6 @@
+/**
+ * Declares authentication and account bootstrap endpoints.
+ */
 import { Router } from "express";
 import {
   forgotPassword,

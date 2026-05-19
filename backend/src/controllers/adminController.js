@@ -1,3 +1,6 @@
+/**
+ * Handles admin-only marketplace management actions, reporting, and review workflows.
+ */
 import { AppSettings } from "../models/AppSettings.js";
 import { AUCTION_STATUSES, BID_STATUSES, LISTING_STATUSES, USER_STATUSES } from "../constants/enums.js";
 import { Auction } from "../models/Auction.js";

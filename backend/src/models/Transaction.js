@@ -1,3 +1,6 @@
+/**
+ * Stores wallet, payout, and Stripe-backed transaction history.
+ */
 import mongoose from "mongoose";
 
 const transactionSchema = new mongoose.Schema(

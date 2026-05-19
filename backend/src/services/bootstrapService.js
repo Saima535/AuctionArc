@@ -1,3 +1,6 @@
+/**
+ * Seeds the marketplace with bootstrap users, listings, auctions, and supporting demo data.
+ */
 import { env } from "../config/env.js";
 import { AppSettings } from "../models/AppSettings.js";
 import { Auction } from "../models/Auction.js";

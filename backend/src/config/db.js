@@ -1,3 +1,6 @@
+/**
+ * Connects the backend process to MongoDB.
+ */
 import mongoose from "mongoose";
 import { env } from "./env.js";
 

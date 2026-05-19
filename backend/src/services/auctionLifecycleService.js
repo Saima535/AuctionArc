@@ -1,3 +1,6 @@
+/**
+ * Synchronizes listing approval state with auction records and timing-based status changes.
+ */
 import { Auction } from "../models/Auction.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { addAuctionDuration } from "../utils/auctionDuration.js";

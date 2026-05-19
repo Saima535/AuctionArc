@@ -1,3 +1,7 @@
+/**
+ * Creates the Express application, applies shared middleware, and mounts every API route.
+ */
+
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";

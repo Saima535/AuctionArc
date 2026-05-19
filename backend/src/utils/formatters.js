@@ -1,3 +1,6 @@
+/**
+ * Formats money, counts, countdowns, and relative timestamps for UI responses.
+ */
 export function formatCurrency(amount = 0, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
