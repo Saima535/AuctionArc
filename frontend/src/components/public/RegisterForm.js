@@ -163,6 +163,11 @@ export function RegisterForm() {
     handleFieldChange();
   }
 
+  function handleNidChange(event) {
+    event.target.value = event.target.value.replace(/\D/g, "").slice(0, 30);
+    handleFieldChange();
+  }
+
   return (
     <form className={styles.authForm} onSubmit={handleSubmit}>
       <div className={styles.fieldGrid}>
@@ -226,7 +231,10 @@ export function RegisterForm() {
             type="text"
             placeholder="Enter NID number"
             required
-            onChange={handleFieldChange}
+            inputMode="numeric"
+            pattern="[0-9]{5,30}"
+            maxLength={30}
+            onChange={handleNidChange}
           />
         </div>
         <div className={styles.field}>

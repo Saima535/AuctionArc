@@ -17,6 +17,7 @@ import {
   signToken,
 } from "../utils/security.js";
 import {
+  assertDigitsOnly,
   assertEmail,
   assertOptionalText,
   assertPassword,
@@ -85,6 +86,7 @@ export const register = asyncHandler(async (req, res) => {
 
   const normalizedName = assertRequiredText(name, "Name", { maxLength: 120 });
   const normalizedEmail = assertEmail(email);
+  const normalizedNid = assertDigitsOnly(nid, "NID", { minLength: 5, maxLength: 30 });
   const normalizedCountry = assertOptionalText(country, "Country", { maxLength: 120 });
   const normalizedContact = assertPhoneNumber(contact, "Contact number");
   const normalizedWalletLabel = assertOptionalText(wallet, "Wallet label", { maxLength: 120 });
@@ -130,7 +132,7 @@ export const register = asyncHandler(async (req, res) => {
     publicRoleLabel: role === "Seller" ? "Verified seller" : "Active buyer",
     status: role === "Seller" ? "Pending verification" : "Active",
     gender,
-    nid,
+    nid: normalizedNid,
     birthdate,
     country: normalizedCountry,
     location: normalizedCountry,

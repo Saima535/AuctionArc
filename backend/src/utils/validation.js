@@ -71,6 +71,24 @@ export function assertPhoneNumber(value, label = "Phone number") {
   return normalized;
 }
 
+export function assertDigitsOnly(value, label, { minLength = 1, maxLength = 100 } = {}) {
+  const normalized = cleanString(value);
+
+  if (!normalized) {
+    throw new ApiError(400, `${label} is required.`);
+  }
+
+  if (!/^\d+$/.test(normalized)) {
+    throw new ApiError(400, `${label} must contain only numbers.`);
+  }
+
+  if (normalized.length < minLength || normalized.length > maxLength) {
+    throw new ApiError(400, `${label} must be between ${minLength} and ${maxLength} digits.`);
+  }
+
+  return normalized;
+}
+
 export function assertNumber(value, label, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
   const parsed = Number(value);
 
