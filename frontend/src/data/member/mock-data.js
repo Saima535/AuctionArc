@@ -3,7 +3,7 @@ export const sellerOverview = {
     { label: "Live listings", value: "0", delta: "No live listings yet", tone: "neutral" },
     { label: "Active buyers", value: "0", delta: "No buyer activity yet", tone: "neutral" },
     { label: "Gross sales", value: "$0", delta: "No sales yet", tone: "neutral" },
-    { label: "Pending payouts", value: "$0", delta: "No payouts pending", tone: "neutral" },
+    { label: "Orders in progress", value: "0", delta: "No active orders yet", tone: "neutral" },
   ],
   activity: [],
   listings: [],
@@ -22,21 +22,12 @@ export const sellerAnalytics = {
   conversion: [0, 0, 0, 0, 0, 0, 0],
 };
 
-export const sellerWallet = {
-  stats: [
-    { label: "Available balance", value: "$0", delta: "No earnings yet", tone: "neutral" },
-    { label: "Pending payout", value: "$0", delta: "No payouts pending", tone: "neutral" },
-    { label: "Escrow held", value: "$0", delta: "No escrow holds", tone: "neutral" },
-    { label: "Platform fees", value: "$0", delta: "No fees yet", tone: "neutral" },
-  ],
-};
-
 export const bidderOverview = {
   kpis: [
     { label: "Active bids", value: "0", delta: "No active bids yet", tone: "neutral" },
     { label: "Watchlist items", value: "0", delta: "Watchlist is empty", tone: "neutral" },
     { label: "Auctions won", value: "0", delta: "No wins yet", tone: "neutral" },
-    { label: "Funds on hold", value: "$0", delta: "No funds on hold", tone: "neutral" },
+    { label: "Open conversations", value: "0", delta: "No active conversations", tone: "neutral" },
   ],
   activity: [],
   watchlist: [],
@@ -48,15 +39,6 @@ export const bidderDiscover = [];
 export const bidderBids = [];
 
 export const bidderWins = [];
-
-export const bidderWallet = {
-  stats: [
-    { label: "Available funds", value: "$0", delta: "No wallet activity yet", tone: "neutral" },
-    { label: "Funds on hold", value: "$0", delta: "No active holds", tone: "neutral" },
-    { label: "Recent payments", value: "$0", delta: "No payments yet", tone: "neutral" },
-    { label: "Refunds pending", value: "$0", delta: "No refunds pending", tone: "neutral" },
-  ],
-};
 
 export const memberThreads = [];
 
@@ -119,7 +101,7 @@ export const bidderProfile = {
     },
     {
       title: "Verification records",
-      description: "Identity, wallet, and payment records.",
+      description: "Identity and payment records.",
       items: [],
     },
     {

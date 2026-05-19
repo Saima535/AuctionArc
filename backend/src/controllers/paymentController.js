@@ -7,7 +7,6 @@ import { env } from "../config/env.js";
 import { stripe } from "../config/stripe.js";
 import { Order } from "../models/Order.js";
 import { Transaction } from "../models/Transaction.js";
-import { User } from "../models/User.js";
 import { createNotification } from "../services/notificationService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
@@ -15,89 +14,9 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { assertNumber } from "../utils/validation.js";
 import { formatCurrency } from "../utils/formatters.js";
 
-// Route each Stripe session into the matching marketplace workflow.
+// Winner checkout is now the only Stripe-backed payment workflow in the project.
 async function applyCompletedSessionEffects(session) {
-  const type = session.metadata?.type;
-
-  if (type === "winner-order") {
-    return applyWinnerOrderSessionEffects(session);
-  }
-
-  return applyWalletSessionEffects(session);
-}
-
-// Wallet and feature-credit purchases only mutate the paying user's account state.
-async function applyWalletSessionEffects(session) {
-  const userId = session.metadata?.userId;
-  const type = session.metadata?.type;
-  const amount = Number(session.amount_total || 0) / 100;
-  const code = `TXN-WEB-${session.id}`;
-  const existingTransaction = await Transaction.findOne({ code });
-
-  if (!userId) {
-    throw new ApiError(400, "Stripe session is missing the account owner.");
-  }
-
-  if (existingTransaction) {
-    return existingTransaction;
-  }
-
-  if (type === "listing-feature") {
-    await Transaction.create({
-      code,
-      user: userId,
-      type: "Listing feature credit",
-      status: "Completed",
-      amount,
-      channel: "Stripe",
-    });
-
-    await User.findByIdAndUpdate(userId, {
-      $inc: { "wallet.featureCredits": 1 },
-    });
-
-    await createNotification({
-      userId,
-      title: "Feature credit ready",
-      body: "Your $1 feature credit is ready to use on a listing.",
-      type: "payment",
-      href: "/seller/listings/new",
-      metadata: {
-        sessionId: session.id,
-      },
-    });
-
-    return null;
-  }
-
-  await Transaction.create({
-    code,
-    user: userId,
-    type: "Wallet top-up",
-    status: "Completed",
-    amount,
-    channel: "Stripe",
-  });
-
-  const user = await User.findByIdAndUpdate(userId, {
-    $inc: { "wallet.availableBalance": amount },
-  }).select("role");
-
-  await createNotification({
-    userId,
-    title: "Payment successful",
-    body: `Your wallet top-up of $${amount.toFixed(2)} was completed successfully.`,
-    type: "payment",
-    href: user?.role === "Seller" ? "/seller/wallet" : "/bidder/wallet",
-    metadata: {
-      sessionId: session.id,
-      amount,
-      transactionCode: code,
-      purpose: "wallet-top-up",
-    },
-  });
-
-  return null;
+  return applyWinnerOrderSessionEffects(session);
 }
 
 // Winner checkout touches buyer, order, seller, and ledger state together, so it
@@ -179,10 +98,6 @@ async function applyWinnerOrderSessionEffects(session) {
             stripeSessionId: session.id,
           },
         }], { session: dbSession });
-
-        await User.findByIdAndUpdate(order.seller, {
-          $inc: { "wallet.pendingPayout": amount },
-        }, { session: dbSession });
       }
     });
   } finally {
@@ -239,12 +154,7 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
     throw new ApiError(503, "Stripe is not configured yet.");
   }
 
-  const purpose =
-    req.body.purpose === "listing-feature"
-      ? "listing-feature"
-      : req.body.purpose === "winner-order"
-        ? "winner-order"
-        : "wallet-top-up";
+  const purpose = req.body.purpose === "winner-order" ? "winner-order" : "";
   let amount = 0;
   let successUrl = "";
   let cancelUrl = "";
@@ -254,12 +164,7 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
     type: purpose,
   };
 
-  if (purpose === "listing-feature") {
-    amount = 1;
-    successUrl = `${env.clientUrl}/seller/listings/new?featurePayment=success&session_id={CHECKOUT_SESSION_ID}`;
-    cancelUrl = `${env.clientUrl}/seller/listings/new?featurePayment=cancelled`;
-    productName = "AuctionArc listing feature credit";
-  } else if (purpose === "winner-order") {
+  if (purpose === "winner-order") {
     // The payable amount comes from the stored order, not the client request.
     if (req.user.role !== "Bidder") {
       throw new ApiError(403, "Only bidders can pay for winning orders.");
@@ -288,10 +193,7 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
       orderCode: order.code,
     };
   } else {
-    amount = assertNumber(req.body.amount, "Amount", { min: 1, max: 50000 });
-    successUrl = `${env.clientUrl}/bidder/wallet?status=success`;
-    cancelUrl = `${env.clientUrl}/bidder/wallet?status=cancelled`;
-    productName = "AuctionArc wallet top-up";
+    throw new ApiError(400, "Unsupported payment purpose.");
   }
 
   const session = await stripe.checkout.sessions.create({
@@ -350,12 +252,7 @@ export const confirmCheckoutSession = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message:
-      session.metadata?.type === "listing-feature"
-        ? "Feature credit added successfully."
-        : session.metadata?.type === "winner-order"
-          ? "Winning order payment confirmed successfully."
-          : "Payment confirmed successfully.",
+    message: "Winning order payment confirmed successfully.",
   });
 });
 

@@ -11,8 +11,8 @@ import { requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-router.post("/checkout-session", requireRole("Bidder", "Seller"), createCheckoutSession);
-router.post("/confirm-session", requireRole("Bidder", "Seller"), confirmCheckoutSession);
+router.post("/checkout-session", requireRole("Bidder"), createCheckoutSession);
+router.post("/confirm-session", requireRole("Bidder"), confirmCheckoutSession);
 router.post("/webhook", handleStripeWebhook);
 
 export default router;

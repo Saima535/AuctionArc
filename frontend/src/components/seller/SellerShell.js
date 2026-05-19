@@ -17,7 +17,6 @@ const primaryNavbarItems = [
 
 const secondaryNavbarItems = [
   { href: "/seller/analytics", label: "Analytics" },
-  { href: "/seller/wallet", label: "Wallet" },
   { href: "/seller/notifications", label: "Notifications" },
   { href: "/seller/profile", label: "Profile" },
   { href: "/seller/settings", label: "Settings" },

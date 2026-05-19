@@ -90,14 +90,6 @@ async function seedMarketplace() {
       verification: {
         isAdultVerified: true,
         isIdentityVerified: true,
-        isWalletVerified: true,
-      },
-      wallet: {
-        availableBalance: 24800,
-        heldBalance: 7000,
-        pendingPayout: 16800,
-        platformFees: 2300,
-        walletLabel: "Seller wallet",
       },
       preferences: {
         emailAlerts: "Enabled",
@@ -132,14 +124,6 @@ async function seedMarketplace() {
       verification: {
         isAdultVerified: true,
         isIdentityVerified: true,
-        isWalletVerified: true,
-      },
-      wallet: {
-        availableBalance: 19300,
-        heldBalance: 1800,
-        pendingPayout: 8900,
-        platformFees: 1800,
-        walletLabel: "Heritage settlement wallet",
       },
       stats: {
         sellerRating: 4.8,
@@ -164,14 +148,6 @@ async function seedMarketplace() {
       verification: {
         isAdultVerified: true,
         isIdentityVerified: false,
-        isWalletVerified: false,
-      },
-      wallet: {
-        availableBalance: 300,
-        heldBalance: 0,
-        pendingPayout: 0,
-        platformFees: 0,
-        walletLabel: "Starter seller wallet",
       },
       createdAt: daysAgo(6),
       updatedAt: daysAgo(2),
@@ -191,21 +167,12 @@ async function seedMarketplace() {
       verification: {
         isAdultVerified: true,
         isIdentityVerified: true,
-        isWalletVerified: true,
-      },
-      wallet: {
-        availableBalance: 12600,
-        heldBalance: 6400,
-        pendingPayout: 0,
-        platformFees: 0,
-        walletLabel: "Buyer wallet",
       },
       preferences: {
         outbidAlerts: "Instant",
         endingAlerts: "Enabled",
         supportAlerts: "Enabled",
         currency: "USD",
-        walletMode: "Manual",
         categoryFocus: "Vehicles, Collectibles",
       },
       stats: {
@@ -231,14 +198,6 @@ async function seedMarketplace() {
       verification: {
         isAdultVerified: true,
         isIdentityVerified: true,
-        isWalletVerified: true,
-      },
-      wallet: {
-        availableBalance: 9200,
-        heldBalance: 1000,
-        pendingPayout: 0,
-        platformFees: 0,
-        walletLabel: "UK buyer wallet",
       },
       createdAt: daysAgo(15),
       updatedAt: daysAgo(3),
@@ -258,14 +217,6 @@ async function seedMarketplace() {
       verification: {
         isAdultVerified: true,
         isIdentityVerified: true,
-        isWalletVerified: true,
-      },
-      wallet: {
-        availableBalance: 98400,
-        heldBalance: 7000,
-        pendingPayout: 0,
-        platformFees: 0,
-        walletLabel: "Enterprise buyer wallet",
       },
       createdAt: daysAgo(9),
       updatedAt: daysAgo(1),
@@ -757,7 +708,7 @@ async function seedMarketplace() {
     },
     {
       code: "MSG-102",
-      subject: "Wallet hold clarification",
+      subject: "Payment status clarification",
       priority: "High",
       status: "Support active",
       participants: [{ user: byEmail["bidder@auctionarc.com"]._id, roleLabel: "Buyer", name: "Avery Stone" }],
@@ -778,7 +729,7 @@ async function seedMarketplace() {
         { user: byEmail["seller@auctionarc.com"]._id, roleLabel: "Seller", name: "Prime Auto Gallery" },
       ],
       messages: [
-        { senderName: "Buyer", senderRole: "Bidder", body: "My wallet was charged but the seller still shows unpaid.", sentAt: daysAgo(1) },
+        { senderName: "Buyer", senderRole: "Bidder", body: "My card payment went through but the seller still shows unpaid.", sentAt: daysAgo(1) },
         { senderName: "Support", senderRole: "Support", body: "We are checking settlement state and escrow release logs.", sentAt: daysAgo(1) },
         { senderName: "Admin note", senderRole: "Admin", body: "Mark finance review if payout remains pending after next sync window.", sentAt: daysAgo(1) },
       ],
@@ -804,7 +755,7 @@ async function seedMarketplace() {
   ]);
 
   await Transaction.insertMany([
-    { code: "TXN-8801", user: byEmail["bidder@auctionarc.com"]._id, type: "Wallet debit", status: "Completed", amount: 2400, channel: "Wallet", createdAt: daysAgo(3), updatedAt: daysAgo(3) },
+    { code: "TXN-8801", user: byEmail["bidder@auctionarc.com"]._id, type: "Winning bid payment", status: "Completed", amount: 2400, channel: "Stripe", createdAt: daysAgo(3), updatedAt: daysAgo(3) },
     { code: "TXN-8802", user: byEmail["seller@auctionarc.com"]._id, type: "Seller payout", status: "Pending", amount: 18900, channel: "Bank transfer", createdAt: daysAgo(2), updatedAt: daysAgo(2) },
     { code: "TXN-8803", user: byEmail["m.rahman@auctionarc.com"]._id, type: "Registration fee", status: "Completed", amount: 25, channel: "Card", createdAt: daysAgo(6), updatedAt: daysAgo(6) },
     { code: "TXN-8804", user: byEmail["heritage@auctionarc.com"]._id, type: "Refund", status: "Review", amount: 480, channel: "Escrow", createdAt: daysAgo(1), updatedAt: daysAgo(1) },
@@ -833,9 +784,9 @@ async function seedMarketplace() {
           items: ["Default auction duration", "Reserve threshold policy", "Auto-extension window"],
         },
         {
-          title: "Payments and wallets",
-          description: "Prepare the control surface for wallet providers, payouts, and escrow.",
-          items: ["Wallet provider config", "Commission rates", "Payout release rules"],
+          title: "Payments and settlements",
+          description: "Prepare the control surface for card payments, payouts, and escrow.",
+          items: ["Card payment config", "Commission rates", "Payout release rules"],
         },
         {
           title: "Notifications and support",
@@ -854,6 +805,19 @@ async function removeSeededNotifications() {
   });
 }
 
+async function removeDeprecatedWalletData() {
+  await User.updateMany(
+    {},
+    {
+      $unset: {
+        wallet: "",
+        "verification.isWalletVerified": "",
+        "preferences.walletMode": "",
+      },
+    },
+  );
+}
+
 export async function bootstrapDatabase() {
   await createOrUpdateAdmin();
 
@@ -862,4 +826,5 @@ export async function bootstrapDatabase() {
   }
 
   await removeSeededNotifications();
+  await removeDeprecatedWalletData();
 }

@@ -44,7 +44,7 @@ async function buildSellerProfileContext(user) {
       toStats(
         "Verification",
         user.verification.isIdentityVerified ? "Verified" : "Pending",
-        user.verification.isWalletVerified ? "Wallet ready" : "Wallet review",
+        user.verification.isAdultVerified ? "Adult verified" : "Adult review",
         user.verification.isIdentityVerified ? "good" : "warn",
       ),
     ],
@@ -73,7 +73,6 @@ async function buildSellerProfileContext(user) {
         items: [
           `Adult verification: ${user.verification.isAdultVerified ? "Verified" : "Pending"}`,
           `Identity verification: ${user.verification.isIdentityVerified ? "Verified" : "Pending"}`,
-          `Wallet verification: ${user.verification.isWalletVerified ? "Verified" : "Pending"}`,
         ],
       },
       {
@@ -135,11 +134,10 @@ async function buildBidderProfileContext(user) {
       },
       {
         title: "Verification records",
-        description: "Identity, wallet, and payment trust status.",
+        description: "Identity and payment trust status.",
         items: [
           `Adult verification: ${user.verification.isAdultVerified ? "Verified" : "Pending"}`,
           `Identity verification: ${user.verification.isIdentityVerified ? "Verified" : "Pending"}`,
-          `Wallet verification: ${user.verification.isWalletVerified ? "Verified" : "Pending"}`,
         ],
       },
       {
@@ -296,7 +294,6 @@ export const updateCurrentSettings = asyncHandler(async (req, res) => {
     "endingAlerts",
     "supportAlerts",
     "currency",
-    "walletMode",
     "categoryFocus",
     "responseWindow",
     "featuredAppearance",

@@ -8,6 +8,6 @@ export const adminNavItems = [
   { href: "/admin/bids", label: "Bids", caption: "Bid review and anomalies" },
   { href: "/admin/chats", label: "Chats", caption: "Support and disputes" },
   { href: "/admin/reports", label: "Reports", caption: "Complaints and risk" },
-  { href: "/admin/transactions", label: "Transactions", caption: "Wallets and payouts" },
+  { href: "/admin/transactions", label: "Transactions", caption: "Payments and payouts" },
   { href: "/admin/settings", label: "Settings", caption: "System controls" },
 ];

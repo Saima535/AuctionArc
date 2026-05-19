@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
-import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { BID_STATUSES, LISTING_STATUSES } from "../constants/enums.js";
 import {
@@ -126,26 +125,6 @@ export const createListing = asyncHandler(async (req, res) => {
     ),
   );
 
-  let featureCreditReserved = false;
-
-  if (wantsPremiumHighlight) {
-    const updatedSeller = await User.findOneAndUpdate(
-      {
-        _id: req.user._id,
-        role: "Seller",
-        "wallet.featureCredits": { $gte: 1 },
-      },
-      { $inc: { "wallet.featureCredits": -1 } },
-      { new: true },
-    );
-
-    if (!updatedSeller) {
-      throw new ApiError(400, "Complete the $1 feature payment before featuring this listing.");
-    }
-
-    featureCreditReserved = true;
-  }
-
   let listing;
 
   try {
@@ -170,26 +149,7 @@ export const createListing = asyncHandler(async (req, res) => {
       images: uploadedImages.filter(Boolean),
     });
   } catch (error) {
-    if (featureCreditReserved) {
-      await User.findByIdAndUpdate(req.user._id, {
-        $inc: { "wallet.featureCredits": 1 },
-      });
-    }
-
     throw error;
-  }
-
-  if (wantsPremiumHighlight) {
-    await createNotification({
-      userId: req.user._id,
-      title: "Feature credit applied",
-      body: `"${listing.title}" will receive featured placement once it is approved.`,
-      type: "listing-feature",
-      href: "/seller/listings",
-      metadata: {
-        listingId: listing._id,
-      },
-    });
   }
 
   if (requestedStatus === "Pending approval") {

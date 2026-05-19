@@ -50,14 +50,6 @@ function buildAuthResponse(user) {
       role: user.role,
       status: user.status,
       profilePicture: user.profilePicture || null,
-      wallet: {
-        availableBalance: user.wallet?.availableBalance || 0,
-        heldBalance: user.wallet?.heldBalance || 0,
-        pendingPayout: user.wallet?.pendingPayout || 0,
-        platformFees: user.wallet?.platformFees || 0,
-        featureCredits: user.wallet?.featureCredits || 0,
-        walletLabel: user.wallet?.walletLabel || "",
-      },
     },
     destination:
       user.role === "Seller" ? "/seller" : user.role === "Bidder" ? "/bidder/auctions" : "/admin",
@@ -74,7 +66,6 @@ export const register = asyncHandler(async (req, res) => {
     birthdate,
     country,
     contact,
-    wallet,
     password,
     confirmPassword,
     humanVerification,
@@ -89,7 +80,6 @@ export const register = asyncHandler(async (req, res) => {
   const normalizedNid = assertDigitsOnly(nid, "NID", { minLength: 5, maxLength: 30 });
   const normalizedCountry = assertOptionalText(country, "Country", { maxLength: 120 });
   const normalizedContact = assertPhoneNumber(contact, "Contact number");
-  const normalizedWalletLabel = assertOptionalText(wallet, "Wallet label", { maxLength: 120 });
   assertPassword(password);
 
   if (!PUBLIC_ROLES.includes(role)) {
@@ -122,8 +112,6 @@ export const register = asyncHandler(async (req, res) => {
       )
     : null;
 
-  // Initialize the full wallet and verification shape here so downstream code can
-  // safely assume these nested objects exist.
   const user = await User.create({
     name: normalizedName,
     email: normalizedEmail,
@@ -137,19 +125,10 @@ export const register = asyncHandler(async (req, res) => {
     country: normalizedCountry,
     location: normalizedCountry,
     contact: normalizedContact,
-    wallet: {
-      availableBalance: 0,
-      heldBalance: 0,
-      pendingPayout: 0,
-      platformFees: 0,
-      featureCredits: 0,
-      walletLabel: normalizedWalletLabel,
-    },
     profilePicture,
     verification: {
       isAdultVerified: true,
       isIdentityVerified: false,
-      isWalletVerified: false,
     },
   });
 

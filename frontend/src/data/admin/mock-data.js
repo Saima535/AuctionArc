@@ -61,7 +61,7 @@ export const reportsData = [];
 export const transactionsData = [];
 
 export const transactionStats = [
-  { label: "Wallet balance in motion", value: "$0", delta: "No wallet movement yet", tone: "neutral" },
+  { label: "Payment volume", value: "$0", delta: "No payment activity yet", tone: "neutral" },
   { label: "Pending payouts", value: "$0", delta: "No pending payouts", tone: "neutral" },
   { label: "Refund requests", value: "0", delta: "No refund requests", tone: "neutral" },
   { label: "Platform commission", value: "$0", delta: "No commission yet", tone: "neutral" },
@@ -79,8 +79,8 @@ export const settingsSections = [
     items: [],
   },
   {
-    title: "Payments and wallets",
-    description: "Manage wallets, payouts, and settlement rules.",
+    title: "Payments and settlements",
+    description: "Manage card payments, payouts, and settlement rules.",
     items: [],
   },
   {

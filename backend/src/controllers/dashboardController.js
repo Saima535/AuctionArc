@@ -1,5 +1,5 @@
 /**
- * Shapes dashboard-specific API responses for seller, bidder, admin, and wallet views.
+ * Shapes dashboard-specific API responses for seller, bidder, and admin views.
  */
 import { AppSettings } from "../models/AppSettings.js";
 import { Auction } from "../models/Auction.js";
@@ -147,12 +147,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
         ),
         toStats("Active buyers", String(sellerBids.length), `${auctions.length} seller auctions`, "good"),
         toStats("Gross sales", formatCurrency(grossSales), `${orders.length} completed orders`, "good"),
-        toStats(
-          "Pending payouts",
-          formatCurrency(req.user.wallet.pendingPayout || 0),
-          `${processingOrders} orders in progress`,
-          "warn",
-        ),
+        toStats("Orders in progress", String(processingOrders), `${orders.length} total orders`, processingOrders ? "warn" : "good"),
       ],
       performance: [
         toStats("Listing views", compactAmount(totalViews), `${listings.length} listings tracked`, "good"),
@@ -230,7 +225,7 @@ export const getBidderOverview = asyncHandler(async (req, res) => {
         toStats("Active bids", String(bids.length), "+4 today", "good"),
         toStats("Watchlist items", String(watchlist.length), "+6 this week", "good"),
         toStats("Auctions won", String(orders.length), "+2 this month", "good"),
-        toStats("Funds on hold", formatCurrency(req.user.wallet.heldBalance || 0), `${watchlist.length} auctions`, "warn"),
+        toStats("Open conversations", String(threads.length), `${watchlist.length} watched auctions`, threads.length ? "warn" : "neutral"),
       ],
       activity: bids.slice(0, 3).map((bid) => ({
         title: bid.status === "Outbid" ? "Outbid alert" : "Bid activity",
@@ -427,9 +422,9 @@ export const getAdminInsights = asyncHandler(async (req, res) => {
         toStats("Support resolution time", "46m", "+6m", "warn"),
       ],
       topPerformers: {
-        sellers: (await User.find({ role: "Seller" }).sort({ "wallet.availableBalance": -1 }).limit(3)).map((user) => ({
+        sellers: (await User.find({ role: "Seller" }).sort({ "stats.completedSales": -1 }).limit(3)).map((user) => ({
           name: user.name,
-          metric: `${formatCurrency(user.wallet.availableBalance || 0)} volume`,
+          metric: `${user.stats.completedSales || 0} completed sales`,
           status: user.status === "Active" ? "Top seller" : "Rising",
         })),
         categories: [
@@ -705,23 +700,6 @@ export const getWatchlist = asyncHandler(async (req, res) => {
   });
 });
 
-export const getWalletOverview = asyncHandler(async (req, res) => {
-  const transactions = await Transaction.find({ user: req.user._id }).sort({ createdAt: -1 }).populate("user");
-
-  res.json({
-    success: true,
-    data: {
-      stats: [
-        toStats("Available balance", formatCurrency(req.user.wallet.availableBalance || 0), `+${formatCurrency(3200)}`, "good"),
-        toStats("Pending payout", formatCurrency(req.user.wallet.pendingPayout || 0), "2 orders", "warn"),
-        toStats("Funds on hold", formatCurrency(req.user.wallet.heldBalance || 0), "3 auctions", "warn"),
-        toStats("Platform fees", formatCurrency(req.user.wallet.platformFees || 0), "This month", "neutral"),
-      ],
-      transactions: transactions.map(toTransactionRow),
-    },
-  });
-});
-
 export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
@@ -752,16 +730,6 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
 
   order.status = status;
   await order.save();
-
-  if (status === "Completed") {
-    // Seller funds become available only after the fulfilment pipeline is complete.
-    await User.findByIdAndUpdate(order.seller._id, {
-      $inc: {
-        "wallet.pendingPayout": -Math.min(order.amount, order.seller.wallet?.pendingPayout || 0),
-        "wallet.availableBalance": order.amount,
-      },
-    });
-  }
 
   if (order.bidder?._id) {
     await createNotification({

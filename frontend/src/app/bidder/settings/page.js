@@ -25,11 +25,6 @@ const bidderSettings = [
     items: ["Watchlist alerts", "Category preferences", "Ending-soon reminders"],
   },
   {
-    title: "Payments",
-    description: "Manage wallet preferences, saved methods, and transaction visibility.",
-    items: ["Wallet funding options", "Saved payment method", "Refund tracking"],
-  },
-  {
     title: "Security",
     description: "Protect account access and session confidence.",
     items: ["Password update", "Device review", "Recovery settings"],
@@ -87,10 +82,6 @@ export default function BidderSettingsPage() {
           }}
         />,
       );
-    } else if (sectionTitle === "Payments") {
-      // navigate to wallet page for payment management
-      window.location.href = "/bidder/wallet";
-      return;
     } else if (sectionTitle === "Security") {
       setModalContent(<PasswordForm onSaved={() => setModalOpen(false)} />);
     } else {
@@ -124,7 +115,7 @@ export default function BidderSettingsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Settings"
-        description="Control profile, alerts, funding preferences, and account security."
+        description="Control profile, alerts, buying preferences, and account security."
       />
 
       {error ? <p>{error}</p> : null}
@@ -153,12 +144,11 @@ export default function BidderSettingsPage() {
           submitError={submitError}
         />
         <SettingsEditor
-          key={`bidder-buying-${data.currency}-${data.walletMode}-${data.categoryFocus}`}
+          key={`bidder-buying-${data.currency}-${data.categoryFocus}`}
           title="Buying preferences"
-          description="Tune discovery defaults, wallet behavior, and bidding experience preferences."
+          description="Tune discovery defaults and bidding experience preferences."
           fields={[
             { name: "currency", label: "Preferred currency", defaultValue: data.currency || "USD" },
-            { name: "walletMode", label: "Wallet funding mode", type: "select", defaultValue: data.walletMode || "Manual", options: ["Manual", "Auto top-up"] },
             { name: "categoryFocus", label: "Category focus", defaultValue: data.categoryFocus || "Vehicles, Collectibles" },
           ]}
           onSubmit={handleSubmit}

@@ -17,7 +17,6 @@ const primaryNavItems = [
 ];
 
 const accountMenuItems = [
-  { href: "/bidder/wallet", label: "Wallet" },
   { href: "/bidder/notifications", label: "Notifications" },
   { href: "/bidder/profile", label: "Profile" },
   { href: "/bidder/settings", label: "Settings" },

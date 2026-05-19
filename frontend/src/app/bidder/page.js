@@ -80,7 +80,7 @@ export default function BidderDashboardPage() {
           {!stats.length && isLoading ? (
             <ApiLoadingNotice
               title="Loading buyer snapshot"
-              message="We are gathering your bidding activity, watchlist status, and wallet readiness."
+              message="We are gathering your bidding activity, watchlist status, and recent marketplace activity."
             />
           ) : null}
           {error ? <ApiErrorNotice title="Buyer dashboard unavailable" message={error} /> : null}
@@ -89,8 +89,8 @@ export default function BidderDashboardPage() {
             <Link href="/bidder/auctions" className={styles.primaryButton}>
               Browse Auctions
             </Link>
-            <Link href="/bidder/wallet" className={styles.secondaryButton}>
-              Wallet
+            <Link href="/bidder/wins" className={styles.secondaryButton}>
+              Wins
             </Link>
           </div>
         </section>
@@ -134,7 +134,7 @@ export default function BidderDashboardPage() {
               </span>
               <div>
                 <h1 className={styles.sectionTitle}>Your Bidding Dashboard</h1>
-                <p>Track watched auctions, active bid movement, seller messages, and wallet readiness.</p>
+                <p>Track watched auctions, active bid movement, seller messages, and winning order progress.</p>
               </div>
             </div>
             <Link href="/bidder/my-bids" className={styles.viewButton}>

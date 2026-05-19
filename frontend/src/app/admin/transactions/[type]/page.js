@@ -14,8 +14,8 @@ const pageMeta = {
   },
   bids: {
     title: "Bid Transactions",
-    description: "Wallet debits, bid payments, holds, refunds, and bid-related payment activity.",
-    matcher: (row) => /bid|wallet|refund|escrow/i.test(`${row.type} ${row.channel}`),
+    description: "Bid payments, settlements, refunds, and related payment activity.",
+    matcher: (row) => /bid|payment|refund|escrow|stripe/i.test(`${row.type} ${row.channel}`),
   },
   sold: {
     title: "Sold Transactions",

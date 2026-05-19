@@ -350,18 +350,6 @@ export function RegisterForm() {
       </div>
 
       <div className={styles.field}>
-        <label htmlFor="register-wallet">Add wallet</label>
-        <input
-          id="register-wallet"
-          name="wallet"
-          type="text"
-          placeholder="Enter wallet number or wallet ID"
-          required
-          onChange={handleFieldChange}
-        />
-      </div>
-
-      <div className={styles.field}>
         <label htmlFor="register-password">Password</label>
         <input
           id="register-password"

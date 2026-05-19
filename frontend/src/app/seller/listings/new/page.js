@@ -1,9 +1,7 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/components/auth/AuthProvider";
 import shared from "@/components/seller/SellerShared.module.css";
 import {
   CloseIcon,
@@ -48,89 +46,18 @@ function fileSignature(file) {
 
 export default function SellerNewListingPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user, refresh } = useAuth();
   const fileInputRef = useRef(null);
   const [imageRecords, setImageRecords] = useState([]);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [premiumSelected, setPremiumSelected] = useState(false);
-  const [showFeaturePayment, setShowFeaturePayment] = useState(false);
-  const [isCreatingFeatureSession, setIsCreatingFeatureSession] = useState(false);
-  const [featureMessage, setFeatureMessage] = useState("");
-  const [featureError, setFeatureError] = useState("");
-  const [confirmingSessionId, setConfirmingSessionId] = useState("");
-  const featureCredits = user?.wallet?.featureCredits || 0;
 
   useEffect(() => {
     return () => {
       imageRecords.forEach((record) => URL.revokeObjectURL(record.previewUrl));
     };
   }, [imageRecords]);
-
-  useEffect(() => {
-    const paymentState = searchParams.get("featurePayment");
-    const sessionId = searchParams.get("session_id");
-    const confirmationKey = sessionId ? `auctionarc-feature-confirmed:${sessionId}` : "";
-
-    if (paymentState === "cancelled") {
-      setFeatureMessage("");
-      setFeatureError("Feature payment was cancelled before completion.");
-      setShowFeaturePayment(true);
-      router.replace("/seller/listings/new");
-      return;
-    }
-
-    if (
-      paymentState !== "success" ||
-      !sessionId ||
-      confirmingSessionId === sessionId ||
-      (typeof window !== "undefined" && window.sessionStorage.getItem(confirmationKey))
-    ) {
-      return;
-    }
-
-    let isMounted = true;
-
-    async function confirmFeatureSession() {
-      setConfirmingSessionId(sessionId);
-      setFeatureError("");
-      setFeatureMessage("");
-
-      try {
-        await apiRequest("/payments/confirm-session", {
-          method: "POST",
-          body: {
-            sessionId,
-          },
-        });
-
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(confirmationKey, "done");
-        }
-
-        await refresh();
-
-        if (isMounted) {
-          setPremiumSelected(true);
-          setShowFeaturePayment(true);
-          setFeatureMessage("Your $1 feature credit is ready. This listing can now be featured.");
-          router.replace("/seller/listings/new");
-        }
-      } catch (error) {
-        if (isMounted) {
-          setFeatureError(error.message || "The feature payment could not be confirmed.");
-        }
-      }
-    }
-
-    confirmFeatureSession();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [confirmingSessionId, refresh, router, searchParams]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -151,11 +78,6 @@ export default function SellerNewListingPage() {
 
     if (imageRecords.length > 3) {
       setSubmitError("You can upload a maximum of 3 images.");
-      return;
-    }
-
-    if (nativeFormData.get("premiumHighlight") && featureCredits < 1) {
-      setSubmitError("Complete the $1 feature payment before featuring this listing.");
       return;
     }
 
@@ -193,9 +115,6 @@ export default function SellerNewListingPage() {
       });
 
       setSubmitSuccess(result.message || "Listing saved successfully.");
-      if (nativeFormData.get("premiumHighlight")) {
-        await refresh();
-      }
       form.reset();
       imageRecords.forEach((record) => URL.revokeObjectURL(record.previewUrl));
       setImageRecords([]);
@@ -263,50 +182,11 @@ export default function SellerNewListingPage() {
   function clearMessages() {
     setSubmitError("");
     setSubmitSuccess("");
-    setFeatureError("");
   }
 
   function handlePremiumToggle() {
     clearMessages();
-
-    if (premiumSelected) {
-      setPremiumSelected(false);
-      return;
-    }
-
-    if (featureCredits > 0) {
-      setPremiumSelected(true);
-      setShowFeaturePayment(true);
-      return;
-    }
-
-    setShowFeaturePayment((current) => !current);
-  }
-
-  async function handleFeaturePayment() {
-    setFeatureError("");
-    setFeatureMessage("");
-    setIsCreatingFeatureSession(true);
-
-    try {
-      const result = await apiRequest("/payments/checkout-session", {
-        method: "POST",
-        body: {
-          purpose: "listing-feature",
-        },
-      });
-
-      if (result.data?.url) {
-        window.location.href = result.data.url;
-        return;
-      }
-
-      setFeatureError("The feature payment session could not be started.");
-    } catch (error) {
-      setFeatureError(error.message || "Could not start the feature payment.");
-    } finally {
-      setIsCreatingFeatureSession(false);
-    }
+    setPremiumSelected((current) => !current);
   }
 
   return (
@@ -537,36 +417,6 @@ export default function SellerNewListingPage() {
 
             {premiumSelected ? <input type="hidden" name="premiumHighlight" value="true" /> : null}
 
-            {showFeaturePayment ? (
-              <div className={shared.featurePaymentPanel}>
-                <div className={shared.featurePaymentHeader}>
-                  <div>
-                    <strong>Feature payment</strong>
-                    <p>Pay $1 once to add a feature credit to your seller account. One credit highlights one listing.</p>
-                  </div>
-                  <span className={shared.featurePrice}>$1</span>
-                </div>
-
-                <div className={shared.featurePaymentMeta}>
-                  <span>Available feature credits: {featureCredits}</span>
-                  <span>{featureCredits > 0 ? "This listing will use 1 credit on submit." : "No feature credit available yet."}</span>
-                </div>
-
-                {featureError ? <p className={shared.errorText}>{featureError}</p> : null}
-                {featureMessage ? <p className={shared.successText}>{featureMessage}</p> : null}
-
-                {featureCredits < 1 ? (
-                  <button
-                    type="button"
-                    className={shared.featurePaymentButton}
-                    onClick={handleFeaturePayment}
-                    disabled={isCreatingFeatureSession}
-                  >
-                    {isCreatingFeatureSession ? "Redirecting..." : "Pay $1 to Feature"}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         </section>
 

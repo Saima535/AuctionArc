@@ -1,5 +1,5 @@
 /**
- * Declares dashboard, wallet, and seller-order endpoints.
+ * Declares dashboard and seller-order endpoints.
  */
 import { Router } from "express";
 import {
@@ -15,7 +15,6 @@ import {
   getSellerOrders,
   getSellerOverview,
   updateSellerOrderStatus,
-  getWalletOverview,
   getWatchlist,
 } from "../controllers/dashboardController.js";
 import { requireRole } from "../middleware/auth.js";
@@ -34,8 +33,6 @@ router.get("/bidder/discover", requireRole("Bidder"), getBidderDiscover);
 router.get("/bidder/bids", requireRole("Bidder"), getBidderBids);
 router.get("/bidder/wins", requireRole("Bidder"), getBidderWins);
 router.get("/bidder/watchlist", requireRole("Bidder"), getWatchlist);
-
-router.get("/wallet", requireRole("Seller", "Bidder"), getWalletOverview);
 
 router.get("/admin", requireRole("Admin"), getAdminOverview);
 router.get("/admin/insights", requireRole("Admin"), getAdminInsights);

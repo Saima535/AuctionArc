@@ -17,23 +17,11 @@ function initialsForName(name) {
     .toUpperCase();
 }
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
-}
-
 function buildVerificationBadges(verification = {}) {
   return [
     {
       label: verification.isIdentityVerified ? "Identity verified" : "Identity pending",
       className: verification.isIdentityVerified ? styles.badgeGood : styles.badgeWarn,
-    },
-    {
-      label: verification.isWalletVerified ? "Wallet ready" : "Wallet review pending",
-      className: verification.isWalletVerified ? styles.badgeGood : styles.badgeWarn,
     },
     {
       label: verification.isAdultVerified ? "Adult verification complete" : "Adult verification pending",
@@ -72,12 +60,12 @@ function buildSellerModules(data) {
       ],
     },
     {
-      title: "Payout readiness",
-      description: "Wallet visibility and settlement readiness for current seller activity.",
+      title: "Trust readiness",
+      description: "Verification and storefront readiness for current seller activity.",
       items: [
-        `Available balance: ${formatCurrency(data.wallet?.availableBalance)}`,
-        `Pending payout: ${formatCurrency(data.wallet?.pendingPayout)}`,
-        `Held balance: ${formatCurrency(data.wallet?.heldBalance)}`,
+        `Identity verification: ${data.verification?.isIdentityVerified ? "Verified" : "Pending"}`,
+        `Adult verification: ${data.verification?.isAdultVerified ? "Verified" : "Pending"}`,
+        `Seller rating: ${data.stats?.find?.((item) => item.label === "Verification")?.value || "Pending"}`,
       ],
     },
   ];
@@ -95,7 +83,6 @@ export default function SellerProfilePage() {
       country: "",
       preferences: {},
       verification: {},
-      wallet: {},
       stats: [],
     },
   });
@@ -248,36 +235,16 @@ export default function SellerProfilePage() {
         </article>
 
         <article className={styles.infoCard}>
-          <h3 className={styles.sectionTitle}>Wallet and verification</h3>
+          <h3 className={styles.sectionTitle}>Verification and trust</h3>
           <p className={styles.sectionDescription}>
-            A quick operational view of seller payout readiness and trust checks.
+            A quick operational view of seller verification and marketplace trust checks.
           </p>
           <div className={styles.detailGrid}>
-            <ul className={styles.infoList}>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Available balance</span>
-                <strong className={styles.infoValue}>{formatCurrency(data.wallet?.availableBalance)}</strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Pending payout</span>
-                <strong className={styles.infoValue}>{formatCurrency(data.wallet?.pendingPayout)}</strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Held balance</span>
-                <strong className={styles.infoValue}>{formatCurrency(data.wallet?.heldBalance)}</strong>
-              </li>
-            </ul>
             <ul className={styles.infoList}>
               <li className={styles.infoRow}>
                 <span className={styles.infoKey}>Identity</span>
                 <strong className={styles.infoValue}>
                   {data.verification?.isIdentityVerified ? "Verified" : "Pending"}
-                </strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Wallet</span>
-                <strong className={styles.infoValue}>
-                  {data.verification?.isWalletVerified ? "Verified" : "Pending"}
                 </strong>
               </li>
               <li className={styles.infoRow}>
@@ -334,7 +301,7 @@ export default function SellerProfilePage() {
           <li className={styles.timelineItem}>
             <div className={styles.timelineMeta}>
               <strong>Verification readiness</strong>
-              <p>Identity and wallet checks affect trust, approvals, and payout confidence.</p>
+              <p>Identity checks affect trust, approvals, and buyer confidence.</p>
             </div>
             <span className={styles.timelineStatus}>
               {data.verification?.isIdentityVerified ? "Verified" : "Pending review"}

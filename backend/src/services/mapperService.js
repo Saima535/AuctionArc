@@ -49,7 +49,6 @@ export function serializeUser(user) {
     nid: user.nid,
     profilePicture: user.profilePicture || null,
     preferences: user.preferences,
-    wallet: user.wallet,
     verification: user.verification,
     stats: user.stats,
     createdAt: user.createdAt,

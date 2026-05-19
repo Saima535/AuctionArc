@@ -1,5 +1,5 @@
 /**
- * Represents marketplace users, their profile data, verification state, and wallet balances.
+ * Represents marketplace users, their profile data, and verification state.
  */
 import mongoose from "mongoose";
 import { PUBLIC_ROLES, USER_ROLES, USER_STATUSES } from "../constants/enums.js";
@@ -21,7 +21,6 @@ const userPreferenceSchema = new mongoose.Schema(
     endingAlerts: { type: String, default: "Enabled" },
     supportAlerts: { type: String, default: "Enabled" },
     currency: { type: String, default: "USD" },
-    walletMode: { type: String, default: "Manual" },
     categoryFocus: { type: String, default: "Vehicles, Collectibles" },
     responseWindow: { type: String, default: "Within 1 hour" },
     featuredAppearance: { type: String, default: "Enabled" },
@@ -31,18 +30,6 @@ const userPreferenceSchema = new mongoose.Schema(
     twoFactorMode: { type: String, default: "Enabled" },
     sessionTimeout: { type: String, default: "30 minutes" },
     auditEmail: String,
-  },
-  { _id: false },
-);
-
-const walletSchema = new mongoose.Schema(
-  {
-    availableBalance: { type: Number, default: 0 },
-    heldBalance: { type: Number, default: 0 },
-    pendingPayout: { type: Number, default: 0 },
-    platformFees: { type: Number, default: 0 },
-    featureCredits: { type: Number, default: 0 },
-    walletLabel: String,
   },
   { _id: false },
 );
@@ -92,14 +79,9 @@ const userSchema = new mongoose.Schema(
       type: userPreferenceSchema,
       default: () => ({}),
     },
-    wallet: {
-      type: walletSchema,
-      default: () => ({}),
-    },
     verification: {
       isAdultVerified: { type: Boolean, default: false },
       isIdentityVerified: { type: Boolean, default: false },
-      isWalletVerified: { type: Boolean, default: false },
     },
     stats: {
       sellerRating: { type: Number, default: 4.9 },

@@ -1,5 +1,5 @@
 /**
- * Stores wallet, payout, and Stripe-backed transaction history.
+ * Stores payment, payout, and Stripe-backed transaction history.
  */
 import mongoose from "mongoose";
 
