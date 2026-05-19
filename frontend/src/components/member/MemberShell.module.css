@@ -24,7 +24,7 @@
   height: 100vh;
   padding: 24px 18px;
   border-right: 1px solid var(--member-border);
-  background: rgba(255, 255, 255, 0.82);
+  background: #ffffff;
   backdrop-filter: blur(18px);
 }
 
@@ -123,8 +123,9 @@
   gap: 18px;
   padding: 22px 28px;
   border-bottom: 1px solid var(--member-border);
-  background: rgba(247, 248, 252, 0.9);
+  background: #f7f8fc;
   backdrop-filter: blur(16px);
+  box-shadow: 0 14px 36px rgba(37, 58, 88, 0.12);
 }
 
 .eyebrow {
