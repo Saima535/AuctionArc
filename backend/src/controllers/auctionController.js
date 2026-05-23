@@ -91,7 +91,6 @@ export const createListing = asyncHandler(async (req, res) => {
     auctionDurationUnit,
     deliveryOption,
     deliveryFee,
-    premiumHighlight,
     status,
   } = req.body;
 
@@ -103,8 +102,6 @@ export const createListing = asyncHandler(async (req, res) => {
   const parsedDurationUnit = assertOneOf(auctionDurationUnit || "day", ["minute", "day"], "Auction duration unit");
   const parsedDuration = parseAuctionDurationValue(auctionDurationDays || 5, parsedDurationUnit);
   const parsedDeliveryFee = assertNumber(deliveryFee || 0, "Delivery fee", { min: 0, max: 1000000 });
-  const wantsPremiumHighlight = premiumHighlight === "true" || premiumHighlight === true;
-
   const requestedStatus = status === "Pending approval" ? "Pending approval" : "Draft";
 
   if (requestedStatus === "Pending approval" && !req.files?.length) {
@@ -146,7 +143,8 @@ export const createListing = asyncHandler(async (req, res) => {
       auctionDurationUnit: parsedDurationUnit,
       deliveryOption: deliveryOption || "AuctionArc Delivery",
       deliveryFee: parsedDeliveryFee,
-      premiumHighlight: wantsPremiumHighlight,
+      // Seller-side listing creation cannot self-activate featured placement.
+      premiumHighlight: false,
       images: uploadedImages.filter(Boolean),
     });
   } catch (error) {
@@ -203,7 +201,6 @@ export const updateListing = asyncHandler(async (req, res) => {
     auctionDurationUnit,
     deliveryOption,
     deliveryFee,
-    premiumHighlight,
     status,
   } = req.body;
 
@@ -258,10 +255,6 @@ export const updateListing = asyncHandler(async (req, res) => {
 
   if (deliveryFee !== undefined) {
     listing.deliveryFee = assertNumber(deliveryFee || 0, "Delivery fee", { min: 0, max: 1000000 });
-  }
-
-  if (premiumHighlight !== undefined) {
-    listing.premiumHighlight = premiumHighlight === true || premiumHighlight === "true";
   }
 
   if (status) {

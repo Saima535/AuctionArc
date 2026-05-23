@@ -5,18 +5,39 @@ import Stripe from "stripe";
 import mongoose from "mongoose";
 import { env } from "../config/env.js";
 import { stripe } from "../config/stripe.js";
+import { Listing } from "../models/Listing.js";
 import { Order } from "../models/Order.js";
 import { Transaction } from "../models/Transaction.js";
 import { createNotification } from "../services/notificationService.js";
+import { syncAuctionForListing } from "../services/auctionLifecycleService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { assertNumber } from "../utils/validation.js";
 import { formatCurrency } from "../utils/formatters.js";
 
-// Winner checkout is now the only Stripe-backed payment workflow in the project.
+const FEATURED_LISTING_AMOUNT = 1;
+
+// Stripe checkout currently supports winner payments and seller-paid featured
+// listing upgrades. The metadata type tells us which post-payment workflow to run.
 async function applyCompletedSessionEffects(session) {
-  return applyWinnerOrderSessionEffects(session);
+  const paymentType = session.metadata?.type;
+
+  if (paymentType === "winner-order") {
+    return {
+      type: paymentType,
+      resource: await applyWinnerOrderSessionEffects(session),
+    };
+  }
+
+  if (paymentType === "featured-listing") {
+    return {
+      type: paymentType,
+      resource: await applyFeaturedListingSessionEffects(session),
+    };
+  }
+
+  throw new ApiError(400, "Stripe session metadata is missing a supported payment type.");
 }
 
 // Winner checkout touches buyer, order, seller, and ledger state together, so it
@@ -149,12 +170,116 @@ async function applyWinnerOrderSessionEffects(session) {
   return order;
 }
 
+// Featured listing upgrades are seller-owned purchases that toggle premium
+// marketplace placement for one listing and then refresh any live auction view.
+async function applyFeaturedListingSessionEffects(session) {
+  const userId = session.metadata?.userId;
+  const listingId = session.metadata?.listingId;
+  const amount = Number(session.amount_total || 0) / 100;
+  const transactionCode = `TXN-FEATURE-${session.id}`;
+
+  if (!userId || !listingId) {
+    throw new ApiError(400, "Stripe session is missing the featured listing details.");
+  }
+
+  const dbSession = await mongoose.startSession();
+  let listing = null;
+
+  try {
+    await dbSession.withTransaction(async () => {
+      const existingTransaction = await Transaction.findOne({
+        code: transactionCode,
+      }).session(dbSession);
+
+      listing = await Listing.findOne({
+        _id: listingId,
+        seller: userId,
+      }).session(dbSession);
+
+      if (!listing) {
+        throw new ApiError(404, "Listing not found for this seller.");
+      }
+
+      if (!listing.premiumHighlight) {
+        listing.premiumHighlight = true;
+        await listing.save({ session: dbSession });
+      }
+
+      if (existingTransaction) {
+        return;
+      }
+
+      await Transaction.create([{
+        code: transactionCode,
+        user: listing.seller,
+        type: "Featured listing purchase",
+        status: "Completed",
+        amount,
+        channel: "Stripe",
+        metadata: {
+          listingId: String(listing._id),
+          listingCode: listing.code,
+          stripeSessionId: session.id,
+        },
+      }], { session: dbSession });
+    });
+  } finally {
+    await dbSession.endSession();
+  }
+
+  if (!listing) {
+    return null;
+  }
+
+  listing = await Listing.findById(listing._id);
+
+  if (!listing) {
+    return null;
+  }
+
+  const auction = await syncAuctionForListing(listing);
+
+  await createNotification({
+    userId: listing.seller,
+    title: "Featured placement activated",
+    body: `"${listing.title}" now has featured placement in AuctionArc for ${formatCurrency(amount)}.`,
+    type: "listing",
+    href: "/seller/listings",
+    metadata: {
+      listingId: listing._id,
+      auctionId: auction?._id || null,
+      stripeSessionId: session.id,
+    },
+  });
+
+  publishLiveEvent({
+    event: "listing.updated",
+    channels: ["market:auctions", "market:watchlist"],
+    userIds: [listing.seller],
+    roles: ["Admin", "Bidder"],
+    payload: {
+      listingId: listing._id,
+      auctionId: auction?._id || null,
+      premiumHighlight: true,
+      status: listing.status,
+      auctionStatus: auction?.status || null,
+    },
+  });
+
+  return listing;
+}
+
 export const createCheckoutSession = asyncHandler(async (req, res) => {
   if (!stripe) {
     throw new ApiError(503, "Stripe is not configured yet.");
   }
 
-  const purpose = req.body.purpose === "winner-order" ? "winner-order" : "";
+  const purpose =
+    req.body.purpose === "winner-order"
+      ? "winner-order"
+      : req.body.purpose === "featured-listing"
+        ? "featured-listing"
+        : "";
   let amount = 0;
   let successUrl = "";
   let cancelUrl = "";
@@ -191,6 +316,33 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
       ...metadata,
       orderId: order._id.toString(),
       orderCode: order.code,
+    };
+  } else if (purpose === "featured-listing") {
+    if (req.user.role !== "Seller") {
+      throw new ApiError(403, "Only sellers can pay to feature a listing.");
+    }
+
+    const listing = await Listing.findOne({
+      _id: req.body.listingId,
+      seller: req.user._id,
+    });
+
+    if (!listing) {
+      throw new ApiError(404, "Listing not found.");
+    }
+
+    if (listing.premiumHighlight) {
+      throw new ApiError(400, "This listing is already featured.");
+    }
+
+    amount = FEATURED_LISTING_AMOUNT;
+    successUrl = `${env.clientUrl}/seller/listings?featurePayment=success&session_id={CHECKOUT_SESSION_ID}&listing=${listing._id}`;
+    cancelUrl = `${env.clientUrl}/seller/listings?featurePayment=cancelled&listing=${listing._id}`;
+    productName = `AuctionArc featured placement for ${listing.title}`;
+    metadata = {
+      ...metadata,
+      listingId: listing._id.toString(),
+      listingCode: listing.code,
     };
   } else {
     throw new ApiError(400, "Unsupported payment purpose.");
@@ -248,11 +400,21 @@ export const confirmCheckoutSession = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You cannot confirm another user's payment session.");
   }
 
-  await applyCompletedSessionEffects(session);
+  const applied = await applyCompletedSessionEffects(session);
+
+  const message =
+    applied.type === "winner-order"
+      ? "Winning order payment confirmed successfully."
+      : applied.type === "featured-listing"
+        ? "Featured listing payment confirmed successfully."
+        : "Payment confirmed successfully.";
 
   res.json({
     success: true,
-    message: "Winning order payment confirmed successfully.",
+    message,
+    data: {
+      type: applied.type,
+    },
   });
 });
 

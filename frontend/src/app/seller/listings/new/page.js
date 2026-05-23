@@ -101,10 +101,6 @@ export default function SellerNewListingPage() {
     });
 
     payload.set("status", intent === "approval" ? "Pending approval" : "Draft");
-    payload.set(
-      "premiumHighlight",
-      nativeFormData.get("premiumHighlight") ? "true" : "false",
-    );
 
     setIsSubmitting(true);
 
@@ -113,6 +109,35 @@ export default function SellerNewListingPage() {
         method: "POST",
         body: payload,
       });
+
+      const createdListingId = result.data?._id;
+
+      if (premiumSelected && createdListingId) {
+        setSubmitSuccess("Listing saved. Redirecting to the $1 featured placement checkout...");
+
+        try {
+          const checkoutResult = await apiRequest("/payments/checkout-session", {
+            method: "POST",
+            body: {
+              purpose: "featured-listing",
+              listingId: createdListingId,
+            },
+          });
+
+          if (!checkoutResult.data?.url) {
+            throw new Error("Stripe checkout could not be opened.");
+          }
+
+          window.location.assign(checkoutResult.data.url);
+          return;
+        } catch (paymentError) {
+          setSubmitError("Listing saved, but we could not open the $1 feature payment. You can complete it from the listings page.");
+          window.setTimeout(() => {
+            router.push(`/seller/listings?featurePayment=setup-failed&listing=${createdListingId}`);
+          }, 700);
+          return;
+        }
+      }
 
       setSubmitSuccess(result.message || "Listing saved successfully.");
       form.reset();
@@ -411,12 +436,9 @@ export default function SellerNewListingPage() {
                   <strong>Feature this listing</strong>
                   {premiumSelected ? <span className={shared.featureReadyBadge}>Featured</span> : null}
                 </div>
-                <p>Highlight the product more strongly in the marketplace once it is approved.</p>
+                <p>After you save this listing, Stripe will open so you can pay $1 and place it higher in AuctionArc.</p>
               </div>
             </label>
-
-            {premiumSelected ? <input type="hidden" name="premiumHighlight" value="true" /> : null}
-
           </div>
         </section>
 

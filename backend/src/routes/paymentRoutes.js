@@ -7,12 +7,12 @@ import {
   createCheckoutSession,
   handleStripeWebhook,
 } from "../controllers/paymentController.js";
-import { requireRole } from "../middleware/auth.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
-router.post("/checkout-session", requireRole("Bidder"), createCheckoutSession);
-router.post("/confirm-session", requireRole("Bidder"), confirmCheckoutSession);
+router.post("/checkout-session", requireAuth, createCheckoutSession);
+router.post("/confirm-session", requireAuth, confirmCheckoutSession);
 router.post("/webhook", handleStripeWebhook);
 
 export default router;

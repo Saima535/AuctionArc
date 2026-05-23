@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import shared from "@/components/seller/SellerShared.module.css";
 import { useApiData } from "@/hooks/useApiData";
 import { ListingImageGallery } from "@/components/listing/ListingImageGallery";
@@ -96,6 +97,7 @@ function statusClass(status) {
 }
 
 export default function SellerListingsPage() {
+  const searchParams = useSearchParams();
   const { data, setData, error, isLoading } = useApiData("/dashboard/seller/listings", {
     initialData: [],
   });
@@ -104,8 +106,67 @@ export default function SellerListingsPage() {
   const [busyId, setBusyId] = useState("");
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
+  const confirmedFeatureSessionRef = useRef("");
 
   const listingCards = useMemo(() => data || [], [data]);
+
+  useEffect(() => {
+    const featurePayment = searchParams.get("featurePayment");
+    const sessionId = searchParams.get("session_id");
+    const listingId = searchParams.get("listing");
+
+    if (!featurePayment) {
+      return;
+    }
+
+    if (featurePayment === "success" && sessionId) {
+      if (confirmedFeatureSessionRef.current === sessionId) {
+        return;
+      }
+
+      confirmedFeatureSessionRef.current = sessionId;
+      setPageError("");
+      setPageMessage("Confirming your featured listing payment...");
+
+      apiRequest("/payments/confirm-session", {
+        method: "POST",
+        body: { sessionId },
+      })
+        .then((result) => {
+          if (listingId) {
+            setData((current) =>
+              current.map((row) =>
+                String(row.listingId) === String(listingId)
+                  ? { ...row, premiumHighlight: true }
+                  : row,
+              ),
+            );
+          }
+
+          setPageMessage(result.message || "Featured listing payment confirmed successfully.");
+          window.history.replaceState({}, "", "/seller/listings");
+        })
+        .catch((requestError) => {
+          setPageError(requestError.message || "Could not confirm the featured listing payment.");
+          window.history.replaceState({}, "", "/seller/listings");
+        });
+
+      return;
+    }
+
+    if (featurePayment === "cancelled") {
+      setPageError("");
+      setPageMessage("Featured payment was cancelled. Your listing is still saved, and you can feature it later for $1.");
+      window.history.replaceState({}, "", "/seller/listings");
+      return;
+    }
+
+    if (featurePayment === "setup-failed") {
+      setPageError("");
+      setPageMessage("Your listing was saved, but Stripe could not open automatically. Use the Feature for $1 button below when you are ready.");
+      window.history.replaceState({}, "", "/seller/listings");
+    }
+  }, [searchParams, setData]);
 
   function startEditing(row) {
     setEditingId(row.listingId);
@@ -228,6 +289,31 @@ export default function SellerListingsPage() {
     } catch (requestError) {
       setPageError(requestError.message || "Could not delete the listing.");
     } finally {
+      setBusyId("");
+    }
+  }
+
+  async function handleFeatureCheckout(row) {
+    setPageError("");
+    setPageMessage("");
+    setBusyId(row.listingId);
+
+    try {
+      const result = await apiRequest("/payments/checkout-session", {
+        method: "POST",
+        body: {
+          purpose: "featured-listing",
+          listingId: row.listingId,
+        },
+      });
+
+      if (!result.data?.url) {
+        throw new Error("Stripe checkout could not be opened.");
+      }
+
+      window.location.assign(result.data.url);
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not open the featured listing checkout.");
       setBusyId("");
     }
   }
@@ -378,6 +464,17 @@ export default function SellerListingsPage() {
                   </div>
 
                   <div className={shared.listingActions}>
+                    {!row.premiumHighlight ? (
+                      <button
+                        type="button"
+                        className={shared.primaryCta}
+                        disabled={busyId === row.listingId}
+                        aria-label={`Feature ${row.title} for one dollar`}
+                        onClick={() => handleFeatureCheckout(row)}
+                      >
+                        <span>{busyId === row.listingId ? "Opening..." : "Feature for $1"}</span>
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className={shared.darkButton}
