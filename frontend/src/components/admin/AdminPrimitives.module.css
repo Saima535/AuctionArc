@@ -195,12 +195,13 @@
   overflow-x: auto;
   border-radius: 20px;
   border: 1px solid var(--admin-border);
+  background: var(--admin-surface, var(--member-panel, rgba(24, 24, 24, 0.94)));
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: #ffffff;
+  background: var(--admin-surface, var(--member-panel, rgba(24, 24, 24, 0.94)));
 }
 
 .table th,
@@ -212,14 +213,14 @@
 }
 
 .table tbody tr:hover {
-  background: #f8fbff;
+  background: var(--admin-active-bg, rgba(255, 255, 255, 0.04));
 }
 
 .table th {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  background: #f8fbff;
+  background: var(--admin-panel, rgba(255, 255, 255, 0.04));
 }
 
 .emptyCell {

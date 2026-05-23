@@ -31,7 +31,7 @@
   --form-secondary-bg: #f3f7fc;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
   background:
     radial-gradient(circle at top left, rgba(34, 100, 255, 0.1), transparent 26%),
     radial-gradient(circle at bottom right, rgba(37, 182, 184, 0.08), transparent 20%),
@@ -335,7 +335,19 @@
   padding: 30px 34px 40px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
+  .app {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .topbar,
+  .content {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (max-width: 980px) {
   .app {
     grid-template-columns: 1fr;
   }
