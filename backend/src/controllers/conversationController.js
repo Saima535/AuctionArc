@@ -235,12 +235,13 @@ export const getMyConversations = asyncHandler(async (req, res) => {
  */
 export const getSellerConversations = asyncHandler(async (req, res) => {
   const sellerId = req.user._id;
+  const includeArchived = String(req.query.includeArchived || "true") === "true";
 
   await migrateLegacyThreadsForUser(sellerId);
 
   const conversations = await Conversation.find({
     sellerId,
-    status: "Active",
+    status: includeArchived ? { $in: ["Active", "Archived"] } : "Active",
   })
     .populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status")
     .sort({ lastMessageAt: -1 })
@@ -272,12 +273,13 @@ export const getSellerConversations = asyncHandler(async (req, res) => {
  */
 export const getBuyerConversations = asyncHandler(async (req, res) => {
   const buyerId = req.user._id;
+  const includeArchived = String(req.query.includeArchived || "true") === "true";
 
   await migrateLegacyThreadsForUser(buyerId);
 
   const conversations = await Conversation.find({
     buyerId,
-    status: "Active",
+    status: includeArchived ? { $in: ["Active", "Archived"] } : "Active",
   })
     .populate("buyerId sellerId lastMessageSenderId", "name role profilePicture status")
     .sort({ lastMessageAt: -1 })
