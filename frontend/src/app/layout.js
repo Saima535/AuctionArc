@@ -24,8 +24,9 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable}`}
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
     >
-      <body>
+      <body suppressHydrationWarning>
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>

@@ -1,7 +1,74 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 24px;
+}
+
+.identityHero {
+  border: 1px solid var(--admin-border);
+  border-radius: 28px;
+  padding: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(34, 100, 255, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.98));
+  box-shadow: var(--admin-shadow);
+}
+
+.identityHeroTop,
+.identityWrap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.identityEyebrow {
+  display: inline-flex;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  align-items: center;
+  background: #eef4ff;
+  color: #2454c9;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.identityTitle {
+  margin-top: 10px;
+  color: var(--admin-text);
+  font-size: clamp(1.8rem, 2vw, 2.35rem);
+}
+
+.identityMeta {
+  margin-top: 10px;
+  color: var(--admin-muted);
+  line-height: 1.7;
+}
+
+.avatarPhoto,
+.avatarFallback {
+  width: 82px;
+  height: 82px;
+  border-radius: 22px;
+}
+
+.avatarPhoto {
+  border: 2px solid #c5d8ff;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  box-shadow: 0 14px 30px rgba(34, 100, 255, 0.12);
+}
+
+.avatarFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #2264ff, #1a53d9);
+  color: #ffffff;
+  font-size: 1.45rem;
+  font-weight: 800;
+  box-shadow: 0 14px 30px rgba(34, 100, 255, 0.16);
 }
 
 .statGrid,
@@ -30,7 +97,7 @@
 .alertCard,
 .compactCard {
   border: 1px solid var(--admin-border);
-  border-radius: 18px;
+  border-radius: 20px;
   background: var(--admin-panel);
   padding: 16px;
 }
@@ -38,7 +105,7 @@
 .alertHeader,
 .compactCard {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
 }
@@ -57,25 +124,48 @@
 }
 
 .inlineNotice {
-  color: #ffb1b1;
+  color: var(--admin-danger);
 }
 
 .successNotice {
-  color: #78e4ae;
+  color: var(--admin-good);
 }
 
-.detailPanel {
-  border: 1px solid var(--admin-border);
-  border-radius: 18px;
-  background: var(--admin-panel);
-  padding: 18px;
-}
-
+.detailPanel,
 .formCard {
   border: 1px solid var(--admin-border);
+  border-radius: 22px;
+  background: var(--admin-surface);
+  padding: 20px;
+  box-shadow: var(--admin-shadow);
+}
+
+.detailPanel h3,
+.profileDetailCard strong {
+  color: var(--admin-text);
+}
+
+.profileDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.profileDetailCard {
+  border: 1px solid var(--admin-border);
   border-radius: 18px;
   background: var(--admin-panel);
-  padding: 18px;
+  padding: 16px;
+}
+
+.profileDetailLabel {
+  display: block;
+  margin-bottom: 10px;
+  color: #8191a6;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .fieldLabel {
@@ -94,7 +184,7 @@
   width: 100%;
   border: 1px solid var(--admin-border-strong);
   border-radius: 14px;
-  background: var(--admin-input-bg, rgba(255, 255, 255, 0.94));
+  background: var(--admin-input-bg);
   color: var(--admin-text);
   padding: 12px 14px;
   font: inherit;
@@ -123,25 +213,26 @@
 .actionButton,
 .secondaryButton,
 .dangerButton {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 42px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--admin-border);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--admin-control-bg);
   color: var(--admin-text);
   font: inherit;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
 }
 
 .actionButton {
-  background: linear-gradient(180deg, #f0a000, #e39200);
-  color: #090909;
+  background: linear-gradient(180deg, #2264ff, #1a53d9);
+  border-color: #2e68e3;
+  color: #ffffff;
 }
 
 .dangerButton {
-  border-color: rgba(255, 95, 95, 0.36);
-  color: #ff9f9f;
+  border-color: rgba(210, 75, 75, 0.2);
+  color: var(--admin-danger);
 }
 
 @media (max-width: 1100px) {
@@ -151,9 +242,16 @@
 }
 
 @media (max-width: 800px) {
+  .identityHeroTop,
+  .identityWrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .mainGrid,
   .secondaryGrid,
-  .statGrid {
+  .statGrid,
+  .profileDetailGrid {
     grid-template-columns: 1fr;
   }
 }

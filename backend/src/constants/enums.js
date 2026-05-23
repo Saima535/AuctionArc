@@ -26,6 +26,6 @@ export const AUCTION_STATUSES = [
   "Paused",
 ];
 export const BID_STATUSES = ["Valid", "Held", "Review", "Pending check", "Top bid", "Outbid"];
-export const ORDER_STATUSES = ["Awaiting payout", "Payment pending", "Completed", "In escrow", "Awaiting shipment", "Paid", "Delivered"];
+export const ORDER_STATUSES = ["Payment pending", "Paid", "Awaiting shipment", "Delivered", "Completed"];
 export const THREAD_PRIORITIES = ["Low", "Normal", "Medium", "High"];
 export const THREAD_STATUSES = ["Open", "Support active", "Escalated", "Resolved"];

@@ -51,7 +51,7 @@ export const sellerProfile = {
     { label: "Seller rating", value: "0/5", delta: "No rating yet", tone: "neutral" },
     { label: "Completed sales", value: "0", delta: "No sales yet", tone: "neutral" },
     { label: "Buyer response time", value: "0m", delta: "No conversations yet", tone: "neutral" },
-    { label: "Verification status", value: "Not started", delta: "No verification data", tone: "neutral" },
+    { label: "Account status", value: "New", delta: "No review data", tone: "neutral" },
   ],
   sections: [
     {
@@ -85,7 +85,7 @@ export const bidderProfile = {
   stats: [
     { label: "Winning rate", value: "0%", delta: "No bidding history yet", tone: "neutral" },
     { label: "Watchlist growth", value: "0", delta: "No saved items yet", tone: "neutral" },
-    { label: "Verification status", value: "Not started", delta: "No verification data", tone: "neutral" },
+    { label: "Account status", value: "New", delta: "No review data", tone: "neutral" },
     { label: "Avg. bid response", value: "0m", delta: "No bid activity yet", tone: "neutral" },
   ],
   sections: [

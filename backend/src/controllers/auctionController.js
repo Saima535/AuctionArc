@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Listing } from "../models/Listing.js";
+import { User } from "../models/User.js";
 import { Watchlist } from "../models/Watchlist.js";
 import { BID_STATUSES, LISTING_STATUSES } from "../constants/enums.js";
 import {

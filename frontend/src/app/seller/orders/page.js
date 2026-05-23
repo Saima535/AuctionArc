@@ -16,8 +16,6 @@ import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
 const nextStatusByCurrent = {
-  "Awaiting payout": "In escrow",
-  "In escrow": "Paid",
   "Paid": "Awaiting shipment",
   "Awaiting shipment": "Delivered",
   "Delivered": "Completed",
@@ -76,7 +74,7 @@ export default function SellerOrdersPage() {
       key: "status",
       label: "Status",
       render: (value) => (
-        <StatusBadge tone={value === "Completed" || value === "Delivered" ? "good" : value === "In escrow" || value === "Awaiting shipment" ? "warn" : "neutral"}>
+        <StatusBadge tone={value === "Completed" || value === "Delivered" ? "good" : value === "Payment pending" || value === "Awaiting shipment" ? "warn" : "neutral"}>
           {value}
         </StatusBadge>
       ),
@@ -94,7 +92,7 @@ export default function SellerOrdersPage() {
             disabled={!nextStatus || busyOrderId === row.orderId}
             onClick={() => handleAdvanceStatus(row)}
           >
-            {busyOrderId === row.orderId ? "Updating..." : nextStatus ? `Mark ${nextStatus}` : "Complete"}
+            {busyOrderId === row.orderId ? "Updating..." : nextStatus ? `Mark ${nextStatus}` : row.status === "Payment pending" ? "Waiting for payment" : "Complete"}
           </button>
         );
       },
@@ -105,7 +103,7 @@ export default function SellerOrdersPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Orders"
-        description="Monitor sold items, buyer status, escrow state, and payout progress."
+        description="Monitor sold items, buyer payment, shipment progress, and delivery status."
         action={
           <LiveRefreshControls
             onRefresh={refresh}
@@ -120,7 +118,7 @@ export default function SellerOrdersPage() {
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
 
-      <Panel title="Order pipeline" description="Commercial status for completed or nearly completed sales.">
+      <Panel title="Order pipeline" description="Track winner payment confirmation and the fulfilment progress after a successful auction.">
         {error ? <ApiErrorNotice title="Seller orders unavailable" message={error} /> : <DataTable columns={orderColumns} rows={data} />}
       </Panel>
     </div>

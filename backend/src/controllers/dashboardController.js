@@ -716,8 +716,6 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
 
   // Sellers can only advance fulfilment one step at a time.
   const statusTransitions = {
-    "Awaiting payout": "In escrow",
-    "In escrow": "Paid",
     "Paid": "Awaiting shipment",
     "Awaiting shipment": "Delivered",
     "Delivered": "Completed",

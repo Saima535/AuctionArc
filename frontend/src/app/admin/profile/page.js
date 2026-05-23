@@ -1,16 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Panel,
-  SectionIntro,
-  SettingsGrid,
-  StatCard,
-} from "@/components/admin/AdminPrimitives";
+import { useMemo, useState } from "react";
+import { SectionIntro, StatCard } from "@/components/admin/AdminPrimitives";
 import { ProfileEditor, SettingsEditor } from "@/components/account/ProfileForms";
 import { useApiData } from "@/hooks/useApiData";
 import { apiRequest } from "@/lib/api";
 import styles from "../page.module.css";
+
+function initialsForName(name) {
+  return String(name || "AD")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function buildAdminSnapshot(data) {
+  return [
+    { label: "Full name", value: data.name },
+    { label: "Role title", value: data.publicRoleLabel || data.role },
+    { label: "Email", value: data.email },
+    { label: "Location", value: data.location },
+  ].filter((item) => item.value);
+}
+
+function buildSecuritySnapshot(data) {
+  return [
+    { label: "Two-factor mode", value: data.preferences?.twoFactorMode },
+    { label: "Session timeout", value: data.preferences?.sessionTimeout },
+    { label: "Audit email", value: data.preferences?.auditEmail || data.email },
+    { label: "Status", value: data.status },
+  ].filter((item) => item.value);
+}
 
 export default function AdminProfilePage() {
   const { data, setData, error } = useApiData("/users/me/profile", {
@@ -19,6 +42,9 @@ export default function AdminProfilePage() {
       role: "Admin",
       email: "",
       location: "",
+      status: "",
+      publicRoleLabel: "",
+      profilePicture: null,
       preferences: {},
       stats: [],
       sections: [],
@@ -30,6 +56,12 @@ export default function AdminProfilePage() {
   const [settingsError, setSettingsError] = useState("");
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [isSubmittingSettings, setIsSubmittingSettings] = useState(false);
+  const adminSnapshot = useMemo(() => buildAdminSnapshot(data), [data]);
+  const securitySnapshot = useMemo(() => buildSecuritySnapshot(data), [data]);
+  const profileImageUrl = data.profilePicture?.url || "";
+  const identityMeta = [data.publicRoleLabel || data.role, data.email, data.location]
+    .filter(Boolean)
+    .join(" | ");
 
   async function handleProfileSubmit(values) {
     setProfileError("");
@@ -84,10 +116,31 @@ export default function AdminProfilePage() {
     <div className={styles.page}>
       <SectionIntro
         title="Admin profile"
-        description={`Manage ${data.name || "the admin"}'s identity, security posture, and audit-facing admin preferences.`}
+        description="Manage your admin identity, security settings, and audit routing details."
       />
 
       {error ? <p>{error}</p> : null}
+
+      <section className={styles.identityHero}>
+        <div className={styles.identityHeroTop}>
+          <div className={styles.identityWrap}>
+            {profileImageUrl ? (
+              <span
+                className={styles.avatarPhoto}
+                style={{ backgroundImage: `url(${profileImageUrl})` }}
+                aria-label={`${data.name || "Admin"} profile`}
+              />
+            ) : (
+              <span className={styles.avatarFallback}>{initialsForName(data.name)}</span>
+            )}
+            <div>
+              <span className={styles.identityEyebrow}>Admin account</span>
+              <h2 className={styles.identityTitle}>{data.name || "Admin account"}</h2>
+              {identityMeta ? <p className={styles.identityMeta}>{identityMeta}</p> : null}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className={styles.statGrid}>
         {data.stats.map((metric) => (
@@ -96,22 +149,33 @@ export default function AdminProfilePage() {
       </section>
 
       <section className={styles.secondaryGrid}>
-        <Panel title="Identity summary" description="Core admin account details and contact surface.">
-          <div className={styles.compactList}>
-            {[`Name: ${data.name}`, `Role: ${data.role}`, `Email: ${data.email}`, `Location: ${data.location}`].map((item) => (
-              <article key={item} className={styles.compactCard}>
-                <div>
-                  <strong>{item}</strong>
-                  <p>These values are now loaded from your live admin account.</p>
+        {adminSnapshot.length ? (
+          <article className={styles.detailPanel}>
+            <h3>Account details</h3>
+            <div className={styles.profileDetailGrid}>
+              {adminSnapshot.map((item) => (
+                <div key={item.label} className={styles.profileDetailCard}>
+                  <span className={styles.profileDetailLabel}>{item.label}</span>
+                  <strong>{item.value}</strong>
                 </div>
-              </article>
-            ))}
-          </div>
-        </Panel>
+              ))}
+            </div>
+          </article>
+        ) : null}
 
-        <Panel title="Admin profile controls" description="Identity and security modules for the admin account.">
-          <SettingsGrid sections={data.sections} />
-        </Panel>
+        {securitySnapshot.length ? (
+          <article className={styles.detailPanel}>
+            <h3>Security overview</h3>
+            <div className={styles.profileDetailGrid}>
+              {securitySnapshot.map((item) => (
+                <div key={item.label} className={styles.profileDetailCard}>
+                  <span className={styles.profileDetailLabel}>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </article>
+        ) : null}
       </section>
 
       <section className={styles.secondaryGrid}>

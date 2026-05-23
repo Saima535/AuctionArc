@@ -6,22 +6,22 @@
 }
 
 .sectionBar {
-  width: 5px;
-  height: 32px;
+  width: 6px;
+  height: 34px;
   border-radius: 999px;
-  background: #f0b000;
+  background: linear-gradient(180deg, #2264ff, #28b0c7);
 }
 
 .sectionTitle h2 {
-  font-size: 1.55rem;
-  color: #fff8ec;
+  font-size: 1.5rem;
+  color: var(--admin-text);
 }
 
 .panelCard {
-  border: 1px solid rgba(240, 173, 0, 0.28);
-  border-radius: 24px;
-  background: #15151a;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--admin-border);
+  border-radius: 28px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow);
 }
 
 .statusPill {
@@ -31,41 +31,42 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 800;
+  border: 1px solid transparent;
 }
 
 .green {
-  background: rgba(0, 116, 52, 0.26);
-  color: #10ea76;
-  border: 1px solid rgba(16, 234, 118, 0.24);
+  background: rgba(23, 136, 90, 0.1);
+  color: var(--admin-good);
+  border-color: rgba(23, 136, 90, 0.18);
 }
 
 .red {
-  background: rgba(115, 13, 20, 0.22);
-  color: #ff4e57;
-  border: 1px solid rgba(255, 78, 87, 0.3);
+  background: rgba(210, 75, 75, 0.1);
+  color: var(--admin-danger);
+  border-color: rgba(210, 75, 75, 0.18);
 }
 
 .orange {
-  background: rgba(124, 63, 0, 0.24);
-  color: #ff8a00;
-  border: 1px solid rgba(255, 138, 0, 0.28);
+  background: rgba(184, 120, 24, 0.1);
+  color: var(--admin-warn);
+  border-color: rgba(184, 120, 24, 0.18);
 }
 
 .blue {
-  background: rgba(16, 84, 175, 0.24);
-  color: #53a4ff;
-  border: 1px solid rgba(83, 164, 255, 0.24);
+  background: rgba(34, 100, 255, 0.1);
+  color: var(--admin-accent);
+  border-color: rgba(34, 100, 255, 0.18);
 }
 
 .purple {
-  background: rgba(99, 22, 148, 0.24);
-  color: #bb67ff;
-  border: 1px solid rgba(187, 103, 255, 0.22);
+  background: rgba(61, 92, 163, 0.1);
+  color: #4b66a7;
+  border-color: rgba(61, 92, 163, 0.18);
 }
 
 .gold {
-  background: rgba(102, 72, 8, 0.28);
-  color: #f0b000;
-  border: 1px solid rgba(240, 176, 0, 0.22);
+  background: #eef4ff;
+  color: #2454c9;
+  border-color: #c8dbff;
 }

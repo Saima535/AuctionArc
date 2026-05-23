@@ -16,7 +16,7 @@ import styles from "@/components/member/MemberDashboard.module.css";
 const bidderSettings = [
   {
     title: "Profile",
-    description: "Personal identity, contact details, and verification status.",
+    description: "Personal account details and contact information.",
     items: ["Contact information", "Verification details", "Preferred country and currency"],
   },
   {

@@ -20,55 +20,32 @@ function initialsForName(name) {
 function buildVerificationBadges(verification = {}) {
   return [
     {
-      label: verification.isIdentityVerified ? "Identity verified" : "Identity pending",
-      className: verification.isIdentityVerified ? styles.badgeGood : styles.badgeWarn,
-    },
-    {
       label: verification.isAdultVerified ? "Adult verification complete" : "Adult verification pending",
       className: verification.isAdultVerified ? styles.badge : styles.badgeMuted,
     },
   ];
 }
 
-function buildSellerModules(data) {
+function buildSellerSnapshot(data) {
   return [
-    {
-      title: "Store identity",
-      description: "How your storefront appears to buyers across listings and messages.",
-      items: [
-        `Store name: ${data.name || "Not set"}`,
-        `Public seller label: ${data.publicRoleLabel || "Seller"}`,
-        `Location: ${data.location || "Not set"}`,
-      ],
-    },
-    {
-      title: "Communication",
-      description: "The core ways AuctionArc buyers and support can reach you.",
-      items: [
-        `Email alerts: ${data.preferences?.emailAlerts || "Enabled"}`,
-        `Buyer message alerts: ${data.preferences?.messageAlerts || "Instant"}`,
-        `Preferred response window: ${data.preferences?.responseWindow || "Within 1 hour"}`,
-      ],
-    },
-    {
-      title: "Listing defaults",
-      description: "The seller defaults used when you prepare new auction products.",
-      items: [
-        `Default auction duration: ${data.preferences?.defaultAuctionDuration || "7 days"}`,
-        `Shipping template: ${data.preferences?.defaultShipping || "Standard insured shipping"}`,
-        `Reserve reminder: ${data.preferences?.reserveReminder || "Enabled"}`,
-      ],
-    },
-    {
-      title: "Trust readiness",
-      description: "Verification and storefront readiness for current seller activity.",
-      items: [
-        `Identity verification: ${data.verification?.isIdentityVerified ? "Verified" : "Pending"}`,
-        `Adult verification: ${data.verification?.isAdultVerified ? "Verified" : "Pending"}`,
-        `Seller rating: ${data.stats?.find?.((item) => item.label === "Verification")?.value || "Pending"}`,
-      ],
-    },
-  ];
+    { label: "Store name", value: data.name },
+    { label: "Seller label", value: data.publicRoleLabel || data.role },
+    { label: "Email", value: data.email },
+    { label: "Contact", value: data.contact },
+    { label: "Country", value: data.country },
+    { label: "Location", value: data.location },
+  ].filter((item) => item.value);
+}
+
+function buildSellerPreferenceSnapshot(data) {
+  return [
+    { label: "Response window", value: data.preferences?.responseWindow },
+    { label: "Message alerts", value: data.preferences?.messageAlerts },
+    { label: "Featured appearance", value: data.preferences?.featuredAppearance },
+    { label: "Auction duration", value: data.preferences?.defaultAuctionDuration },
+    { label: "Shipping template", value: data.preferences?.defaultShipping },
+    { label: "Reserve reminder", value: data.preferences?.reserveReminder },
+  ].filter((item) => item.value);
 }
 
 export default function SellerProfilePage() {
@@ -81,6 +58,7 @@ export default function SellerProfilePage() {
       publicRoleLabel: "",
       contact: "",
       country: "",
+      profilePicture: null,
       preferences: {},
       verification: {},
       stats: [],
@@ -97,7 +75,12 @@ export default function SellerProfilePage() {
     () => buildVerificationBadges(data.verification),
     [data.verification],
   );
-  const sellerModules = useMemo(() => buildSellerModules(data), [data]);
+  const sellerSnapshot = useMemo(() => buildSellerSnapshot(data), [data]);
+  const sellerPreferenceSnapshot = useMemo(() => buildSellerPreferenceSnapshot(data), [data]);
+  const profileImageUrl = data.profilePicture?.url || "";
+  const identityMeta = [data.publicRoleLabel || data.role, data.email, data.location || data.country]
+    .filter(Boolean)
+    .join(" | ");
 
   async function handleProfileSubmit(values) {
     setProfileError("");
@@ -165,14 +148,19 @@ export default function SellerProfilePage() {
       <section className={styles.heroCard}>
         <div className={styles.heroTop}>
           <div className={styles.identityWrap}>
-            <span className={styles.avatar}>{initialsForName(data.name)}</span>
+            {profileImageUrl ? (
+              <span
+                className={styles.avatarPhoto}
+                style={{ backgroundImage: `url(${profileImageUrl})` }}
+                aria-label={`${data.name || "Seller"} profile`}
+              />
+            ) : (
+              <span className={styles.avatar}>{initialsForName(data.name)}</span>
+            )}
             <div className={styles.identityBlock}>
               <span className={styles.eyebrow}>Seller account</span>
-              <h2>{data.name || "Seller storefront"}</h2>
-              <p className={styles.identityMeta}>
-                {data.publicRoleLabel || "Seller"} | {data.email || "No email set"} |{" "}
-                {data.location || data.country || "Location not set"}
-              </p>
+              <h2>{data.name || "Seller account"}</h2>
+              {identityMeta ? <p className={styles.identityMeta}>{identityMeta}</p> : null}
             </div>
           </div>
 
@@ -197,118 +185,46 @@ export default function SellerProfilePage() {
       </section>
 
       <section className={styles.infoGrid}>
-        <article className={styles.infoCard}>
-          <h3 className={styles.sectionTitle}>Account details</h3>
-          <p className={styles.sectionDescription}>
-            The core seller identity values currently connected to your live account.
-          </p>
-          <div className={styles.detailGrid}>
-            <ul className={styles.infoList}>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Store name</span>
-                <strong className={styles.infoValue}>{data.name || "Not set"}</strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Seller label</span>
-                <strong className={styles.infoValue}>{data.publicRoleLabel || "Seller"}</strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Email</span>
-                <strong className={styles.infoValue}>{data.email || "Not set"}</strong>
-              </li>
-            </ul>
-            <ul className={styles.infoList}>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Contact</span>
-                <strong className={styles.infoValue}>{data.contact || "Not set"}</strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Country</span>
-                <strong className={styles.infoValue}>{data.country || "Not set"}</strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Location</span>
-                <strong className={styles.infoValue}>{data.location || "Not set"}</strong>
-              </li>
-            </ul>
-          </div>
-        </article>
-
-        <article className={styles.infoCard}>
-          <h3 className={styles.sectionTitle}>Verification and trust</h3>
-          <p className={styles.sectionDescription}>
-            A quick operational view of seller verification and marketplace trust checks.
-          </p>
-          <div className={styles.detailGrid}>
-            <ul className={styles.infoList}>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Identity</span>
-                <strong className={styles.infoValue}>
-                  {data.verification?.isIdentityVerified ? "Verified" : "Pending"}
-                </strong>
-              </li>
-              <li className={styles.infoRow}>
-                <span className={styles.infoKey}>Adult verification</span>
-                <strong className={styles.infoValue}>
-                  {data.verification?.isAdultVerified ? "Verified" : "Pending"}
-                </strong>
-              </li>
-            </ul>
-          </div>
-        </article>
-      </section>
-
-      <section className={styles.settingsGrid}>
-        {sellerModules.map((section) => (
-          <article key={section.title} className={styles.settingsCard}>
-            <h3>{section.title}</h3>
-            <p>{section.description}</p>
-            <ul className={styles.settingsItems}>
-              {section.items.map((item) => (
-                <li key={item}>{item}</li>
+        {sellerSnapshot.length ? (
+          <article className={styles.infoCard}>
+            <h3 className={styles.sectionTitle}>Account details</h3>
+            <div className={styles.detailGrid}>
+              {sellerSnapshot.map((item) => (
+                <div key={item.label} className={styles.detailCard}>
+                  <span className={styles.detailLabel}>{item.label}</span>
+                  <strong className={styles.detailValue}>{item.value}</strong>
+                </div>
               ))}
-            </ul>
+            </div>
           </article>
-        ))}
-      </section>
+        ) : null}
 
-      <article className={styles.timelineCard}>
-        <div className={styles.timelineHeader}>
-          <div>
-            <h3 className={styles.sectionTitle}>Seller profile checklist</h3>
-            <p className={styles.sectionDescription}>
-              The essentials buyers and admins expect to see kept current.
-            </p>
+        {sellerPreferenceSnapshot.length ? (
+          <article className={styles.infoCard}>
+            <h3 className={styles.sectionTitle}>Selling preferences</h3>
+            <div className={styles.detailGrid}>
+              {sellerPreferenceSnapshot.map((item) => (
+                <div key={item.label} className={styles.detailCard}>
+                  <span className={styles.detailLabel}>{item.label}</span>
+                  <strong className={styles.detailValue}>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </article>
+        ) : null}
+
+        <article className={styles.infoCard}>
+          <h3 className={styles.sectionTitle}>Verification</h3>
+          <div className={styles.detailGrid}>
+            <div className={styles.detailCard}>
+              <span className={styles.detailLabel}>Adult verification</span>
+              <strong className={styles.detailValue}>
+                {data.verification?.isAdultVerified ? "Verified" : "Pending"}
+              </strong>
+            </div>
           </div>
-          <span className={styles.badgeGood}>Live account data</span>
-        </div>
-
-        <ul className={styles.timelineList}>
-          <li className={styles.timelineItem}>
-            <div className={styles.timelineMeta}>
-              <strong>Store identity</strong>
-              <p>Store name, public seller label, and location should stay accurate for buyer trust.</p>
-            </div>
-            <span className={styles.timelineStatus}>{data.publicRoleLabel || "Seller"}</span>
-          </li>
-          <li className={styles.timelineItem}>
-            <div className={styles.timelineMeta}>
-              <strong>Buyer communication</strong>
-              <p>Contact details and response window shape how buyers experience your storefront.</p>
-            </div>
-            <span className={styles.timelineStatus}>{data.preferences?.responseWindow || "Within 1 hour"}</span>
-          </li>
-          <li className={styles.timelineItem}>
-            <div className={styles.timelineMeta}>
-              <strong>Verification readiness</strong>
-              <p>Identity checks affect trust, approvals, and buyer confidence.</p>
-            </div>
-            <span className={styles.timelineStatus}>
-              {data.verification?.isIdentityVerified ? "Verified" : "Pending review"}
-            </span>
-          </li>
-        </ul>
-      </article>
+        </article>
+      </section>
 
       <section className={styles.formGrid}>
         <ProfileEditor

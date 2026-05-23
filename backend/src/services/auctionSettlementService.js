@@ -19,7 +19,6 @@ import { isAuctionExpired } from "./auctionQueryService.js";
 const REVIEW_BID_STATUSES = ["Held", "Review", "Pending check"];
 const ACTIVE_AUCTION_STATUSES = ["Scheduled", "Live", "Extended"];
 const ENDING_SOON_WINDOW_MS = 60 * 60 * 1000;
-const ORDER_ACTIVE_STATUSES = ["Awaiting payout", "In escrow", "Paid", "Awaiting shipment", "Delivered", "Completed"];
 const AUCTION_SETTLEMENT_BATCH_SIZE = parseInt(process.env.AUCTION_SETTLEMENT_BATCH_SIZE, 10) || 50;
 const SETTLING_STALE_THRESHOLD_MS = 5 * 60 * 1000;
 

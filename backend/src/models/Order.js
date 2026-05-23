@@ -31,7 +31,7 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ORDER_STATUSES,
-      default: "Awaiting payout",
+      default: "Payment pending",
     },
   },
   {

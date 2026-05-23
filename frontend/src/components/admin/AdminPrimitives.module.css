@@ -1,21 +1,22 @@
 .sectionIntro {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 18px;
+  margin-bottom: 24px;
 }
 
 .sectionIntro h2 {
-  font-size: 1.45rem;
-  line-height: 1.15;
+  font-size: clamp(1.5rem, 2vw, 1.9rem);
+  line-height: 1.1;
   color: var(--admin-text, var(--color-text));
 }
 
 .sectionIntro p {
-  margin-top: 8px;
+  margin-top: 10px;
   color: var(--admin-muted, var(--color-muted));
   line-height: 1.7;
+  max-width: 760px;
 }
 
 .panel,
@@ -25,19 +26,19 @@
 .chatList,
 .chatThread {
   border: 1px solid var(--admin-border);
-  border-radius: 24px;
-  background: var(--admin-surface, rgba(255, 255, 255, 0.82));
+  border-radius: 28px;
+  background: var(--admin-surface);
   box-shadow: var(--admin-shadow);
 }
 
 .panel,
 .detailPanel,
 .settingCard {
-  padding: 22px;
+  padding: 24px;
 }
 
 .statCard {
-  padding: 20px;
+  padding: 22px;
 }
 
 .statCard p,
@@ -54,8 +55,8 @@
 }
 
 .statCard h3 {
-  margin-top: 8px;
-  font-size: 2rem;
+  margin-top: 12px;
+  font-size: 2.05rem;
   line-height: 1;
   color: var(--admin-text, var(--color-text));
 }
@@ -64,17 +65,17 @@
 .deltaWarn,
 .deltaNeutral {
   display: inline-flex;
-  margin-top: 12px;
-  font-size: 0.88rem;
+  margin-top: 14px;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
 .deltaGood {
-  color: var(--admin-good, #1d9b5f);
+  color: var(--admin-good);
 }
 
 .deltaWarn {
-  color: var(--admin-warn, #d97706);
+  color: var(--admin-warn);
 }
 
 .deltaNeutral {
@@ -83,16 +84,16 @@
 
 .panelHeader {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 18px;
+  margin-bottom: 20px;
 }
 
 .panelHeader h3,
 .threadHeader h3,
 .settingCard h3 {
-  font-size: 1.18rem;
+  font-size: 1.16rem;
   line-height: 1.2;
   color: var(--admin-text, var(--color-text));
 }
@@ -103,56 +104,59 @@
 .badgeNeutral {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
+  min-height: 32px;
   padding: 0 12px;
   border-radius: 999px;
+  border: 1px solid transparent;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .badgeGood {
-  background: rgba(29, 155, 95, 0.12);
-  color: var(--admin-good, #1d9b5f);
+  background: rgba(23, 136, 90, 0.1);
+  border-color: rgba(23, 136, 90, 0.16);
+  color: var(--admin-good);
 }
 
 .badgeWarn {
-  background: rgba(217, 119, 6, 0.12);
-  color: var(--admin-warn, #d97706);
+  background: rgba(184, 120, 24, 0.12);
+  border-color: rgba(184, 120, 24, 0.16);
+  color: var(--admin-warn);
 }
 
 .badgeDanger {
-  background: rgba(209, 67, 67, 0.12);
-  color: var(--admin-danger, #d14343);
+  background: rgba(210, 75, 75, 0.1);
+  border-color: rgba(210, 75, 75, 0.16);
+  color: var(--admin-danger);
 }
 
 .badgeNeutral {
-  background: rgba(102, 117, 143, 0.12);
+  background: #f3f7fc;
+  border-color: var(--admin-border);
   color: var(--admin-muted, var(--color-muted));
 }
 
-.filterBar {
+.filterBar,
+.liveControls {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
 .liveControls {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
 }
 
 .liveBadge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
+  min-height: 36px;
   padding: 0 12px;
   border-radius: 999px;
   border: 1px solid var(--admin-border);
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--admin-panel);
   color: var(--admin-text, var(--color-text));
   font-size: 0.82rem;
   font-weight: 700;
@@ -163,11 +167,12 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #1d9b5f;
+  background: var(--admin-muted);
 }
 
 .liveDotActive {
-  box-shadow: 0 0 0 6px rgba(29, 155, 95, 0.14);
+  background: var(--admin-good);
+  box-shadow: 0 0 0 6px rgba(23, 136, 90, 0.12);
 }
 
 .liveTimestamp {
@@ -176,47 +181,56 @@
 
 .filterChip,
 .actionButton {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 42px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--admin-border-strong);
-  background: var(--admin-control-bg, rgba(255, 255, 255, 0.82));
+  background: var(--admin-control-bg);
   color: var(--admin-text, var(--color-text));
   cursor: pointer;
+  font-weight: 700;
 }
 
 .tableWrap {
   overflow-x: auto;
+  border-radius: 20px;
+  border: 1px solid var(--admin-border);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  background: #ffffff;
 }
 
 .table th,
 .table td {
-  padding: 14px 10px;
+  padding: 15px 12px;
   text-align: left;
-  border-bottom: 1px solid var(--admin-border);
+  border-bottom: 1px solid #ebf1f7;
   white-space: nowrap;
 }
 
+.table tbody tr:hover {
+  background: #f8fbff;
+}
+
 .table th {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  background: #f8fbff;
 }
 
 .emptyCell {
   text-align: center;
-  padding: 24px 10px;
+  padding: 28px 10px;
 }
 
 .feed {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .feedItem {
@@ -234,13 +248,10 @@
 }
 
 .chartFrame {
-  height: 220px;
-  border-radius: 18px;
-  background: var(
-    --admin-chart-bg,
-    linear-gradient(180deg, rgba(231, 240, 255, 0.5), rgba(255, 255, 255, 0.4)),
-    var(--admin-panel)
-  );
+  height: 236px;
+  border-radius: 22px;
+  background: var(--admin-chart-bg);
+  border: 1px solid var(--admin-border);
   padding: 18px;
 }
 
@@ -250,18 +261,18 @@
 }
 
 .chartBlue {
-  --line: #0f62fe;
-  --area: rgba(15, 98, 254, 0.14);
+  --line: #2264ff;
+  --area: rgba(34, 100, 255, 0.14);
 }
 
 .chartOrange {
-  --line: #d97706;
-  --area: rgba(217, 119, 6, 0.14);
+  --line: #b87818;
+  --area: rgba(184, 120, 24, 0.14);
 }
 
 .chartGreen {
-  --line: #1d9b5f;
-  --area: rgba(29, 155, 95, 0.14);
+  --line: #17885a;
+  --area: rgba(23, 136, 90, 0.14);
 }
 
 .chartArea {
@@ -305,7 +316,7 @@
 .barFill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(135deg, #0f62fe, #4d8dff);
+  background: linear-gradient(135deg, #2264ff, #4d8dff);
 }
 
 .noteList {
@@ -331,7 +342,7 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #0f62fe, #4d8dff);
+  background: linear-gradient(135deg, #2264ff, #4d8dff);
 }
 
 .actionRow {
@@ -343,7 +354,7 @@
 
 .chatLayout {
   display: grid;
-  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
   gap: 18px;
 }
 
@@ -358,19 +369,25 @@
   gap: 12px;
 }
 
-.chatSearch {
-  margin-bottom: 4px;
+.chatSearchInput,
+.composerInput {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--admin-border-strong);
+  background: var(--admin-input-bg);
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--admin-text, var(--color-text));
 }
 
 .chatSearchInput {
-  width: 100%;
-  min-height: 46px;
-  border-radius: 14px;
-  border: 1px solid var(--admin-border-strong);
-  background: var(--admin-input-bg, rgba(255, 255, 255, 0.94));
-  padding: 0 14px;
-  font: inherit;
-  color: var(--admin-text, var(--color-text));
+  min-height: 48px;
+}
+
+.composerInput {
+  margin-top: 12px;
+  min-height: 110px;
+  resize: vertical;
 }
 
 .chatItem,
@@ -379,7 +396,7 @@
 .messageCardOwn,
 .noteComposer {
   border: 1px solid var(--admin-border);
-  border-radius: 18px;
+  border-radius: 20px;
   background: var(--admin-panel, var(--color-panel));
 }
 
@@ -390,15 +407,16 @@
 }
 
 .chatItemActive {
-  background: var(--admin-active-bg, linear-gradient(180deg, #eef4ff, #f8fbff));
-  border-color: var(--admin-active-border, #c9dbff);
+  background: var(--admin-active-bg);
+  border-color: var(--admin-active-border);
 }
 
-.chatItemTop {
+.chatItemTop,
+.threadHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
 .chatItem p,
@@ -410,9 +428,9 @@
 .chatParticipants {
   display: inline-flex;
   margin-top: 10px;
-  color: var(--admin-warn, #d97706);
+  color: var(--admin-accent);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .chatItem small,
@@ -420,14 +438,6 @@
   display: inline-flex;
   margin-top: 10px;
   color: var(--admin-muted, var(--color-muted));
-}
-
-.threadHeader {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
 }
 
 .messageList {
@@ -442,44 +452,32 @@
   padding: 16px;
 }
 
-.composerInput {
-  width: 100%;
-  margin-top: 12px;
-  min-height: 110px;
-  border-radius: 16px;
-  border: 1px solid var(--admin-border-strong);
-  background: var(--admin-input-bg, rgba(255, 255, 255, 0.94));
-  padding: 12px 14px;
-  font: inherit;
-  color: var(--admin-text, var(--color-text));
-  resize: vertical;
+.messageCard {
+  max-width: min(80%, 680px);
 }
 
-.messageCard strong {
+.messageCardOwn {
+  margin-left: auto;
+  max-width: min(80%, 680px);
+  background: linear-gradient(180deg, #2264ff, #1a53d9);
+  border-color: #2b66df;
+}
+
+.messageCard strong,
+.messageCardOwn strong {
   color: var(--admin-text, var(--color-text));
+}
+
+.messageCardOwn strong,
+.messageCardOwn p,
+.messageCardOwn .messageTimestamp {
+  color: #ffffff;
 }
 
 .messageCard p,
 .messageCardOwn p {
   margin-top: 8px;
   line-height: 1.7;
-}
-
-.messageCardOwn {
-  margin-left: auto;
-  max-width: min(80%, 680px);
-  background: linear-gradient(180deg, #f5aa00, #ea9a00);
-  border-color: rgba(234, 154, 0, 0.55);
-}
-
-.messageCard {
-  max-width: min(80%, 680px);
-}
-
-.messageCardOwn strong,
-.messageCardOwn p,
-.messageCardOwn .messageTimestamp {
-  color: #111;
 }
 
 .messageTimestamp {
@@ -489,15 +487,11 @@
   font-size: 0.82rem;
 }
 
-.noteComposer {
-  margin-top: 16px;
-}
-
 .chatEmptyState {
   padding: 28px;
-  border-radius: 18px;
+  border-radius: 22px;
   border: 1px dashed var(--admin-border-strong);
-  background: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .chatEmptyState strong {

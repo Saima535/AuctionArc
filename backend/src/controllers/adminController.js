@@ -439,7 +439,7 @@ export const getTransactions = asyncHandler(async (req, res) => {
 export const getWinners = asyncHandler(async (req, res) => {
   await finalizeExpiredAuctions();
 
-  const orders = await Order.find({ status: { $in: ["Completed", "Paid", "Delivered", "Awaiting shipment", "In escrow"] } })
+  const orders = await Order.find({ status: { $in: ["Payment pending", "Paid", "Awaiting shipment", "Delivered", "Completed"] } })
     .populate("seller bidder listing")
     .sort({ updatedAt: -1 });
 

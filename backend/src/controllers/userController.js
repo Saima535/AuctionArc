@@ -41,12 +41,7 @@ async function buildSellerProfileContext(user) {
       toStats("Active listings", String(activeListings), `${pendingListings} pending`, activeListings ? "good" : "neutral"),
       toStats("Completed sales", String(completedSales), `${orders.length} total orders`, completedSales ? "good" : "neutral"),
       toStats("Open conversations", String(openThreads), user.preferences.responseWindow || "Within 1 hour", openThreads ? "warn" : "good"),
-      toStats(
-        "Verification",
-        user.verification.isIdentityVerified ? "Verified" : "Pending",
-        user.verification.isAdultVerified ? "Adult verified" : "Adult review",
-        user.verification.isIdentityVerified ? "good" : "warn",
-      ),
+      toStats("Store status", user.status, user.verification.isAdultVerified ? "Adult verified" : "Adult review", user.status === "Active" ? "good" : "warn"),
     ],
     sections: [
       {
@@ -54,7 +49,6 @@ async function buildSellerProfileContext(user) {
         description: "Public-facing storefront identity and trust markers.",
         items: [
           `Store label: ${user.publicRoleLabel || "Seller"}`,
-          `Identity verification: ${user.verification.isIdentityVerified ? "Verified" : "Pending"}`,
           `Seller rating: ${user.stats.sellerRating || 0}/5`,
         ],
       },
@@ -72,7 +66,6 @@ async function buildSellerProfileContext(user) {
         description: "Seller identity and ownership proof status.",
         items: [
           `Adult verification: ${user.verification.isAdultVerified ? "Verified" : "Pending"}`,
-          `Identity verification: ${user.verification.isIdentityVerified ? "Verified" : "Pending"}`,
         ],
       },
       {
@@ -98,7 +91,7 @@ async function buildBidderProfileContext(user) {
 
   const leadingBids = bids.filter((item) => item.status === "Top bid").length;
   const reviewBids = bids.filter((item) => ["Held", "Review", "Pending check"].includes(item.status)).length;
-  const wonOrders = orders.filter((item) => ["Completed", "Paid", "Delivered", "Awaiting shipment", "In escrow"].includes(item.status)).length;
+  const wonOrders = orders.filter((item) => ["Payment pending", "Paid", "Awaiting shipment", "Delivered", "Completed"].includes(item.status)).length;
   const openThreads = threads.filter((item) => ["Open", "Support active", "Escalated"].includes(item.status)).length;
 
   return {
@@ -106,12 +99,7 @@ async function buildBidderProfileContext(user) {
       toStats("Active bids", String(bids.length), `${leadingBids} leading`, bids.length ? "good" : "neutral"),
       toStats("Watchlist items", String(watchlist.length), `${user.stats.watchlistGrowth || 0} recent growth`, watchlist.length ? "good" : "neutral"),
       toStats("Won auctions", String(wonOrders), `${openThreads} active threads`, wonOrders ? "good" : "neutral"),
-      toStats(
-        "Verification",
-        user.verification.isIdentityVerified ? "Verified" : "Pending",
-        `${reviewBids} bids under review`,
-        user.verification.isIdentityVerified ? "good" : "warn",
-      ),
+      toStats("Bid review", String(reviewBids), `${openThreads} active threads`, reviewBids ? "warn" : "good"),
     ],
     sections: [
       {
@@ -134,11 +122,8 @@ async function buildBidderProfileContext(user) {
       },
       {
         title: "Verification records",
-        description: "Identity and payment trust status.",
-        items: [
-          `Adult verification: ${user.verification.isAdultVerified ? "Verified" : "Pending"}`,
-          `Identity verification: ${user.verification.isIdentityVerified ? "Verified" : "Pending"}`,
-        ],
+        description: "Account review and trust status.",
+        items: [`Adult verification: ${user.verification.isAdultVerified ? "Verified" : "Pending"}`],
       },
       {
         title: "Buying preferences",

@@ -6,7 +6,7 @@ import { PanelCard, StatusPill } from "@/components/admin-custom/AdminUi";
 import { useApiData } from "@/hooks/useApiData";
 
 function toneForStatus(status) {
-  return /complete|paid|delivered/i.test(status) ? "green" : /escrow|shipment/i.test(status) ? "gold" : "red";
+  return /complete|delivered/i.test(status) ? "green" : /payment pending|paid|shipment/i.test(status) ? "gold" : "red";
 }
 
 export default function AdminWinnersPage() {
@@ -18,7 +18,7 @@ export default function AdminWinnersPage() {
     <div className={styles.page}>
       <div>
         <h2>Auction Winners</h2>
-        <p className={styles.helperText}>Winning buyers, products, final values, sellers, and fulfillment state.</p>
+        <p className={styles.helperText}>Winning buyers, products, final values, payment progress, and fulfillment state.</p>
       </div>
 
       {error ? <p className={styles.inlineNotice}>{error}</p> : null}
@@ -32,7 +32,7 @@ export default function AdminWinnersPage() {
               <th>Winning buyer</th>
               <th>Seller</th>
               <th>Final amount</th>
-              <th>Escrow</th>
+              <th>Held amount</th>
               <th>Status</th>
               <th>Closed</th>
             </tr>
@@ -71,7 +71,7 @@ export default function AdminWinnersPage() {
 
       <PanelCard className={styles.userCard}>
         <h3>Winner actions</h3>
-        <p className={styles.helperText}>Use orders and transactions to follow payment, escrow, and delivery progress for winners.</p>
+        <p className={styles.helperText}>Use orders and transactions to follow payment confirmation, shipping, and delivery progress for winners.</p>
         <div className={styles.userActions}>
           <Link href="/admin/transactions/sold" className={styles.activateButton}>Sold transactions</Link>
           <Link href="/admin/transactions" className={styles.detailsButton}>All transactions</Link>

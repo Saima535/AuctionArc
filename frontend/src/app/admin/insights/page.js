@@ -74,8 +74,8 @@ export default function AdminInsightsPage() {
 
       <Panel title="Trending products" description="Highest-intent products on the platform right now.">
         <div className={styles.compactList}>
-          {data.topPerformers.products.map((product) => (
-            <article key={product.name} className={styles.compactCard}>
+          {data.topPerformers.products.map((product, index) => (
+            <article key={`${product.name}-${product.metric}-${product.status}-${index}`} className={styles.compactCard}>
               <div>
                 <strong>{product.name}</strong>
                 <p>{product.metric}</p>

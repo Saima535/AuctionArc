@@ -47,6 +47,17 @@
   font-size: 1.5rem;
 }
 
+.avatarPhoto {
+  width: 82px;
+  height: 82px;
+  border-radius: 20px;
+  border: 2px solid #f5af00;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
 .avatarMini {
   width: 44px;
   height: 44px;

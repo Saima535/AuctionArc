@@ -1,25 +1,27 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 34px;
+  gap: 30px;
+}
+
+.inlineNotice,
+.successNotice {
+  margin: 0;
+  font-weight: 700;
 }
 
 .inlineNotice {
-  margin: 0;
-  color: #ffb1b1;
-  font-weight: 700;
+  color: var(--admin-danger);
 }
 
 .successNotice {
-  margin: 0;
-  color: #78e4ae;
-  font-weight: 700;
+  color: var(--admin-good);
 }
 
 .helperText {
-  margin-top: 14px;
-  color: rgba(255, 255, 255, 0.62);
-  line-height: 1.6;
+  margin-top: 12px;
+  color: var(--admin-muted);
+  line-height: 1.65;
 }
 
 .summaryGrid,
@@ -27,7 +29,14 @@
 .userGrid,
 .disputesGrid {
   display: grid;
-  gap: 20px;
+  gap: 18px;
+}
+
+.summaryGrid,
+.transactionSummaryGrid,
+.userGrid,
+.disputesGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cardLink {
@@ -37,37 +46,29 @@
 
 .cardLink > * {
   height: 100%;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .cardLink:hover > *,
 .cardLink:focus-visible > * {
   transform: translateY(-2px);
-  border-color: rgba(240, 176, 0, 0.58);
-  box-shadow: 0 18px 44px rgba(240, 176, 0, 0.12);
-}
-
-.summaryGrid,
-.transactionSummaryGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.userGrid,
-.disputesGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-color: #b8d0ff;
+  box-shadow: 0 22px 44px rgba(36, 100, 255, 0.12);
 }
 
 .summaryCard,
 .transactionCard {
-  min-height: 170px;
-  padding: 28px 30px;
+  min-height: 182px;
+  padding: 26px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .summaryTop,
-.transactionTop {
+.transactionTop,
+.userHeader,
+.disputeHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -78,94 +79,104 @@
 .transactionIcon,
 .listIcon,
 .userAvatar {
-  width: 62px;
-  height: 62px;
+  width: 58px;
+  height: 58px;
   border-radius: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
 }
 
 .summaryIcon svg,
 .transactionIcon svg,
-.actionButton svg,
 .roleMeta svg,
 .infoRow svg,
 .listIcon svg,
-.disputeAction svg {
-  width: 28px;
-  height: 28px;
+.disputeAction svg,
+.actionButton svg {
+  width: 24px;
+  height: 24px;
 }
 
 .greenIcon {
-  background: linear-gradient(180deg, #13d86a, #04b85d);
+  background: rgba(23, 136, 90, 0.1);
+  color: var(--admin-good);
 }
 
 .goldIcon {
-  background: linear-gradient(180deg, #f0ac00, #f09c00);
+  background: rgba(184, 120, 24, 0.1);
+  color: var(--admin-warn);
 }
 
 .blueIcon {
-  background: linear-gradient(180deg, #1a9cff, #1186ee);
+  background: rgba(34, 100, 255, 0.1);
+  color: var(--admin-accent);
 }
 
 .purpleIcon {
-  color: #a748ff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #111218;
+  background: rgba(42, 84, 160, 0.08);
+  color: #4f6ea9;
 }
 
 .greenLine {
-  border-color: rgba(19, 216, 106, 0.36);
+  border-color: rgba(23, 136, 90, 0.18);
 }
 
 .yellowLine {
-  border-color: rgba(240, 176, 0, 0.3);
+  border-color: rgba(184, 120, 24, 0.18);
 }
 
 .blueLine {
-  border-color: rgba(36, 146, 255, 0.3);
+  border-color: rgba(34, 100, 255, 0.18);
 }
 
 .purpleLine {
-  border-color: rgba(167, 72, 255, 0.35);
+  border-color: rgba(79, 110, 169, 0.18);
 }
 
 .summaryValue,
 .transactionValue {
   font-size: 2rem;
-  color: #fff;
+  color: var(--admin-text);
 }
 
 .summaryLabel,
 .transactionLabel {
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 1.05rem;
+  color: var(--admin-muted);
+  font-size: 1rem;
 }
 
-.primaryAction {
-  min-height: 70px;
-  padding: 0 34px;
-  border-radius: 18px;
+.primaryAction,
+.suspendButton,
+.activateButton,
+.detailsButton,
+.disputeAction {
+  min-height: 46px;
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  background: linear-gradient(180deg, #f0b000, #eba600);
-  color: #0b0b0d;
+  gap: 10px;
+  font-size: 0.98rem;
   font-weight: 800;
-  font-size: 1rem;
+}
+
+.primaryAction,
+.disputeAction {
   width: fit-content;
+  padding: 0 22px;
+  background: linear-gradient(180deg, #2264ff, #1a53d9);
+  color: #ffffff;
+  box-shadow: 0 16px 32px rgba(34, 100, 255, 0.18);
 }
 
 .primaryAction svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .transactionCard {
-  min-height: 200px;
+  min-height: 196px;
 }
 
 .transactionValueRow {
@@ -177,10 +188,10 @@
 
 .progressTrack {
   width: 100%;
-  height: 5px;
-  margin-top: 22px;
+  height: 6px;
+  margin-top: 20px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: #e8eef6;
   overflow: hidden;
 }
 
@@ -191,44 +202,36 @@
 
 .purpleFill {
   width: 70%;
-  background: #b44dff;
+  background: linear-gradient(135deg, #4f6ea9, #7a9bea);
 }
 
 .yellowFill {
   width: 68%;
-  background: #f0b000;
+  background: linear-gradient(135deg, #d69b35, #f0bf61);
 }
 
 .greenFill {
   width: 78%;
-  background: #11e86d;
+  background: linear-gradient(135deg, #1aa36a, #49c38c);
 }
 
 .userCard,
 .disputeCard {
-  padding: 28px 30px 30px;
-}
-
-.userHeader,
-.disputeHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  padding: 24px;
 }
 
 .userIdentity,
 .disputeIdentity {
   display: flex;
-  gap: 20px;
+  gap: 18px;
 }
 
 .userAvatar {
   flex: 0 0 auto;
-  background: linear-gradient(180deg, #eeb000, #ed9d00);
-  font-size: 1.15rem;
+  background: linear-gradient(180deg, #2264ff, #1a53d9);
+  color: #ffffff;
+  font-size: 1.1rem;
   font-weight: 800;
-  color: #0b0b0d;
   overflow: hidden;
 }
 
@@ -239,48 +242,48 @@
 
 .userInfo h3,
 .disputeInfo h3 {
-  font-size: 1.35rem;
-  color: #ececec;
+  font-size: 1.25rem;
+  color: var(--admin-text);
 }
 
 .roleMeta {
-  margin-top: 14px;
+  margin-top: 12px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 30px;
+  min-height: 32px;
   padding: 0 12px;
   border-radius: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .buyerMeta {
-  background: rgba(15, 79, 180, 0.26);
-  color: #54a5ff;
+  background: rgba(34, 100, 255, 0.1);
+  color: var(--admin-accent);
 }
 
 .sellerMeta {
-  background: rgba(93, 21, 147, 0.28);
-  color: #bd66ff;
+  background: rgba(42, 84, 160, 0.08);
+  color: #4f6ea9;
 }
 
 .userDetails {
-  margin-top: 26px;
+  margin-top: 24px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .infoRow {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 1.02rem;
+  color: var(--admin-muted);
+  font-size: 1rem;
 }
 
 .userActions {
-  margin-top: 30px;
+  margin-top: 26px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
@@ -290,114 +293,107 @@
   grid-column: 1 / -1;
 }
 
-.suspendButton,
-.activateButton,
-.detailsButton,
-.disputeAction {
-  min-height: 46px;
-  border-radius: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
 .suspendButton {
-  background: rgba(106, 13, 19, 0.46);
-  color: #ff666c;
-  border: 1px solid rgba(255, 59, 71, 0.4);
+  background: rgba(210, 75, 75, 0.1);
+  color: var(--admin-danger);
+  border: 1px solid rgba(210, 75, 75, 0.18);
 }
 
 .activateButton {
-  background: rgba(4, 84, 44, 0.46);
-  color: #11e86d;
-  border: 1px solid rgba(17, 232, 109, 0.24);
+  background: rgba(23, 136, 90, 0.1);
+  color: var(--admin-good);
+  border: 1px solid rgba(23, 136, 90, 0.18);
 }
 
 .detailsButton {
   padding: 0 18px;
-  background: rgba(109, 77, 15, 0.42);
-  color: #f0b000;
-  border: 1px solid rgba(240, 176, 0, 0.3);
+  background: #eef4ff;
+  color: #2454c9;
+  border: 1px solid #c8dbff;
 }
 
 .statsTableWrap {
   overflow-x: auto;
-  border-radius: 24px;
-  border: 1px solid rgba(240, 173, 0, 0.24);
-  background: #121216;
+  border-radius: 26px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow);
 }
 
 .statsTable {
   width: 100%;
-  min-width: 1120px;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
 .statsTable th,
 .statsTable td {
-  padding: 22px 20px;
+  padding: 20px 18px;
   text-align: left;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid #edf2f7;
 }
 
 .statsTable thead th {
   border-top: 0;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.98rem;
-  font-weight: 700;
+  color: #8191a6;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #f8fbff;
 }
 
 .statsTable td {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 1rem;
+  color: var(--admin-text);
+  font-size: 0.98rem;
+}
+
+.statsTable tbody tr:hover {
+  background: #f9fbff;
 }
 
 .listItemWrap {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .listIcon {
-  width: 50px;
-  height: 50px;
+  width: 46px;
+  height: 46px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #111218;
-  color: #f0b000;
+  background: #eef4ff;
+  color: #2454c9;
 }
 
 .itemName {
   font-size: 1rem;
   font-weight: 800;
-  color: #ececec;
+  color: var(--admin-text);
 }
 
 .moneyText {
-  color: #f0b000 !important;
+  color: #2454c9 !important;
   font-weight: 800;
 }
 
 .disputeCard {
-  border-color: rgba(173, 16, 35, 0.42);
+  border-color: rgba(210, 75, 75, 0.2);
 }
 
 .disputeMeta {
-  margin-top: 14px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1rem;
+  margin-top: 12px;
+  color: var(--admin-muted);
+  font-size: 0.98rem;
 }
 
 .disputeReason {
-  margin-top: 24px;
+  margin-top: 22px;
   width: fit-content;
 }
 
 .disputeRows {
-  margin-top: 26px;
+  margin-top: 24px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 14px 24px;
@@ -405,21 +401,19 @@
 }
 
 .labelCell {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--admin-muted);
   font-size: 1rem;
 }
 
 .valueCell {
-  color: #e9e9e9;
+  color: var(--admin-text);
   font-size: 1rem;
   font-weight: 700;
 }
 
 .disputeAction {
   width: 100%;
-  margin-top: 30px;
-  background: linear-gradient(180deg, #f0b000, #eba600);
-  color: #0c0c0f;
+  margin-top: 28px;
 }
 
 @media (max-width: 1380px) {
@@ -447,10 +441,7 @@
     align-items: flex-start;
   }
 
-  .userActions {
-    grid-template-columns: 1fr;
-  }
-
+  .userActions,
   .disputeRows {
     grid-template-columns: 1fr;
   }

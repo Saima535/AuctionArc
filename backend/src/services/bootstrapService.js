@@ -622,7 +622,7 @@ async function seedMarketplace() {
       bidder: byEmail["bidder@auctionarc.com"]._id,
       listing: byCode["SL-101"]._id,
       amount: 4200,
-      status: "Awaiting payout",
+      status: "Payment pending",
       escrowAmount: 0,
       createdAt: daysAgo(12),
       updatedAt: daysAgo(1),
@@ -646,7 +646,7 @@ async function seedMarketplace() {
       bidder: byEmail["lima@auctionarc.com"]._id,
       listing: byCode["SL-101"]._id,
       amount: 7000,
-      status: "In escrow",
+      status: "Paid",
       escrowAmount: 7000,
       createdAt: daysAgo(3),
       updatedAt: daysAgo(1),
@@ -818,6 +818,18 @@ async function removeDeprecatedWalletData() {
   );
 }
 
+async function normalizeOrderLifecycleStatuses() {
+  await Order.updateMany(
+    { status: "Awaiting payout" },
+    { $set: { status: "Payment pending" } },
+  );
+
+  await Order.updateMany(
+    { status: "In escrow" },
+    { $set: { status: "Paid" } },
+  );
+}
+
 export async function bootstrapDatabase() {
   await createOrUpdateAdmin();
 
@@ -827,4 +839,5 @@ export async function bootstrapDatabase() {
 
   await removeSeededNotifications();
   await removeDeprecatedWalletData();
+  await normalizeOrderLifecycleStatuses();
 }

@@ -16,7 +16,7 @@ const privacySections = [
   },
   {
     title: "Security And Verification",
-    body: "Identity and account verification details may be processed to protect sellers, buyers, and the wider marketplace from fraud or abuse.",
+    body: "Account details may be processed to protect sellers, buyers, and the wider marketplace from fraud or abuse.",
   },
 ];
 
