@@ -226,9 +226,6 @@ export function AdminShell({ children }) {
               <small>Super Admin Console</small>
             </span>
           </Link>
-          <p className={styles.brandCopy}>
-            Review marketplace health, moderate activity, and handle operational decisions from one organized workspace.
-          </p>
         </div>
 
         <div className={styles.navGroups}>
