@@ -118,8 +118,6 @@ export default function AdminAuctionScopePage() {
               <span className={styles.valueCell}>{isPending ? row.price : row.currentBid}</span>
               <span className={styles.labelCell}>Bids:</span>
               <span className={styles.valueCell}>{row.bids}</span>
-              <span className={styles.labelCell}>Watchers:</span>
-              <span className={styles.valueCell}>{row.watchers}</span>
             </div>
 
             <div className={styles.userDetails}>

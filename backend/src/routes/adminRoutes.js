@@ -4,16 +4,19 @@
 import { Router } from "express";
 import {
   getAdminProfile,
+  getAuditQueue,
   getAuctionDrilldown,
   getAuctions,
   getBids,
   getChats,
   getProducts,
+  getReportSummary,
   getReports,
   getSettings,
   getTransactions,
   getUsers,
   getWinners,
+  exportReport,
   updateAuctionStatus,
   updateBidStatus,
   updateProductStatus,
@@ -37,6 +40,9 @@ router.patch("/auctions/:auctionId/status", updateAuctionStatus);
 router.get("/bids", getBids);
 router.patch("/bids/:bidId/status", updateBidStatus);
 router.get("/chats", getChats);
+router.get("/audit-queue", getAuditQueue);
+router.get("/reports/summary", getReportSummary);
+router.get("/reports/export", exportReport);
 router.get("/reports", getReports);
 router.patch("/reports/:reportId/status", updateReportStatus);
 router.get("/transactions", getTransactions);

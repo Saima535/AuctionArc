@@ -21,8 +21,8 @@ const bidderSettings = [
   },
   {
     title: "Bidding preferences",
-    description: "Control watchlist alerts, category interests, and bidding reminders.",
-    items: ["Watchlist alerts", "Category preferences", "Ending-soon reminders"],
+    description: "Control category interests and bidding reminders.",
+    items: ["Outbid alerts", "Category preferences", "Ending-soon reminders"],
   },
   {
     title: "Security",
@@ -70,7 +70,7 @@ export default function BidderSettingsPage() {
       setModalContent(
         <SettingsEditor
           title="Bidding preferences"
-          description="Manage watchlist alerts, categories, and reminders."
+          description="Manage alerts, categories, and reminders."
           fields={[
             { name: "outbidAlerts", label: "Outbid alerts", type: "select", options: ["Instant", "Hourly", "Daily"], defaultValue: data.outbidAlerts || "Instant" },
             { name: "endingAlerts", label: "Ending soon reminders", type: "select", options: ["Enabled", "Disabled"], defaultValue: data.endingAlerts || "Enabled" },

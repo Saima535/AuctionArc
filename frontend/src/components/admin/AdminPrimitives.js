@@ -56,12 +56,21 @@ export function StatusBadge({ children, tone = "neutral" }) {
   return <span className={className}>{children}</span>;
 }
 
-export function FilterBar({ items }) {
+export function FilterBar({ items, activeItem = "", onSelect }) {
   return (
     <div className={styles.filterBar}>
       {items.map((item) => (
-        <button key={item} type="button" className={styles.filterChip}>
-          {item}
+        <button
+          key={typeof item === "string" ? item : item.value}
+          type="button"
+          className={
+            activeItem === (typeof item === "string" ? item : item.value)
+              ? styles.filterChipActive
+              : styles.filterChip
+          }
+          onClick={() => onSelect?.(typeof item === "string" ? item : item.value)}
+        >
+          {typeof item === "string" ? item : item.label}
         </button>
       ))}
     </div>

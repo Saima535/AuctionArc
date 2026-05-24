@@ -123,6 +123,30 @@
   font-weight: 700;
 }
 
+.reportSection {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.reportHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.reportMeta {
+  margin-top: 8px;
+  color: var(--admin-muted);
+}
+
+.exportRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .inlineNotice {
   color: var(--admin-danger);
 }
@@ -203,6 +227,36 @@
   line-height: 1.7;
 }
 
+.metricList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.metricRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.metricRow:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.metricRow strong {
+  color: var(--admin-text);
+}
+
+.metricRow p {
+  margin-top: 8px;
+  color: var(--admin-muted);
+  line-height: 1.6;
+}
+
 .actionRow {
   display: flex;
   flex-wrap: wrap;
@@ -242,6 +296,7 @@
 }
 
 @media (max-width: 800px) {
+  .reportHeading,
   .identityHeroTop,
   .identityWrap {
     flex-direction: column;
@@ -253,5 +308,9 @@
   .statGrid,
   .profileDetailGrid {
     grid-template-columns: 1fr;
+  }
+
+  .metricRow {
+    flex-direction: column;
   }
 }

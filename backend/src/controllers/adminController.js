@@ -12,6 +12,11 @@ import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
 import {
+  buildAdminReport,
+  buildReportCsv,
+  buildReportPdf,
+} from "../services/adminReportingService.js";
+import {
   serializeUser,
   toAuctionRow,
   toBidRow,
@@ -59,7 +64,6 @@ async function serializeAuctionDetail(auction) {
     sellerEmail: auction.seller?.email || "Not available",
     currentBid: formatCurrency(auction.currentBid || 0),
     bids: String(auction.bidCount || bids.length),
-    watchers: String(auction.watcherCount || 0),
     reserve: auction.reserveStatus,
     starts: auction.startAt?.toISOString().slice(0, 10) || "Not scheduled",
     ends: auction.endAt?.toISOString().slice(0, 10) || "Not scheduled",
@@ -84,7 +88,6 @@ async function serializeListingReview(listing) {
     price: formatCurrency(listing.price || 0),
     reserve: formatCurrency(listing.reservePrice || 0),
     bids: String(listing.bidCount || bids.length),
-    watchers: String(listing.watcherCount || 0),
     condition: listing.condition,
     delivery: listing.deliveryOption,
     topBids: bids.map(serializeBidDetail),
@@ -392,6 +395,72 @@ export const getReports = asyncHandler(async (req, res) => {
       date: report.createdAt?.toISOString().slice(0, 10) || "Unknown",
     })),
   });
+});
+
+export const getAuditQueue = asyncHandler(async (req, res) => {
+  const reports = await Report.find({}).sort({ updatedAt: -1 });
+
+  res.json({
+    success: true,
+    data: reports.map((report) => ({
+      reportId: report._id,
+      id: report.code,
+      target: report.target,
+      reason: report.type,
+      severity: report.severity,
+      status: report.status,
+      owner: report.owner,
+      date: report.createdAt?.toISOString().slice(0, 10) || "Unknown",
+    })),
+  });
+});
+
+export const getReportSummary = asyncHandler(async (req, res) => {
+  const [weekly, monthly] = await Promise.all([
+    buildAdminReport("weekly"),
+    buildAdminReport("monthly"),
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      generatedAt: new Date().toISOString(),
+      reports: {
+        weekly,
+        monthly,
+      },
+    },
+  });
+});
+
+export const exportReport = asyncHandler(async (req, res) => {
+  const range = req.query.range === "monthly" ? "monthly" : "weekly";
+  const format = String(req.query.format || "json").toLowerCase();
+  const report = await buildAdminReport(range);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const baseName = `auctionarc-${range}-report-${stamp}`;
+
+  if (format === "csv") {
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${baseName}.csv"`);
+    res.send(buildReportCsv(report));
+    return;
+  }
+
+  if (format === "pdf") {
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${baseName}.pdf"`);
+    res.send(buildReportPdf(report));
+    return;
+  }
+
+  if (format === "json") {
+    res.setHeader("Content-Disposition", `attachment; filename="${baseName}.json"`);
+    res.json(report);
+    return;
+  }
+
+  throw new ApiError(400, "Unsupported report format. Use pdf, csv, or json.");
 });
 
 export const updateReportStatus = asyncHandler(async (req, res) => {

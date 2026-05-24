@@ -12,7 +12,6 @@ import {
   CurrencyIcon,
   DollarIcon,
   EyeIcon,
-  HeartIcon,
   MessageIcon,
   PlusIcon,
   StarIcon,
@@ -21,7 +20,7 @@ import {
 } from "@/components/seller/SellerIcons";
 
 const statIcons = [<BoxIcon key="box" />, <UsersIcon key="users" />, <DollarIcon key="dollar" />, <ClockIcon key="clock" />];
-const performanceIcons = [<EyeIcon key="eye" />, <UsersIcon key="users" />, <HeartIcon key="heart" />, <TrendIcon key="trend" />];
+const performanceIcons = [<EyeIcon key="eye" />, <DollarIcon key="dollar" />, <TrendIcon key="trend" />, <TrendIcon key="trend-2" />];
 const activityVisuals = [
   { icon: <CurrencyIcon />, className: shared.activityGreen },
   { icon: <MessageIcon />, className: shared.activityBlue },
@@ -128,7 +127,7 @@ export default function SellerDashboardPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h1>Seller control center</h1>
-            <p>Track listings, buyer attention, payouts, and active sales from one organized workspace.</p>
+            <p>Track listings, bidding activity, payouts, and active sales from one organized workspace.</p>
           </div>
           <div className={shared.dashboardHeaderActions}>
             <Link href="/seller/auctions" className={shared.darkButton}>
@@ -161,7 +160,7 @@ export default function SellerDashboardPage() {
         <div className={shared.sectionTop}>
           <div>
             <h2 className={shared.panelTitle}>Analytics snapshot</h2>
-            <p className={shared.panelCopy}>Live seller performance across traffic, interest, bidding, and conversions.</p>
+            <p className={shared.panelCopy}>Live seller performance across traffic, bidding, orders, and conversions.</p>
           </div>
           <Link href="/seller/analytics" className={shared.activityLink}>
             Open analytics
@@ -219,12 +218,12 @@ export default function SellerDashboardPage() {
                         <strong>{auction.currentBid}</strong>
                       </div>
                       <div>
-                        <span>Buyers watching</span>
-                        <strong>{auction.watchers}</strong>
-                      </div>
-                      <div>
                         <span>Bid count</span>
                         <strong>{auction.bidCount}</strong>
+                      </div>
+                      <div>
+                        <span>Status</span>
+                        <strong>{auction.status}</strong>
                       </div>
                     </div>
 
@@ -303,8 +302,8 @@ export default function SellerDashboardPage() {
                         <div className={`${shared.productMetaValue} ${shared.moneyValue}`}>{product.currentBid}</div>
                       </div>
                       <div>
-                        <div className={shared.productMetaLabel}>Watchers</div>
-                        <div className={shared.productMetaValue}>{product.watchers}</div>
+                        <div className={shared.productMetaLabel}>Status</div>
+                        <div className={shared.productMetaValue}>{product.status}</div>
                       </div>
                     </div>
 

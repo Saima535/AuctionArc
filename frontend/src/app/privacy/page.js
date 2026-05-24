@@ -12,7 +12,7 @@ const privacySections = [
   },
   {
     title: "Marketplace Activity",
-    body: "Listings, bids, watchlists, transactions, messages, and support records are kept so the auction experience can function and disputes can be reviewed when needed.",
+    body: "Listings, bids, transactions, messages, and support records are kept so the auction experience can function and disputes can be reviewed when needed.",
   },
   {
     title: "Security And Verification",

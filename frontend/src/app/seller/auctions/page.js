@@ -28,7 +28,6 @@ const auctionColumns = [
     ),
   },
   { key: "currentBid", label: "Current bid" },
-  { key: "watchers", label: "Watchers" },
   { key: "ends", label: "Ends" },
 ];
 
@@ -74,7 +73,7 @@ export default function SellerAuctionsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Auctions"
-        description="Follow live selling sessions, buyer engagement, and end-state timing."
+        description="Follow live selling sessions, bid activity, and end-state timing."
         action={
           <LiveRefreshControls
             onRefresh={refresh}

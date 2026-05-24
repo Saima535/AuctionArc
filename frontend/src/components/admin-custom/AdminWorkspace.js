@@ -9,7 +9,6 @@ import styles from "./AdminWorkspace.module.css";
 
 const sidebarItems = [
   { href: "/admin", label: "Dashboard", icon: "grid" },
-  { href: "/admin/insights", label: "Insights", icon: "grid" },
   { href: "/admin/users", label: "Users", icon: "users" },
   { href: "/admin/products", label: "Products", icon: "grid" },
   { href: "/admin/auctions", label: "Auctions", icon: "grid" },
@@ -33,7 +32,6 @@ const primaryTopNavItems = [
 ];
 
 const accountMenuItems = [
-  { href: "/admin/insights", label: "Insights" },
   { href: "/admin/bids", label: "Bids" },
   { href: "/admin/transactions", label: "Transactions" },
   { href: "/admin/winners", label: "Winners" },

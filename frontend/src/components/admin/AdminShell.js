@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/api";
 const navGroups = [
   {
     title: "Overview",
-    hrefs: ["/admin", "/admin/insights"],
+    hrefs: ["/admin"],
   },
   {
     title: "Marketplace",
@@ -131,7 +131,6 @@ function ProfileIcon() {
 
 function iconForHref(href) {
   if (href === "/admin") return <GridIcon />;
-  if (href === "/admin/insights") return <TrendIcon />;
   if (href === "/admin/users") return <UsersIcon />;
   if (href === "/admin/products") return <BoxIcon />;
   if (href === "/admin/auctions" || href.startsWith("/admin/auctions")) return <HammerIcon />;
@@ -288,19 +287,18 @@ export function AdminShell({ children }) {
             <p className={styles.pageCopy}>{description}</p>
           </div>
 
-          <div className={styles.topbarActions}>
-            <Link href="/admin/reports" className={styles.utilityButton}>
-              Open audit queue
-            </Link>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              disabled={isExporting}
-              onClick={handleExportSnapshot}
-            >
-              {isExporting ? "Exporting..." : "Export snapshot"}
-            </button>
-          </div>
+          {pathname !== "/admin/reports" ? (
+            <div className={styles.topbarActions}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled={isExporting}
+                onClick={handleExportSnapshot}
+              >
+                {isExporting ? "Exporting..." : "Export snapshot"}
+              </button>
+            </div>
+          ) : null}
         </header>
 
         <main className={styles.content}>{children}</main>

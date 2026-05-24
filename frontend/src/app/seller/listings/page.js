@@ -11,7 +11,6 @@ import {
   EditIcon,
   PlusIcon,
   TrashIcon,
-  UsersIcon,
   EyeIcon,
   PauseIcon,
 } from "@/components/seller/SellerIcons";
@@ -342,7 +341,7 @@ export default function SellerListingsPage() {
           <article className={`${shared.panel} ${shared.listingCard}`}>
             <div className={shared.listingBody}>
               <h3>No listings found yet</h3>
-              <p>Create your first auction product to start tracking views, watchers, and auction timing here.</p>
+              <p>Create your first auction product to start tracking views, bids, and auction timing here.</p>
             </div>
           </article>
         ) : null}
@@ -350,7 +349,6 @@ export default function SellerListingsPage() {
         {listingCards.map((row) => {
           const activeAuction = row.auction;
           const displayBid = activeAuction?.currentBid || row.currentBid || row.price;
-          const displayWatchers = activeAuction?.watcherCount || row.watchers || "0";
           const displayBidCount = activeAuction?.bidCount || row.bidCount || "0";
           const timeLeft = formatTimeLeft(activeAuction?.endAt);
           const endTime = formatDateTime(activeAuction?.endAt);
@@ -403,8 +401,8 @@ export default function SellerListingsPage() {
                     <strong>{endTime}</strong>
                   </article>
                   <article className={shared.listingStatCard}>
-                    <span>Watchers</span>
-                    <strong>{displayWatchers}</strong>
+                    <span>Bids</span>
+                    <strong>{displayBidCount}</strong>
                   </article>
                 </div>
 
@@ -456,10 +454,6 @@ export default function SellerListingsPage() {
                     <span className={shared.tableMetric}>
                       <span className={shared.tableIcon}><EyeIcon /></span>
                       <span>{row.views} views</span>
-                    </span>
-                    <span className={shared.tableMetric}>
-                      <span className={shared.tableIcon}><UsersIcon /></span>
-                      <span>{displayWatchers} watchers</span>
                     </span>
                   </div>
 

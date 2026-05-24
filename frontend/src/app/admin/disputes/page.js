@@ -49,7 +49,7 @@ function toneForStatus(status) {
 }
 
 export default function AdminDisputesPage() {
-  const { data, setData, error } = useApiData("/admin/reports", {
+  const { data, setData, error } = useApiData("/admin/audit-queue", {
     initialData: [],
   });
   const [busyReportId, setBusyReportId] = useState("");

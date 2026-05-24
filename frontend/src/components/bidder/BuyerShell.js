@@ -10,7 +10,6 @@ import styles from "./BuyerShell.module.css";
 const primaryNavItems = [
   { href: "/bidder", label: "Dashboard" },
   { href: "/bidder/auctions", label: "Auctions" },
-  { href: "/bidder/watchlist", label: "Watchlist" },
   { href: "/bidder/my-bids", label: "My Bids" },
   { href: "/bidder/wins", label: "Wins" },
   { href: "/bidder/messages", label: "Messages" },

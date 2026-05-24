@@ -25,12 +25,10 @@ export const sellerAnalytics = {
 export const bidderOverview = {
   kpis: [
     { label: "Active bids", value: "0", delta: "No active bids yet", tone: "neutral" },
-    { label: "Watchlist items", value: "0", delta: "Watchlist is empty", tone: "neutral" },
     { label: "Auctions won", value: "0", delta: "No wins yet", tone: "neutral" },
     { label: "Open conversations", value: "0", delta: "No active conversations", tone: "neutral" },
   ],
   activity: [],
-  watchlist: [],
   messages: [],
 };
 
@@ -84,7 +82,6 @@ export const bidderProfile = {
   location: "Not set",
   stats: [
     { label: "Winning rate", value: "0%", delta: "No bidding history yet", tone: "neutral" },
-    { label: "Watchlist growth", value: "0", delta: "No saved items yet", tone: "neutral" },
     { label: "Account status", value: "New", delta: "No review data", tone: "neutral" },
     { label: "Avg. bid response", value: "0m", delta: "No bid activity yet", tone: "neutral" },
   ],

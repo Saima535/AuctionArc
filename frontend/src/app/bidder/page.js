@@ -8,39 +8,19 @@ import {
   ClockIcon,
   DollarIcon,
   EyeIcon,
-  HeartIcon,
   MessageIcon,
   SparklesIcon,
   TrendIcon,
 } from "@/components/seller/SellerIcons";
 import styles from "./page.module.css";
 
-const statIcons = [<TrendIcon key="trend" />, <HeartIcon key="heart" />, <SparklesIcon key="sparkles" />, <DollarIcon key="dollar" />];
-
-function toneClass(status) {
-  const normalized = String(status || "").toLowerCase();
-
-  if (normalized.includes("outbid")) {
-    return styles.outbid;
-  }
-
-  if (normalized.includes("won") || normalized.includes("top") || normalized.includes("active")) {
-    return styles.winning;
-  }
-
-  if (normalized.includes("paid") || normalized.includes("completed")) {
-    return styles.paid;
-  }
-
-  return styles.pending;
-}
+const statIcons = [<TrendIcon key="trend" />, <SparklesIcon key="sparkles" />, <DollarIcon key="dollar" />];
 
 export default function BidderDashboardPage() {
   const { data, isLoading, error } = useApiData("/dashboard/bidder", {
     initialData: {
       kpis: [],
       activity: [],
-      watchlist: [],
       messages: [],
     },
   });
@@ -80,7 +60,7 @@ export default function BidderDashboardPage() {
           {!stats.length && isLoading ? (
             <ApiLoadingNotice
               title="Loading buyer snapshot"
-              message="We are gathering your bidding activity, watchlist status, and recent marketplace activity."
+              message="We are gathering your bidding activity, wins, and recent marketplace activity."
             />
           ) : null}
           {error ? <ApiErrorNotice title="Buyer dashboard unavailable" message={error} /> : null}
@@ -130,59 +110,16 @@ export default function BidderDashboardPage() {
           <div className={styles.disputesHeader}>
             <div className={styles.disputesCopy}>
               <span className={styles.alertBadge}>
-                <HeartIcon />
+                <TrendIcon />
               </span>
               <div>
                 <h1 className={styles.sectionTitle}>Your Bidding Dashboard</h1>
-                <p>Track watched auctions, active bid movement, seller messages, and winning order progress.</p>
+                <p>Track active bid movement, seller messages, and winning order progress.</p>
               </div>
             </div>
             <Link href="/bidder/my-bids" className={styles.viewButton}>
               View Bids
             </Link>
-          </div>
-        </section>
-
-        <section className={`${styles.panel} ${styles.spaciousPanel}`}>
-          <div className={styles.panelHeading}>
-            <h2 className={styles.sectionTitle}>Watchlist</h2>
-            <Link href="/bidder/watchlist" className={styles.tableButton}>
-              Manage
-            </Link>
-          </div>
-
-          <div className={styles.watchlist}>
-            {!data.watchlist.length && !isLoading ? (
-              <ApiEmptyState
-                title="No watched auctions yet"
-                message="Save auctions to your watchlist so you can compare sellers, prices, and closing times here."
-              />
-            ) : null}
-            {data.watchlist.map((item) => (
-              <article key={item.auctionId || item.id} className={styles.watchCard}>
-                <div className={styles.watchMeta}>
-                  <div className={styles.productArt}>
-                    <span className={styles.alertBadge}>
-                      <HeartIcon />
-                    </span>
-                  </div>
-                  <div>
-                    <h3>{item.title || "Untitled auction"}</h3>
-                    <div className={styles.watchDetails}>
-                      <span className={styles.bidValue}>
-                        <DollarIcon />
-                        <strong>{item.currentBid || "--"}</strong>
-                      </span>
-                      <span className={styles.timeValue}>
-                        <ClockIcon />
-                        {item.seller || "AuctionArc seller"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <span className={`${styles.statusBadge} ${toneClass(item.status)}`}>{item.status || "Watching"}</span>
-              </article>
-            ))}
           </div>
         </section>
 

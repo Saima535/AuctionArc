@@ -180,6 +180,7 @@
 }
 
 .filterChip,
+.filterChipActive,
 .actionButton {
   min-height: 42px;
   padding: 0 16px;
@@ -189,6 +190,12 @@
   color: var(--admin-text, var(--color-text));
   cursor: pointer;
   font-weight: 700;
+}
+
+.filterChipActive {
+  background: linear-gradient(180deg, #2264ff, #1a53d9);
+  border-color: #2b66df;
+  color: #ffffff;
 }
 
 .tableWrap {

@@ -45,7 +45,7 @@ export default function BidderAuctionsPage() {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
   const liveChannels = useMemo(
-    () => ["market:auctions", "market:bids", "market:watchlist", user?.id ? `user:${user.id}` : ""],
+    () => ["market:auctions", "market:bids", user?.id ? `user:${user.id}` : ""],
     [user?.id],
   );
   const handleLiveEvent = useCallback(() => {
@@ -94,44 +94,6 @@ export default function BidderAuctionsPage() {
 
     return liveData.filter((item) => item.category === selectedCategory);
   }, [data, nowTick, selectedCategory]);
-
-  async function handleWatchToggle(item) {
-    setPageError("");
-    setPageMessage("");
-
-    if (!item.auctionId || !item.canWatch) {
-      setPageError("This product does not have an active auction session yet.");
-      return;
-    }
-
-    setBusyAuctionId(item.auctionId);
-
-    try {
-      if (item.watchlisted) {
-        await apiRequest(`/auctions/${item.auctionId}/watchlist`, {
-          method: "DELETE",
-        });
-      } else {
-        await apiRequest(`/auctions/${item.auctionId}/watchlist`, {
-          method: "POST",
-        });
-      }
-
-      setData((current) =>
-        current.map((row) =>
-          row.auctionId === item.auctionId
-            ? { ...row, watchlisted: !row.watchlisted }
-            : row,
-        ),
-      );
-      setPageMessage(item.watchlisted ? "Removed from watchlist." : "Added to watchlist.");
-      refresh({ background: true });
-    } catch (requestError) {
-      setPageError(requestError.message || "Could not update watchlist.");
-    } finally {
-      setBusyAuctionId("");
-    }
-  }
 
   async function handlePlaceBid(item) {
     const bidKey = item.auctionId || item.listingId;
@@ -280,7 +242,6 @@ export default function BidderAuctionsPage() {
             const busyKey = item.auctionId || item.listingId;
             const isExpired = item.endAt ? new Date(item.endAt).getTime() <= nowTick : false;
             const canBidNow = item.canBid && !isExpired;
-            const canWatchNow = item.canWatch && !isExpired;
             const stageLabel = isExpired ? "Closed" : item.stage;
 
             return (
@@ -304,7 +265,7 @@ export default function BidderAuctionsPage() {
                       <span className={styles.cardCode}>{item.id}</span>
                       <h3>{item.title}</h3>
                     </div>
-                    <StatusBadge tone={canBidNow ? "danger" : canWatchNow ? "warn" : "good"}>
+                    <StatusBadge tone={canBidNow ? "danger" : "good"}>
                       {stageLabel}
                     </StatusBadge>
                   </div>
@@ -321,10 +282,6 @@ export default function BidderAuctionsPage() {
                     <div className={styles.auctionStatCard}>
                       <span>Seller</span>
                       <strong>{item.seller}</strong>
-                    </div>
-                    <div className={styles.auctionStatCard}>
-                      <span>Watchers</span>
-                      <strong>{item.watchers}</strong>
                     </div>
                     <div className={styles.auctionStatCard}>
                       <span>Auction window</span>
@@ -371,15 +328,7 @@ export default function BidderAuctionsPage() {
                   <div className={styles.auctionActionRow}>
                     <button
                       type="button"
-                      className={item.watchlisted ? styles.secondaryAction : styles.actionButton}
-                      disabled={busyAuctionId === busyKey || !canWatchNow}
-                      onClick={() => handleWatchToggle(item)}
-                    >
-                      {canWatchNow ? (item.watchlisted ? "Remove Watch" : "Add Watch") : isExpired ? "Closed" : "Watch Later"}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.secondaryAction}
+                      className={styles.actionButton}
                       disabled={busyAuctionId === busyKey || !item.sellerId}
                       onClick={() => handleMessageSeller(item)}
                     >

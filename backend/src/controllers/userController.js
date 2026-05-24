@@ -9,7 +9,6 @@ import { Report } from "../models/Report.js";
 import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
-import { Watchlist } from "../models/Watchlist.js";
 import { serializeUser, toStats } from "../services/mapperService.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { ApiError } from "../utils/apiError.js";
@@ -82,9 +81,8 @@ async function buildSellerProfileContext(user) {
 }
 
 async function buildBidderProfileContext(user) {
-  const [bids, watchlist, orders, threads] = await Promise.all([
+  const [bids, orders, threads] = await Promise.all([
     Bid.find({ bidder: user._id }).select("status"),
-    Watchlist.find({ user: user._id }).select("_id"),
     Order.find({ bidder: user._id }).select("status"),
     Thread.find({ "participants.user": user._id }).select("status"),
   ]);
@@ -97,7 +95,6 @@ async function buildBidderProfileContext(user) {
   return {
     stats: [
       toStats("Active bids", String(bids.length), `${leadingBids} leading`, bids.length ? "good" : "neutral"),
-      toStats("Watchlist items", String(watchlist.length), `${user.stats.watchlistGrowth || 0} recent growth`, watchlist.length ? "good" : "neutral"),
       toStats("Won auctions", String(wonOrders), `${openThreads} active threads`, wonOrders ? "good" : "neutral"),
       toStats("Bid review", String(reviewBids), `${openThreads} active threads`, reviewBids ? "warn" : "good"),
     ],
@@ -131,7 +128,7 @@ async function buildBidderProfileContext(user) {
         items: [
           `Category focus: ${user.preferences.categoryFocus || "General"}`,
           `Preferred currency: ${user.preferences.currency || "USD"}`,
-          `Watchlist items: ${watchlist.length}`,
+          `Outbid alerts: ${user.preferences.outbidAlerts || "Instant"}`,
         ],
       },
     ],
