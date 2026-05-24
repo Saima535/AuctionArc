@@ -23,6 +23,7 @@ function notificationPreviewPayload(notification) {
   return {
     notificationId: notification._id,
     title: notification.title,
+    body: notification.body,
     type: notification.type,
     href: notification.href || "",
     isRead: Boolean(notification.isRead),

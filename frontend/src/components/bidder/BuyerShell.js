@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import styles from "./BuyerShell.module.css";
 
 const primaryNavItems = [
@@ -73,6 +74,35 @@ export function BuyerShell({ children }) {
   const { user: profile } = useAuth();
   const imageUrl = profile?.profilePicture?.url;
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const handleLiveEvent = useCallback(
+    (event) => {
+      const payload = event?.payload || {};
+
+      if (event?.event === "notification.created" && payload.notificationId) {
+        const toast = {
+          id: `${payload.notificationId}-${Date.now()}`,
+          title: payload.title || "New notification",
+          body: payload.body || "",
+        };
+
+        setToasts((current) => [toast, ...current].slice(0, 4));
+
+        window.setTimeout(() => {
+          setToasts((current) => current.filter((item) => item.id !== toast.id));
+        }, 5000);
+      }
+    },
+    [],
+  );
+
+  useLiveRefresh({
+    channels: [profile?.id ? `user:${profile.id}` : "", "market:notifications"],
+    enabled: Boolean(profile?.id),
+    onEvent: handleLiveEvent,
+  });
+
   const isAccountMenuActive = useMemo(
     () =>
       accountMenuItems.some(
@@ -168,6 +198,14 @@ export function BuyerShell({ children }) {
       </header>
 
       <main className={styles.content}>{children}</main>
+      <div className={styles.toastFrame} aria-live="polite" aria-atomic="true">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={styles.toastCard}>
+            <strong className={styles.toastTitle}>{toast.title}</strong>
+            {toast.body ? <p className={styles.toastBody}>{toast.body}</p> : null}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -327,7 +327,7 @@ async function settleAuction(auction) {
   await createNotificationsOnce([
     {
       userId: winningBid.bidder,
-      title: "You won the auction",
+      title: "Congratulations! You have won the bid",
       body: `You won "${listing.title}" with a bid of ${formatCurrency(winningBid.amount)}. Complete payment to confirm your order.`,
       type: "order",
       href: "/bidder/wins",

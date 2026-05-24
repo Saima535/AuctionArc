@@ -207,6 +207,43 @@
   padding: 38px 0 56px;
 }
 
+.toastFrame {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.toastCard {
+  min-width: 300px;
+  max-width: min(360px, calc(100vw - 40px));
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 183, 0, 0.24);
+  color: #111;
+  pointer-events: auto;
+}
+
+.toastTitle {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.toastBody {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #2b2b2b;
+}
+
 @media (max-width: 900px) {
   .topbarInner {
     width: min(1500px, calc(100% - 28px));

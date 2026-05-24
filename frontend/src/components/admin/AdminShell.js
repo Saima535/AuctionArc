@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import styles from "./AdminShell.module.css";
 import { adminNavItems } from "@/data/admin/navigation";
-import { apiRequest } from "@/lib/api";
 
 const navGroups = [
   {
@@ -161,7 +160,6 @@ export function AdminShell({ children }) {
   const title = activeItem?.label || "Admin";
   const description = activeItem?.caption || "Marketplace administration";
   const { user: profile } = useAuth();
-  const [isExporting, setIsExporting] = useState(false);
   const imageUrl = profile?.profilePicture?.url || "";
   const groupedNavigation = useMemo(
     () =>
@@ -171,48 +169,6 @@ export function AdminShell({ children }) {
       })),
     [],
   );
-
-  async function handleExportSnapshot() {
-    setIsExporting(true);
-
-    try {
-      const [dashboard, users, products, auctions, bids, reports, transactions, settings] =
-        await Promise.all([
-          apiRequest("/dashboard/admin"),
-          apiRequest("/admin/users"),
-          apiRequest("/admin/products"),
-          apiRequest("/admin/auctions"),
-          apiRequest("/admin/bids"),
-          apiRequest("/admin/reports"),
-          apiRequest("/admin/transactions"),
-          apiRequest("/admin/settings"),
-        ]);
-
-      const snapshot = {
-        exportedAt: new Date().toISOString(),
-        dashboard: dashboard.data,
-        users: users.data,
-        products: products.data,
-        auctions: auctions.data,
-        bids: bids.data,
-        reports: reports.data,
-        transactions: transactions.data,
-        settings: settings.data,
-      };
-
-      const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `auctionarc-admin-snapshot-${new Date().toISOString().slice(0, 10)}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } finally {
-      setIsExporting(false);
-    }
-  }
 
   return (
     <div className={styles.app}>
@@ -287,18 +243,6 @@ export function AdminShell({ children }) {
             <p className={styles.pageCopy}>{description}</p>
           </div>
 
-          {pathname !== "/admin/reports" ? (
-            <div className={styles.topbarActions}>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                disabled={isExporting}
-                onClick={handleExportSnapshot}
-              >
-                {isExporting ? "Exporting..." : "Export snapshot"}
-              </button>
-            </div>
-          ) : null}
         </header>
 
         <main className={styles.content}>{children}</main>

@@ -140,18 +140,26 @@
 }
 
 .pillUnread {
-  background: rgba(240, 160, 0, 0.18);
-  color: #ffd165;
+  background: #ffe7a0;
+  color: #3b2f00;
 }
 
 .pillRead {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.66);
+  background: rgba(17, 17, 17, 0.08);
+  color: rgba(17, 17, 17, 0.72);
 }
 
 .itemBody {
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(17, 17, 17, 0.88);
+}
+
+.pageItemHeader h3,
+.pageItemHeader p,
+.pageHeader p,
+.menuHeader p,
+.emptyText {
+  color: #111;
 }
 
 .itemMeta {
@@ -215,8 +223,9 @@
 .pageItem,
 .pageItemUnread {
   border-radius: 24px;
-  border: 1px solid rgba(240, 160, 0, 0.14);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  color: #111;
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -224,8 +233,8 @@
 }
 
 .pageItemUnread {
-  background: rgba(240, 160, 0, 0.08);
-  border-color: rgba(240, 160, 0, 0.28);
+  background: rgba(255, 243, 205, 0.92);
+  border-color: rgba(204, 161, 34, 0.32);
 }
 
 .pageItemHeader {
