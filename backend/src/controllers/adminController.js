@@ -157,15 +157,21 @@ export const getProducts = asyncHandler(async (req, res) => {
   const listings = await Listing.find({}).populate("seller").sort({ updatedAt: -1 });
   const listingIds = listings.map((listing) => listing._id);
   const auctions = await Auction.find({ listing: { $in: listingIds } }).select("listing status startAt endAt bidCount winner");
+  const orders = await Order.find({
+    listing: { $in: listingIds },
+    status: { $in: ["Payment pending", "Paid", "Awaiting shipment", "Delivered", "Completed"] },
+  }).select("listing");
   const auctionByListingId = new Map(
     auctions.map((auction) => [String(auction.listing), auction]),
   );
+  const soldListingIds = new Set(orders.map((order) => String(order.listing)));
 
   res.json({
     success: true,
     data: listings.map((listing) => {
       const auction = auctionByListingId.get(String(listing._id));
       const displayStatus = auction ? deriveAuctionLifecycleLabel(auction) : listing.status;
+      const isSold = soldListingIds.has(String(listing._id));
 
       return {
         listingId: listing._id,
@@ -175,7 +181,9 @@ export const getProducts = asyncHandler(async (req, res) => {
         category: listing.category,
         status: displayStatus,
         countdown:
-          auction?.status === "Scheduled" && auction?.startAt
+          isSold
+            ? "Sold"
+            : auction?.status === "Scheduled" && auction?.startAt
             ? `Starts ${formatRelativeTime(auction.startAt)}`
             : formatCountdown(auction?.endAt || null),
         price: formatCurrency(listing.price),
