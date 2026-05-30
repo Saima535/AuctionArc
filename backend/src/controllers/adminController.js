@@ -23,7 +23,6 @@ import {
   toBidRow,
   toTableUser,
   toThreadRow,
-  toTransactionRow,
 } from "../services/mapperService.js";
 import { syncAuctionForListing } from "../services/auctionLifecycleService.js";
 import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js";
@@ -610,14 +609,86 @@ export const updateReportStatus = asyncHandler(async (req, res) => {
 });
 
 export const getTransactions = asyncHandler(async (req, res) => {
-  const transactions = await Transaction.find({}).populate("user").sort({ createdAt: -1 });
+  const transactions = await Transaction.find({})
+    .populate("user")
+    .populate({
+      path: "order",
+      populate: [
+        { path: "seller", select: "name" },
+        { path: "bidder", select: "name" },
+        { path: "listing", select: "title code" },
+      ],
+    })
+    .sort({ createdAt: -1 });
+  const metadataListingIds = transactions
+    .map((transaction) => transaction.metadata?.listingId)
+    .filter(Boolean);
+  const metadataListings = await Listing.find({ _id: { $in: metadataListingIds } }).select("title code");
+  const listingById = new Map(
+    metadataListings.map((listing) => [String(listing._id), listing]),
+  );
+
+  function normalizeTransactionType(transaction) {
+    if (/feature|featured/i.test(transaction.type)) {
+      return "Feature payment";
+    }
+
+    if (/buy now/i.test(transaction.type)) {
+      return "Buy now payment";
+    }
+
+    if (/winning bid|auction sale/i.test(transaction.type)) {
+      return "Auction win price payment";
+    }
+
+    return transaction.type;
+  }
 
   res.json({
     success: true,
-    data: transactions.map((transaction) => ({
-      ...toTransactionRow(transaction),
-      date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
-    })),
+    data: transactions.map((transaction) => {
+      const order = transaction.order;
+      const fallbackListing = transaction.metadata?.listingId
+        ? listingById.get(String(transaction.metadata.listingId))
+        : null;
+
+      return {
+        transactionId: transaction._id,
+        id: transaction.code,
+        product:
+          order?.item ||
+          order?.listing?.title ||
+          fallbackListing?.title ||
+          "Platform payment",
+        buyer: order?.bidder?.name || (transaction.user?.role === "Bidder" ? transaction.user?.name : "N/A"),
+        seller:
+          order?.seller?.name ||
+          (transaction.user?.role === "Seller" ? transaction.user?.name : /feature|featured/i.test(transaction.type) ? transaction.user?.name : "N/A"),
+        type: normalizeTransactionType(transaction),
+        status: transaction.status,
+        amount: formatCurrency(transaction.amount),
+        channel: transaction.channel,
+        date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
+      };
+    }),
+  });
+});
+
+export const deleteTransaction = asyncHandler(async (req, res) => {
+  const transaction = await Transaction.findById(req.params.transactionId);
+
+  if (!transaction) {
+    throw new ApiError(404, "Transaction not found.");
+  }
+
+  await transaction.deleteOne();
+
+  res.json({
+    success: true,
+    message: "Transaction deleted successfully.",
+    data: {
+      transactionId: String(transaction._id),
+    },
   });
 });
 

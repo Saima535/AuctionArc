@@ -17,6 +17,7 @@ import {
   getUsers,
   getWinners,
   exportReport,
+  deleteTransaction,
   deleteProduct,
   updateAuctionStatus,
   updateBidStatus,
@@ -48,6 +49,7 @@ router.get("/reports/export", exportReport);
 router.get("/reports", getReports);
 router.patch("/reports/:reportId/status", updateReportStatus);
 router.get("/transactions", getTransactions);
+router.delete("/transactions/:transactionId", deleteTransaction);
 router.get("/winners", getWinners);
 router.get("/settings", getSettings);
 router.patch("/settings", updateSettings);
