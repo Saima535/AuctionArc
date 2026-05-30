@@ -11,7 +11,6 @@ import {
   ClockIcon,
   CurrencyIcon,
   DollarIcon,
-  EyeIcon,
   MessageIcon,
   PlusIcon,
   StarIcon,
@@ -20,11 +19,11 @@ import {
 } from "@/components/seller/SellerIcons";
 
 const statIcons = [<BoxIcon key="box" />, <UsersIcon key="users" />, <DollarIcon key="dollar" />, <ClockIcon key="clock" />];
-const performanceIcons = [<EyeIcon key="eye" />, <DollarIcon key="dollar" />, <TrendIcon key="trend" />, <TrendIcon key="trend-2" />];
+const performanceIcons = [<DollarIcon key="dollar" />, <TrendIcon key="trend" />, <TrendIcon key="trend-2" />];
 const activityVisuals = [
   { icon: <CurrencyIcon />, className: shared.activityGreen },
   { icon: <MessageIcon />, className: shared.activityBlue },
-  { icon: <EyeIcon />, className: shared.activityAmber },
+  { icon: <TrendIcon />, className: shared.activityAmber },
   { icon: <TrendIcon />, className: shared.activityAmber },
 ];
 
@@ -160,7 +159,7 @@ export default function SellerDashboardPage() {
         <div className={shared.sectionTop}>
           <div>
             <h2 className={shared.panelTitle}>Analytics snapshot</h2>
-            <p className={shared.panelCopy}>Live seller performance across traffic, bidding, orders, and conversions.</p>
+            <p className={shared.panelCopy}>Live seller performance across bidding, orders, and conversions.</p>
           </div>
           <Link href="/seller/analytics" className={shared.activityLink}>
             Open analytics
@@ -316,17 +315,9 @@ export default function SellerDashboardPage() {
                         <span>Delivery:</span>
                         <span className={shared.detailHighlight}>{product.delivery}</span>
                       </div>
-                      <div className={shared.detailRow}>
-                        <span>Views:</span>
-                        <span>{product.views}</span>
-                      </div>
                     </div>
 
                     <div className={shared.productFooter}>
-                      <span className={shared.rating}>
-                        <EyeIcon />
-                        <span>{product.views} views</span>
-                      </span>
                       <Link href="/seller/listings" className={shared.darkButton}>
                         Manage Listing
                       </Link>

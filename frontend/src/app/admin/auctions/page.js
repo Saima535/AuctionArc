@@ -40,7 +40,6 @@ export default function AdminAuctionsPage() {
       label: "Status",
       render: (value) => <StatusBadge tone={statusTone(value)}>{value}</StatusBadge>,
     },
-    { key: "reserve", label: "Reserve" },
     { key: "countdown", label: "Countdown" },
     { key: "bids", label: "Bids" },
   ];
@@ -49,7 +48,7 @@ export default function AdminAuctionsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Auctions"
-        description="A clean operational table for auction status, reserve state, countdown state, and bid activity."
+        description="A clean operational table for auction status, countdown state, and bid activity."
         action={
           <LiveRefreshControls
             onRefresh={refresh}

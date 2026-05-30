@@ -77,7 +77,6 @@ export function toListingCard(listing) {
     title: listing.title,
     category: listing.category,
     status: listing.status,
-    reserve: listing.reserveStatus,
     price: formatCurrency(listing.price),
     bids: String(listing.bidCount),
   };
@@ -89,7 +88,6 @@ export function toAuctionRow(auction) {
     id: auction.code,
     title: auction.title,
     status: auction.status,
-    reserve: auction.reserveStatus,
     countdown:
       auction.status === "Scheduled" && auction.startAt
         ? `Starts ${formatRelativeTime(auction.startAt)}`

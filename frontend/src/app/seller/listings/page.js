@@ -11,7 +11,6 @@ import {
   EditIcon,
   PlusIcon,
   TrashIcon,
-  EyeIcon,
   PauseIcon,
 } from "@/components/seller/SellerIcons";
 
@@ -359,7 +358,7 @@ export default function SellerListingsPage() {
       <section className={shared.sectionHeader}>
         <div>
           <h1>Listings Management</h1>
-          <p>Review every listed product with its live auction timing, pricing, and buyer engagement.</p>
+          <p>Review every listed product with its live auction timing, pricing, and bidding activity.</p>
         </div>
 
         <Link href="/seller/listings/new" className={shared.primaryCta}>
@@ -379,7 +378,7 @@ export default function SellerListingsPage() {
           <article className={`${shared.panel} ${shared.listingCard}`}>
             <div className={shared.listingBody}>
               <h3>No listings found yet</h3>
-              <p>Create your first auction product to start tracking views, bids, and auction timing here.</p>
+              <p>Create your first auction product to start tracking bids and auction timing here.</p>
             </div>
           </article>
         ) : null}
@@ -456,20 +455,8 @@ export default function SellerListingsPage() {
                     <strong>{row.delivery}</strong>
                   </p>
                   <p className={shared.auctionMeta}>
-                    <span>Reserve price</span>
-                    <strong>{row.reservePrice}</strong>
-                  </p>
-                  <p className={shared.auctionMeta}>
                     <span>Buy now</span>
                     <strong>{row.buyNowPrice}</strong>
-                  </p>
-                  <p className={shared.auctionMeta}>
-                    <span>Views</span>
-                    <strong>{row.views}</strong>
-                  </p>
-                  <p className={shared.auctionMeta}>
-                    <span>Reserve status</span>
-                    <strong>{row.reserveStatus}</strong>
                   </p>
                   <p className={shared.auctionMeta}>
                     <span>Start time</span>
@@ -491,13 +478,6 @@ export default function SellerListingsPage() {
 
                 <div className={shared.listingFooter}>
                   {/* Action buttons cover featured placement, editing, status flow, and deletion. */}
-                  <div className={shared.listingMetrics}>
-                    <span className={shared.tableMetric}>
-                      <span className={shared.tableIcon}><EyeIcon /></span>
-                      <span>{row.views} views</span>
-                    </span>
-                  </div>
-
                   <div className={shared.listingActions}>
                     {!row.premiumHighlight ? (
                       <button

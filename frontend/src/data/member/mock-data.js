@@ -17,7 +17,6 @@ export const sellerAuctions = [];
 export const sellerOrders = [];
 
 export const sellerAnalytics = {
-  views: [0, 0, 0, 0, 0, 0, 0],
   bids: [0, 0, 0, 0, 0, 0, 0],
   conversion: [0, 0, 0, 0, 0, 0, 0],
 };

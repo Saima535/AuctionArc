@@ -92,7 +92,6 @@ function buildBuyerAuctionRow({ auction, listing }) {
     imageUrl: listing.images?.[0]?.url || "",
     images: (listing.images || []).map((image) => image?.url).filter(Boolean),
     premiumHighlight: Boolean(auction.featured || listing.premiumHighlight || listing.status === "Featured"),
-    reserveStatus: auction.reserveStatus || listing.reserveStatus || "Pending",
     startAt: auction.startAt || null,
     endAt: auction.endAt || null,
     canBid: isBiddable,
@@ -126,7 +125,6 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
     ...buildActiveAuctionFilter(),
   });
   const processingOrders = orders.filter((item) => item.status !== "Completed").length;
-  const totalViews = listings.reduce((sum, listing) => sum + (listing.viewCount || 0), 0);
   const totalBids = auctions.reduce((sum, auction) => sum + (auction.bidCount || 0), 0);
   const averageOrderValue = orders.length ? grossSales / orders.length : 0;
   const conversionRate = listings.length ? Math.round((orders.length / listings.length) * 100) : 0;
@@ -156,7 +154,6 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
       ],
       // Secondary metrics capture traffic and commercial quality signals.
       performance: [
-        toStats("Listing views", compactAmount(totalViews), `${listings.length} listings tracked`, "good"),
         toStats("Average order value", formatCurrency(averageOrderValue), `${orders.length} completed orders`, "good"),
         toStats("Bid activity", compactAmount(totalBids), `${sellerBids.length} buyers engaged`, "good"),
         toStats("Conversion rate", `${conversionRate}%`, `${orders.length} orders won`, conversionRate >= 50 ? "good" : "warn"),
@@ -192,7 +189,6 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
         description: listing.description || "No product summary has been added yet.",
         status: listing.status,
         currentBid: formatCurrency(listing.currentBid || listing.price || 0),
-        views: String(listing.viewCount || 0),
         delivery: listing.deliveryOption || "AuctionArc Delivery",
         endTime:
           auctions.find((auction) => String(auction.listing) === String(listing._id))?.endAt || null,
@@ -435,17 +431,14 @@ export const getSellerListings = asyncHandler(async (req, res) => {
         category: listing.category,
         description: listing.description || "",
         status: listing.status,
-        reserveStatus: listing.reserveStatus || "Pending",
         condition: listing.condition || "Good",
         price: formatCurrency(listing.price || 0),
         currentBid: formatCurrency(listing.currentBid || listing.price || 0),
         bidCount: String(listing.bidCount || 0),
-        views: String(listing.viewCount || 0),
         auctionDurationDays: listing.auctionDurationDays || 0,
         auctionDurationUnit: listing.auctionDurationUnit || "day",
         delivery: listing.deliveryOption || "AuctionArc Delivery",
         deliveryFee: formatCurrency(listing.deliveryFee || 0),
-        reservePrice: formatCurrency(listing.reservePrice || 0),
         buyNowPrice: listing.buyNowPrice ? formatCurrency(listing.buyNowPrice) : "Not set",
         premiumHighlight: Boolean(listing.premiumHighlight || auction?.featured),
         imageUrl: listing.images?.[0]?.url || "",
@@ -459,7 +452,6 @@ export const getSellerListings = asyncHandler(async (req, res) => {
               code: auction.code,
               title: auction.title,
               status: auction.status,
-              reserveStatus: auction.reserveStatus || "Pending",
               currentBid: formatCurrency(auction.currentBid || listing.currentBid || listing.price || 0),
               bidCount: String(auction.bidCount || listing.bidCount || 0),
               startAt: auction.startAt || null,
@@ -524,12 +516,10 @@ export const getSellerAnalytics = asyncHandler(async (req, res) => {
     Order.find({ seller: req.user._id }).sort({ createdAt: 1 }),
   ]);
 
-  const totalViews = listings.reduce((sum, listing) => sum + (listing.viewCount || 0), 0);
   const totalBids = auctions.reduce((sum, auction) => sum + (auction.bidCount || 0), 0);
   const conversionRate = listings.length ? Math.round((orders.length / listings.length) * 100) : 0;
   const dropOffRate = listings.length ? Math.max(0, 100 - conversionRate) : 0;
 
-  const viewsTrend = listings.slice(-7).map((listing) => listing.viewCount || 0);
   const bidTrend = auctions.slice(-7).map((auction) => auction.bidCount || 0);
   const conversionTrend = listings.slice(-7).map((listing, index) => {
     const activeOrders = orders.slice(0, Math.min(index + 1, orders.length)).length;
@@ -540,13 +530,11 @@ export const getSellerAnalytics = asyncHandler(async (req, res) => {
     success: true,
     data: {
       kpis: [
-        toStats("Listing views", compactAmount(totalViews), `Across ${listings.length} listings`, "good"),
         toStats("Bid engagement", compactAmount(totalBids), `${auctions.length} auctions`, "good"),
         toStats("Conversion rate", `${conversionRate}%`, `${orders.length} completed sales`, "good"),
         toStats("Drop-off risk", `${dropOffRate}%`, "Attention on idle listings", "warn"),
       ],
       series: {
-        views: viewsTrend.length ? viewsTrend : [0, 0, 0, 0, 0, 0, 0],
         bids: bidTrend.length ? bidTrend : [0, 0, 0, 0, 0, 0, 0],
         conversion: conversionTrend.length ? conversionTrend : [0, 0, 0, 0, 0, 0, 0],
       },
