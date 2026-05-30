@@ -33,6 +33,7 @@ import {
 } from "../utils/validation.js";
 
 export const getPublicAuctions = asyncHandler(async (req, res) => {
+  // Public browsing only exposes active auctions that already have an attached listing.
   const now = new Date();
   const auctions = await Auction.find(buildActiveAuctionFilter(now))
     .populate("listing")
@@ -45,6 +46,8 @@ export const getPublicAuctions = asyncHandler(async (req, res) => {
     data: auctions
       .filter((auction) => auction.listing)
       .map((auction) => {
+      // Public cards flatten auction and listing data into a single object that
+      // marketing/public pages can render without extra client-side joins.
       const listing = auction.listing;
       const imageUrl = listing.images?.[0]?.url || null;
       const images = (listing.images || []).map((image) => image?.url).filter(Boolean);
@@ -58,6 +61,9 @@ export const getPublicAuctions = asyncHandler(async (req, res) => {
         seller: auction.seller?.name || "AuctionArc seller",
         status: auction.status,
         currentBid: formatCurrency(auction.currentBid || listing.currentBid || listing.price || 0),
+        // Buy now is exposed here so public and buyer-facing cards can show the
+        // instant-purchase value alongside the auction price.
+        buyNowPrice: formatCurrency(listing.buyNowPrice || 0),
         auctionWindow: `${formatAuctionDuration(listing.auctionDurationDays || 5, listing.auctionDurationUnit || "day")} auction`,
         priceLabel: (auction.currentBid || listing.currentBid || 0) > listing.price ? "Current bid" : "Starting price",
         secondaryLabel: "Auction window",
@@ -76,6 +82,7 @@ export const getPublicAuctions = asyncHandler(async (req, res) => {
 });
 
 export const createListing = asyncHandler(async (req, res) => {
+  // Listing creation is seller-only because the seller owns the product inventory.
   if (req.user.role !== "Seller") {
     throw new ApiError(403, "Only sellers can create listings.");
   }
@@ -104,6 +111,12 @@ export const createListing = asyncHandler(async (req, res) => {
   const parsedDeliveryFee = assertNumber(deliveryFee || 0, "Delivery fee", { min: 0, max: 1000000 });
   const requestedStatus = status === "Pending approval" ? "Pending approval" : "Draft";
 
+  // Buy now must remain meaningfully above the auction opening price or it
+  // stops functioning as a premium instant-purchase option.
+  if (parsedBuyNowPrice <= parsedPrice) {
+    throw new ApiError(400, "Buy now price must be greater than the starting price.");
+  }
+
   if (requestedStatus === "Pending approval" && !req.files?.length) {
     throw new ApiError(400, "Please upload at least one image before submitting for approval.");
   }
@@ -113,6 +126,8 @@ export const createListing = asyncHandler(async (req, res) => {
   }
 
   const code = await generateUniqueCode(Listing, "SL-", { digits: 3, min: 101 });
+  // Listing images are uploaded before persistence so the created record stores
+  // stable Cloudinary references rather than temporary local blobs.
   const uploadedImages = await Promise.all(
     (req.files || []).map((file, index) =>
       uploadImageBuffer(
@@ -127,6 +142,8 @@ export const createListing = asyncHandler(async (req, res) => {
 
   try {
     listing = await Listing.create({
+      // The listing stores both the normal auction opening price and the
+      // mandatory instant-purchase buy-now price.
       code,
       seller: req.user._id,
       title: normalizedTitle,
@@ -152,6 +169,8 @@ export const createListing = asyncHandler(async (req, res) => {
   }
 
   if (requestedStatus === "Pending approval") {
+    // Approval submissions notify admins so moderation can move the listing into
+    // the live marketplace when it is ready.
     const admins = await User.find({ role: "Admin", status: "Active" }).select("_id");
 
     await createNotifications(
@@ -177,6 +196,7 @@ export const createListing = asyncHandler(async (req, res) => {
 });
 
 export const updateListing = asyncHandler(async (req, res) => {
+  // Sellers can only edit listings they own.
   if (req.user.role !== "Seller") {
     throw new ApiError(403, "Only sellers can update listings.");
   }
@@ -205,6 +225,8 @@ export const updateListing = asyncHandler(async (req, res) => {
   } = req.body;
 
   const previousListingState = {
+    // Previous values are captured so we can decide whether watcher-facing
+    // notifications should mention a price drop or a general detail update.
     title: listing.title,
     description: listing.description || "",
     condition: listing.condition || "",
@@ -231,6 +253,11 @@ export const updateListing = asyncHandler(async (req, res) => {
 
   if (buyNowPrice !== undefined) {
     listing.buyNowPrice = assertNumber(buyNowPrice || 0, "Buy now price", { min: 0, max: 100000000 });
+  }
+
+  // The same relationship enforced at creation time is enforced again on edits.
+  if (Number(listing.buyNowPrice || 0) <= Number(listing.price || 0)) {
+    throw new ApiError(400, "Buy now price must be greater than the starting price.");
   }
 
   if (condition) {
@@ -267,6 +294,8 @@ export const updateListing = asyncHandler(async (req, res) => {
 
   await listing.save();
 
+  // Buyers watching the linked auction should hear about material listing
+  // changes, especially when the seller lowers price-related fields.
   const detailsChanged =
     previousListingState.title !== listing.title ||
     previousListingState.description !== (listing.description || "") ||
@@ -336,6 +365,8 @@ export const updateListing = asyncHandler(async (req, res) => {
 });
 
 export const deleteListing = asyncHandler(async (req, res) => {
+  // Deleting a listing also removes seller-owned auctions tied to it so the
+  // marketplace does not retain orphaned auction sessions.
   if (req.user.role !== "Seller") {
     throw new ApiError(403, "Only sellers can delete listings.");
   }
@@ -358,6 +389,8 @@ export const deleteListing = asyncHandler(async (req, res) => {
 });
 
 export const placeBid = asyncHandler(async (req, res) => {
+  // Bidding is bidder-only and runs in a transaction so the current bid and bid
+  // history stay consistent under concurrent requests.
   if (req.user.role !== "Bidder") {
     throw new ApiError(403, "Only buyers can place bids.");
   }
@@ -404,6 +437,7 @@ export const placeBid = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Bids can only be placed on live or extended auctions.");
       }
 
+      // Buyers must beat the current amount by at least the minimum increment.
       const minimumAllowedBid = Number(auction.currentBid || 0) + MIN_BID_INCREMENT;
 
       if (amount < minimumAllowedBid) {
@@ -420,6 +454,8 @@ export const placeBid = asyncHandler(async (req, res) => {
 
       const updatedAuction = await Auction.findOneAndUpdate(
         {
+          // Optimistic concurrency is enforced by matching the previous
+          // currentBid value inside the update selector.
           _id: auction._id,
           currentBid: auction.currentBid,
           ...buildActiveAuctionFilter(now),
@@ -447,6 +483,7 @@ export const placeBid = asyncHandler(async (req, res) => {
       }], { session });
       bid = createdBids[0];
 
+      // Every older eligible bid is downgraded once the new highest bid lands.
       await Bid.updateMany(
         {
           auction: updatedAuction._id,
@@ -460,6 +497,7 @@ export const placeBid = asyncHandler(async (req, res) => {
       await Listing.findByIdAndUpdate(
         updatedAuction.listing,
         {
+          // Listing mirrors the current bid for card-based product views.
           $set: { currentBid: amount },
           $inc: { bidCount: 1 },
         },
@@ -479,6 +517,7 @@ export const placeBid = asyncHandler(async (req, res) => {
   }
 
   publishLiveEvent({
+    // Live feeds and dashboards refresh off this event after a successful bid.
     event: "bid.updated",
     channels: ["market:auctions", "market:bids"],
     userIds: [req.user._id, auction.seller],
@@ -546,6 +585,7 @@ export const placeBid = asyncHandler(async (req, res) => {
 });
 
 export const addToWatchlist = asyncHandler(async (req, res) => {
+  // Watchlists are buyer-only and limited to auctions that are still relevant.
   if (req.user.role !== "Bidder") {
     throw new ApiError(403, "Only buyers can manage watchlists.");
   }
@@ -566,6 +606,7 @@ export const addToWatchlist = asyncHandler(async (req, res) => {
   });
 
   if (existingWatch) {
+    // Re-adding the same auction is treated as idempotent success for a better UX.
     res.json({
       success: true,
       message: "Auction is already in your watchlist.",
@@ -602,6 +643,8 @@ export const addToWatchlist = asyncHandler(async (req, res) => {
 });
 
 export const removeFromWatchlist = asyncHandler(async (req, res) => {
+  // Removing a watchlist entry also decrements the aggregate watcher count used
+  // in seller/admin marketplace summaries.
   const auction = await Auction.findById(req.params.auctionId);
 
   if (!auction) {

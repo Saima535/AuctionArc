@@ -5,6 +5,7 @@ import Stripe from "stripe";
 import mongoose from "mongoose";
 import { env } from "../config/env.js";
 import { stripe } from "../config/stripe.js";
+import { Auction } from "../models/Auction.js";
 import { Listing } from "../models/Listing.js";
 import { Order } from "../models/Order.js";
 import { Transaction } from "../models/Transaction.js";
@@ -13,6 +14,7 @@ import { syncAuctionForListing } from "../services/auctionLifecycleService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { assertNumber } from "../utils/validation.js";
 import { formatCurrency } from "../utils/formatters.js";
 
@@ -21,6 +23,8 @@ const FEATURED_LISTING_AMOUNT = 1;
 // Stripe checkout currently supports winner payments and seller-paid featured
 // listing upgrades. The metadata type tells us which post-payment workflow to run.
 async function applyCompletedSessionEffects(session) {
+  // Stripe metadata is the router for post-payment business logic because the
+  // same webhook/confirmation endpoint handles multiple payment scenarios.
   const paymentType = session.metadata?.type;
 
   if (paymentType === "winner-order") {
@@ -37,12 +41,20 @@ async function applyCompletedSessionEffects(session) {
     };
   }
 
+  if (paymentType === "buy-now-order") {
+    return {
+      type: paymentType,
+      resource: await applyBuyNowSessionEffects(session),
+    };
+  }
+
   throw new ApiError(400, "Stripe session metadata is missing a supported payment type.");
 }
 
 // Winner checkout touches buyer, order, seller, and ledger state together, so it
 // runs inside a database transaction.
 async function applyWinnerOrderSessionEffects(session) {
+  // Winner checkout uses stored order data rather than trusting client values.
   const userId = session.metadata?.userId;
   const orderId = session.metadata?.orderId;
   const amount = Number(session.amount_total || 0) / 100;
@@ -65,6 +77,7 @@ async function applyWinnerOrderSessionEffects(session) {
       }).session(dbSession);
 
       if (existingTransactions.length === 2) {
+        // If both ledger rows already exist we treat the payment as fully applied.
         order = await Order.findById(orderId).session(dbSession);
         return;
       }
@@ -126,9 +139,12 @@ async function applyWinnerOrderSessionEffects(session) {
   }
 
   if (!order) {
+    // Null means the side effects were already applied and no new work was needed.
     return null;
   }
 
+  // Buyer and seller notifications are emitted after the transaction so payment
+  // persistence succeeds even if notification infrastructure has issues later.
   await Promise.all([
     createNotification({
       userId: order.bidder,
@@ -155,6 +171,7 @@ async function applyWinnerOrderSessionEffects(session) {
   ]);
 
   publishLiveEvent({
+    // Realtime dashboards refresh order state off this event.
     event: "order.updated",
     channels: ["market:orders"],
     userIds: [order.bidder, order.seller],
@@ -173,6 +190,7 @@ async function applyWinnerOrderSessionEffects(session) {
 // Featured listing upgrades are seller-owned purchases that toggle premium
 // marketplace placement for one listing and then refresh any live auction view.
 async function applyFeaturedListingSessionEffects(session) {
+  // Featured listing payments operate on seller-owned listings only.
   const userId = session.metadata?.userId;
   const listingId = session.metadata?.listingId;
   const amount = Number(session.amount_total || 0) / 100;
@@ -187,6 +205,7 @@ async function applyFeaturedListingSessionEffects(session) {
 
   try {
     await dbSession.withTransaction(async () => {
+      // A repeated webhook/confirm call must not create duplicate transactions.
       const existingTransaction = await Transaction.findOne({
         code: transactionCode,
       }).session(dbSession);
@@ -201,6 +220,7 @@ async function applyFeaturedListingSessionEffects(session) {
       }
 
       if (!listing.premiumHighlight) {
+        // Feature placement can be safely re-applied because the flag is idempotent.
         listing.premiumHighlight = true;
         await listing.save({ session: dbSession });
       }
@@ -239,6 +259,7 @@ async function applyFeaturedListingSessionEffects(session) {
 
   const auction = await syncAuctionForListing(listing);
 
+  // Notifications and live events happen after the listing/auction state is durable.
   await createNotification({
     userId: listing.seller,
     title: "Featured placement activated",
@@ -269,7 +290,204 @@ async function applyFeaturedListingSessionEffects(session) {
   return listing;
 }
 
+async function getOrCreateBuyNowOrder({ listing, buyerId, amount, session }) {
+  // Buy-now checkout may be retried, so we reuse a matching pending/commercial
+  // order instead of creating duplicates for the same buyer/listing/amount.
+  const existingOrder = await Order.findOne({
+    listing: listing._id,
+    bidder: buyerId,
+    amount,
+    purchaseType: "Buy now",
+  }).session(session);
+
+  if (existingOrder) {
+    return existingOrder;
+  }
+
+  const code = await generateUniqueCode(Order, "ORD-", { digits: 4, min: 5001 });
+
+  // Buy-now orders enter the same fulfilment pipeline as auction-win orders,
+  // but are tagged with a different purchase type.
+  const createdOrders = await Order.create([{
+    code,
+    item: listing.title,
+    seller: listing.seller,
+    bidder: buyerId,
+    listing: listing._id,
+    purchaseType: "Buy now",
+    amount,
+    escrowAmount: amount,
+    status: "Payment pending",
+  }], { session });
+
+  return createdOrders[0];
+}
+
+async function applyBuyNowSessionEffects(session) {
+  // Buy-now settlement mirrors winner-order settlement, but it also closes the
+  // associated auction immediately because the product has been sold outright.
+  const userId = session.metadata?.userId;
+  const orderId = session.metadata?.orderId;
+  const listingId = session.metadata?.listingId;
+  const auctionId = session.metadata?.auctionId;
+  const amount = Number(session.amount_total || 0) / 100;
+  const buyerTransactionCode = `TXN-BUYNOW-${session.id}-BUYER`;
+  const sellerTransactionCode = `TXN-BUYNOW-${session.id}-SELLER`;
+
+  if (!userId || !orderId || !listingId) {
+    throw new ApiError(400, "Stripe session is missing the buy now order details.");
+  }
+
+  const dbSession = await mongoose.startSession();
+  let order = null;
+  let listing = null;
+  let auction = null;
+
+  try {
+    await dbSession.withTransaction(async () => {
+      // Dual transaction rows provide a simple idempotency marker for repeated
+      // webhook deliveries or confirmation retries.
+      const existingTransactions = await Transaction.find({
+        code: { $in: [buyerTransactionCode, sellerTransactionCode] },
+      }).session(dbSession);
+
+      order = await Order.findOne({
+        _id: orderId,
+        bidder: userId,
+        purchaseType: "Buy now",
+      }).session(dbSession);
+
+      if (!order) {
+        throw new ApiError(404, "Buy now order not found for this bidder.");
+      }
+
+      listing = await Listing.findById(listingId).session(dbSession);
+
+      if (!listing) {
+        throw new ApiError(404, "Listing not found for this buy now order.");
+      }
+
+      // Auction context is optional in metadata because some future buy-now
+      // flows may originate from listing-first views rather than auction cards.
+      auction = auctionId ? await Auction.findById(auctionId).session(dbSession) : null;
+
+      if (existingTransactions.length !== 2) {
+        if (order.status !== "Payment pending") {
+          throw new ApiError(400, "This buy now order is not awaiting payment anymore.");
+        }
+
+        order.status = "Paid";
+        order.paymentSessionId = session.id;
+        order.paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : "";
+        order.paidAt = new Date();
+        await order.save({ session: dbSession });
+
+        if (!existingTransactions.some((entry) => entry.code === buyerTransactionCode)) {
+          // Buyer ledger row records the successful outgoing payment.
+          await Transaction.create([{
+            code: buyerTransactionCode,
+            user: order.bidder,
+            order: order._id,
+            type: "Buy now payment",
+            status: "Completed",
+            amount,
+            channel: "Stripe",
+            metadata: {
+              orderId: String(order._id),
+              listingId: String(listing._id),
+              stripeSessionId: session.id,
+            },
+          }], { session: dbSession });
+        }
+
+        if (!existingTransactions.some((entry) => entry.code === sellerTransactionCode)) {
+          // Seller ledger row records the incoming sale that will later be paid out.
+          await Transaction.create([{
+            code: sellerTransactionCode,
+            user: order.seller,
+            order: order._id,
+            type: "Buy now sale",
+            status: "Pending payout",
+            amount,
+            channel: "Stripe",
+            metadata: {
+              orderId: String(order._id),
+              listingId: String(listing._id),
+              stripeSessionId: session.id,
+            },
+          }], { session: dbSession });
+        }
+      }
+
+      if (auction) {
+        // Closing the auction immediately prevents further bidding after an
+        // instant purchase has already completed successfully.
+        auction.status = "Closed";
+        auction.winner = order.bidder;
+        auction.closedReason = "buy-now";
+        auction.settling = false;
+        auction.settlingAt = null;
+        auction.settledAt = order.paidAt || new Date();
+        await auction.save({ session: dbSession });
+      }
+    });
+  } finally {
+    await dbSession.endSession();
+  }
+
+  await Promise.all([
+    // Both parties are notified after the payment becomes durable.
+    createNotification({
+      userId: order.bidder,
+      title: "Buy now payment received",
+      body: `Your payment of ${formatCurrency(amount)} for "${listing.title}" was received successfully.`,
+      type: "payment",
+      href: "/bidder/wins",
+      metadata: {
+        orderId: order._id,
+        listingId: listing._id,
+        auctionId: auction?._id || null,
+        stripeSessionId: session.id,
+      },
+    }),
+    createNotification({
+      userId: order.seller,
+      title: "Buy now order paid",
+      body: `"${listing.title}" was purchased instantly for ${formatCurrency(amount)}. Prepare the shipment now.`,
+      type: "order",
+      href: "/seller/orders",
+      metadata: {
+        orderId: order._id,
+        listingId: listing._id,
+        auctionId: auction?._id || null,
+        stripeSessionId: session.id,
+      },
+    }),
+  ]);
+
+  publishLiveEvent({
+    // A buy-now checkout updates both order dashboards and auction discovery.
+    event: "order.updated",
+    channels: ["market:orders", "market:auctions"],
+    userIds: [order.bidder, order.seller],
+    roles: ["Admin"],
+    payload: {
+      orderId: order._id,
+      orderCode: order.code,
+      listingId: listing._id,
+      auctionId: auction?._id || null,
+      status: order.status,
+      paidAt: order.paidAt,
+      purchaseType: "Buy now",
+    },
+  });
+
+  return order;
+}
+
 export const createCheckoutSession = asyncHandler(async (req, res) => {
+  // Stripe checkout is shared by multiple payment intents, so purpose selection
+  // determines which validation branch and metadata bundle we use.
   if (!stripe) {
     throw new ApiError(503, "Stripe is not configured yet.");
   }
@@ -279,12 +497,15 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
       ? "winner-order"
       : req.body.purpose === "featured-listing"
         ? "featured-listing"
+        : req.body.purpose === "buy-now-order"
+          ? "buy-now-order"
         : "";
   let amount = 0;
   let successUrl = "";
   let cancelUrl = "";
   let productName = "";
   let metadata = {
+    // Every payment purpose is scoped to the authenticated user for confirm-time authorization.
     userId: req.user._id.toString(),
     type: purpose,
   };
@@ -318,6 +539,7 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
       orderCode: order.code,
     };
   } else if (purpose === "featured-listing") {
+    // Featured placement is a seller-owned one-off purchase for a listing.
     if (req.user.role !== "Seller") {
       throw new ApiError(403, "Only sellers can pay to feature a listing.");
     }
@@ -344,11 +566,87 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
       listingId: listing._id.toString(),
       listingCode: listing.code,
     };
+  } else if (purpose === "buy-now-order") {
+    // Buy now is only valid for bidders because sellers cannot purchase their own stock.
+    if (req.user.role !== "Bidder") {
+      throw new ApiError(403, "Only bidders can use buy now.");
+    }
+
+    const auctionId = req.body.auctionId;
+    const listing = await Listing.findById(req.body.listingId);
+
+    if (!listing) {
+      throw new ApiError(404, "Listing not found.");
+    }
+
+    if (!listing.buyNowPrice || Number(listing.buyNowPrice) <= 0) {
+      throw new ApiError(400, "This listing is not available for buy now.");
+    }
+
+    // Prevent self-purchase regardless of what the frontend allows.
+    if (String(listing.seller) === String(req.user._id)) {
+      throw new ApiError(400, "You cannot buy your own listing.");
+    }
+
+    const auction = auctionId ? await Auction.findById(auctionId) : await Auction.findOne({ listing: listing._id });
+
+    if (!auction || auction.status === "Closed") {
+      throw new ApiError(400, "This product is no longer available for instant purchase.");
+    }
+
+    // Only one active buy-now commercial flow is allowed per listing.
+    const existingSale = await Order.findOne({
+      listing: listing._id,
+      status: { $in: ["Payment pending", "Paid", "Awaiting shipment", "Delivered", "Completed"] },
+      purchaseType: "Buy now",
+    });
+
+    if (existingSale) {
+      if (String(existingSale.bidder) !== String(req.user._id)) {
+        throw new ApiError(400, "Another buyer is already completing the buy now purchase for this listing.");
+      }
+
+      if (existingSale.status !== "Payment pending") {
+        throw new ApiError(400, "You have already purchased this listing.");
+      }
+    }
+
+    amount = assertNumber(listing.buyNowPrice, "Buy now amount", { min: 1, max: 50000 });
+
+    const dbSession = await mongoose.startSession();
+    let order = null;
+
+    try {
+      await dbSession.withTransaction(async () => {
+        // The order is created before redirecting to Stripe so the eventual
+        // confirmation step has a durable commercial record to update.
+        order = await getOrCreateBuyNowOrder({
+          listing,
+          buyerId: req.user._id,
+          amount,
+          session: dbSession,
+        });
+      });
+    } finally {
+      await dbSession.endSession();
+    }
+
+    successUrl = `${env.clientUrl}/bidder/wins?status=success&session_id={CHECKOUT_SESSION_ID}&order=${order._id}`;
+    cancelUrl = `${env.clientUrl}/bidder/wins?status=cancelled&order=${order._id}`;
+    productName = `AuctionArc buy now purchase for ${listing.title}`;
+    metadata = {
+      ...metadata,
+      orderId: order._id.toString(),
+      listingId: listing._id.toString(),
+      listingCode: listing.code,
+      auctionId: auction?._id?.toString?.() || "",
+    };
   } else {
     throw new ApiError(400, "Unsupported payment purpose.");
   }
 
   const session = await stripe.checkout.sessions.create({
+    // Stripe line items are built from trusted server-side data only.
     payment_method_types: ["card"],
     mode: "payment",
     success_url: successUrl,
@@ -378,6 +676,8 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
 });
 
 export const confirmCheckoutSession = asyncHandler(async (req, res) => {
+  // Frontend confirmation complements webhooks so local state can update in
+  // development or when the user returns to the app after paying.
   if (!stripe) {
     throw new ApiError(503, "Stripe is not configured yet.");
   }
@@ -397,6 +697,7 @@ export const confirmCheckoutSession = asyncHandler(async (req, res) => {
   }
 
   if (session.metadata?.userId !== req.user._id.toString()) {
+    // Confirming sessions is restricted to the user who created the checkout.
     throw new ApiError(403, "You cannot confirm another user's payment session.");
   }
 
@@ -407,6 +708,8 @@ export const confirmCheckoutSession = asyncHandler(async (req, res) => {
       ? "Winning order payment confirmed successfully."
       : applied.type === "featured-listing"
         ? "Featured listing payment confirmed successfully."
+        : applied.type === "buy-now-order"
+          ? "Buy now payment confirmed successfully."
         : "Payment confirmed successfully.";
 
   res.json({
@@ -420,6 +723,8 @@ export const confirmCheckoutSession = asyncHandler(async (req, res) => {
 
 export async function handleStripeWebhook(req, res, next) {
   try {
+    // Webhooks are the durable production path because they do not depend on
+    // the buyer returning to the frontend after payment.
     if (!stripe) {
       throw new ApiError(503, "Stripe is not configured yet.");
     }

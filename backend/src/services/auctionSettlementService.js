@@ -25,6 +25,8 @@ const SETTLING_STALE_THRESHOLD_MS = 5 * 60 * 1000;
 // Settlement reuses an existing winner order when possible so repeat scheduler
 // passes do not create duplicate order records.
 async function createWinnerOrder({ auction, listing, winningBid, session }) {
+  // A fresh code is generated only for true inserts; repeated settlement passes
+  // still reuse the same logical order if it already exists.
   const code = await generateUniqueCode(Order, "ORD-", { digits: 4, min: 5001 });
 
   const order = await Order.findOneAndUpdate(
@@ -35,6 +37,8 @@ async function createWinnerOrder({ auction, listing, winningBid, session }) {
     },
     {
       $setOnInsert: {
+        // Item/title snapshots are stored on the order so fulfilment history
+        // stays understandable even if listing data evolves later.
         code,
         item: listing.title || auction.title,
         seller: auction.seller,
@@ -42,6 +46,9 @@ async function createWinnerOrder({ auction, listing, winningBid, session }) {
         listing: listing._id,
         amount: winningBid.amount,
         escrowAmount: winningBid.amount,
+        // Auction settlement orders are explicitly tagged so they remain
+        // distinguishable from instant buy-now purchases.
+        purchaseType: "Auction win",
         status: "Payment pending",
       },
     },
@@ -61,10 +68,13 @@ async function createWinnerOrder({ auction, listing, winningBid, session }) {
 async function settleAuction(auction) {
   const now = new Date();
 
+  // Auctions without an elapsed end time are not yet eligible for settlement.
   if (!auction.endAt || auction.endAt.getTime() > now.getTime()) {
     return { auction, order: null, finalized: false };
   }
 
+  // Already-closed auctions with a settlement timestamp are treated as
+  // finalized and only surface their existing commercial result.
   if (auction.status === "Closed" && auction.settledAt) {
     const existingOrder = await Order.findOne({ listing: auction.listing });
     return { auction, order: existingOrder, finalized: false };
@@ -102,6 +112,8 @@ async function settleAuction(auction) {
       }
 
       auction = claimedAuction;
+      // Listing and eligible bids are loaded together so the settlement branch
+      // can choose the correct commerce outcome inside one transaction.
       [listing, winningBid] = await Promise.all([
         Listing.findById(auction.listing).session(session),
         Bid.find({
@@ -113,6 +125,8 @@ async function settleAuction(auction) {
       ]);
 
       if (!listing) {
+        // Missing listings still force auction closure so the scheduler does not
+        // spin forever on broken data.
         auction.status = "Closed";
         auction.settledAt = auction.settledAt || now;
         auction.closedReason = auction.closedReason || "listing-missing";
@@ -124,12 +138,15 @@ async function settleAuction(auction) {
       }
 
       winningBid = winningBid[0] || null;
+      // Every terminal branch below marks the auction closed and clears any
+      // temporary settlement claim flags.
       auction.status = "Closed";
       auction.settledAt = auction.settledAt || now;
       auction.settling = false;
       auction.settlingAt = null;
 
       if (!winningBid) {
+        // No eligible winner means the auction expires without creating an order.
         auction.winner = null;
         auction.winnerBid = null;
         auction.closedReason = "expired";
@@ -141,6 +158,7 @@ async function settleAuction(auction) {
 
       // Reserve checks happen after selecting the highest eligible bid.
       if (listing.reservePrice && winningBid.amount < listing.reservePrice) {
+        // Reserve-not-met closes the auction without producing a sale.
         auction.winner = null;
         auction.winnerBid = null;
         auction.closedReason = "reserve-not-met";
@@ -162,10 +180,13 @@ async function settleAuction(auction) {
 
       await Bid.findByIdAndUpdate(
         winningBid._id,
+        // The winning bid is normalized to "Top bid" so downstream buyer/seller
+        // UIs reflect the final standing cleanly.
         { $set: { status: "Top bid" } },
         { session },
       );
 
+      // A successful sale produces exactly one pending-payment order.
       const order = await createWinnerOrder({ auction, listing, winningBid, session });
       auction.winner = winningBid.bidder;
       auction.winnerBid = winningBid._id;
@@ -178,6 +199,8 @@ async function settleAuction(auction) {
   }
 
   if (!result.finalized) {
+    // If another worker settled it first, we return the untouched result and
+    // let the caller continue without duplicate side effects.
     return result;
   }
 
@@ -258,6 +281,8 @@ async function settleAuction(auction) {
   }
 
   if (reservationFailed) {
+    // Reserve failure notifies the seller and watchers but intentionally avoids
+    // creating an order or naming a winner.
     await createNotificationOnce({
       userId: auction.seller,
       title: "Reserve price not met",
@@ -309,6 +334,8 @@ async function settleAuction(auction) {
 
   // Once an order exists, the follow-up path shifts from auction closing to payment.
   const order = result.order;
+  // Losing bidders and passive watchers receive distinct notifications so the
+  // post-auction experience matches each user’s actual involvement.
   const allBids = await Bid.find({ auction: auction._id, status: { $nin: REVIEW_BID_STATUSES } }).sort({ amount: -1, createdAt: 1 });
   const losingBidderIds = Array.from(
     new Set(
@@ -420,6 +447,7 @@ async function settleAuction(auction) {
 async function notifyEndingSoonAuctions(filters = {}) {
   const now = new Date();
   const endingBy = new Date(now.getTime() + ENDING_SOON_WINDOW_MS);
+  // Only active auctions inside the configured warning window trigger these reminders.
   const auctions = await Auction.find({
     status: { $in: ACTIVE_AUCTION_STATUSES },
     endAt: { $gt: now, $lte: endingBy },
@@ -427,6 +455,7 @@ async function notifyEndingSoonAuctions(filters = {}) {
   }).select("_id listing title endAt");
 
   for (const auction of auctions) {
+    // The reminder audience includes both current bidders and watchlist users.
     const [bidderIds, watchlistUserIds] = await Promise.all([
       Bid.find({
         auction: auction._id,
@@ -472,6 +501,7 @@ export async function finalizeExpiredAuctions(filters = {}) {
   // Maintenance sends ending-soon nudges before final settlement.
   await notifyEndingSoonAuctions(filters);
 
+  // Only expired auctions in active states are candidates for actual settlement.
   const query = {
     status: { $in: ACTIVE_AUCTION_STATUSES },
     endAt: { $lte: new Date() },
@@ -482,6 +512,8 @@ export async function finalizeExpiredAuctions(filters = {}) {
   const results = [];
 
   for (const auction of auctions) {
+    // Settlement runs serially here to keep side effects deterministic and
+    // reduce contention against overlapping order/auction updates.
     results.push(await settleAuction(auction));
   }
 
@@ -491,6 +523,8 @@ export async function finalizeExpiredAuctions(filters = {}) {
 export async function finalizeAuctionIfEnded(auctionId) {
   const auction = await Auction.findById(auctionId);
 
+  // This helper is used by request-time flows such as bidding, where an expired
+  // auction may need immediate settlement before the API can respond correctly.
   if (!auction || !isAuctionExpired(auction)) {
     return null;
   }

@@ -35,6 +35,8 @@ import { formatCurrency } from "../utils/formatters.js";
 // Buyer dashboard rows combine listing merchandising, auction timing, and
 // user-specific interaction state in one frontend-ready object.
 function buildAuctionWindow(startAt, endAt, fallbackValue = 5, fallbackUnit = "day") {
+  // When both timestamps exist we derive the displayed duration from the actual
+  // scheduled window instead of the listing’s original fallback settings.
   if (startAt && endAt) {
     const diffMs = endAt.getTime() - startAt.getTime();
     const diffMinutes = Math.max(Math.round(diffMs / (60 * 1000)), 1);
@@ -51,8 +53,10 @@ function buildAuctionWindow(startAt, endAt, fallbackValue = 5, fallbackUnit = "d
 }
 
 function buildBuyerAuctionRow({ auction, listing }) {
+  // Buyer cards expose both auction participation and instant-purchase options.
   const now = new Date();
   const isBiddable = isAuctionActive(auction, now);
+  const isBuyNowAvailable = Number(listing.buyNowPrice || 0) > 0 && !["Closed"].includes(auction.status);
   const currentAmount = auction.currentBid || listing.currentBid || listing.price || 0;
   const startingAmount = listing.price || 0;
   const lifecycleLabel = deriveAuctionLifecycleLabel(auction, now);
@@ -70,6 +74,9 @@ function buildBuyerAuctionRow({ auction, listing }) {
     seller: auction.seller?.name || listing.seller?.name || "AuctionArc seller",
     sellerId: auction.seller?._id || listing.seller?._id || null,
     currentBid: formatCurrency(currentAmount),
+    // Buy now is intentionally formatted separately from current bid so the UI
+    // can present the instant-purchase premium clearly.
+    buyNowPrice: listing.buyNowPrice ? formatCurrency(listing.buyNowPrice) : "",
     price: formatCurrency(currentAmount),
     startingPrice: formatCurrency(startingAmount),
     priceLabel: currentAmount > startingAmount ? "Current bid" : "Starting price",
@@ -89,6 +96,9 @@ function buildBuyerAuctionRow({ auction, listing }) {
     startAt: auction.startAt || null,
     endAt: auction.endAt || null,
     canBid: isBiddable,
+    // Buy now remains available while the auction is still open and the seller
+    // has configured a valid instant-purchase price.
+    canBuyNow: isBuyNowAvailable,
   };
 }
 
@@ -132,6 +142,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
+      // KPI cards summarize top-level seller performance and order activity.
       kpis: [
         toStats(
           "Live listings",
@@ -143,6 +154,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
         toStats("Gross sales", formatCurrency(grossSales), `${orders.length} completed orders`, "good"),
         toStats("Orders in progress", String(processingOrders), `${orders.length} total orders`, processingOrders ? "warn" : "good"),
       ],
+      // Secondary metrics capture traffic and commercial quality signals.
       performance: [
         toStats("Listing views", compactAmount(totalViews), `${listings.length} listings tracked`, "good"),
         toStats("Average order value", formatCurrency(averageOrderValue), `${orders.length} completed orders`, "good"),
@@ -171,6 +183,8 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
         title: thread.subject,
         meta: thread.messages.at(-1)?.body || "No recent message",
       })),
+      // Current listing cards intentionally stay lightweight so the seller
+      // dashboard loads quickly while still surfacing essential commerce data.
       currentListings: listings.slice(0, 4).map((listing) => ({
         id: String(listing._id),
         code: listing.code,
@@ -197,6 +211,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
 });
 
 export const getBidderOverview = asyncHandler(async (req, res) => {
+  // Bidder overview focuses on bidding outcomes, won orders, and conversations.
   await finalizeExpiredAuctions();
 
   const [bids, orders, threads] = await Promise.all([
@@ -284,6 +299,7 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
+      // Dashboard summary powers the compact admin overview tiles.
       dashboardSummary: {
         auctions: {
           live: liveAuctions,
@@ -373,6 +389,8 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
 });
 
 export const getAdminInsights = asyncHandler(async (req, res) => {
+  // Insights combines analytics, transactions, reports, and configurable
+  // settings into one richer admin reporting payload.
   const [insights, transactions, reports, settings] = await Promise.all([
     buildAdminInsights(req.query.period),
     Transaction.find({}).populate("user").sort({ createdAt: -1 }),
@@ -392,6 +410,8 @@ export const getAdminInsights = asyncHandler(async (req, res) => {
 });
 
 export const getSellerListings = asyncHandler(async (req, res) => {
+  // Seller listing management merges base listing data with any linked auction
+  // snapshot so the frontend can edit and review from one screen.
   await finalizeExpiredAuctions({ seller: req.user._id });
 
   const listings = await Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 }).lean();
@@ -475,6 +495,7 @@ export const getSellerAuctions = asyncHandler(async (req, res) => {
 });
 
 export const getSellerOrders = asyncHandler(async (req, res) => {
+  // Seller orders are the fulfilment queue after either auction settlement or buy now.
   await finalizeExpiredAuctions({ seller: req.user._id });
 
   const orders = await Order.find({ seller: req.user._id }).populate("bidder").sort({ updatedAt: -1 });
@@ -493,6 +514,8 @@ export const getSellerOrders = asyncHandler(async (req, res) => {
 });
 
 export const getSellerAnalytics = asyncHandler(async (req, res) => {
+  // Seller analytics derives simple trend arrays from listing, auction, and
+  // order history without requiring a separate analytics warehouse.
   await finalizeExpiredAuctions({ seller: req.user._id });
 
   const [listings, auctions, orders] = await Promise.all([
@@ -532,6 +555,8 @@ export const getSellerAnalytics = asyncHandler(async (req, res) => {
 });
 
 export const getBidderDiscover = asyncHandler(async (req, res) => {
+  // Buyer discovery returns flattened, card-ready rows that now include buy-now
+  // pricing and availability.
   await finalizeExpiredAuctions();
 
   const auctions = await Auction.find(buildActiveAuctionFilter())
@@ -553,6 +578,7 @@ export const getBidderDiscover = asyncHandler(async (req, res) => {
 });
 
 export const getBidderBids = asyncHandler(async (req, res) => {
+  // Bid rows are simplified for the bidder dashboard and bid history views.
   await finalizeExpiredAuctions();
 
   const bids = await Bid.find({ bidder: req.user._id }).populate("auction");
@@ -570,6 +596,8 @@ export const getBidderBids = asyncHandler(async (req, res) => {
 });
 
 export const getBidderWins = asyncHandler(async (req, res) => {
+  // Wins page is reused for both auction-win payments and buy-now purchases, so
+  // it resolves the related auction id when available.
   await finalizeExpiredAuctions();
 
   const orders = await Order.find({ bidder: req.user._id }).populate("seller");
@@ -599,6 +627,7 @@ export const getBidderWins = asyncHandler(async (req, res) => {
 });
 
 export const getWatchlist = asyncHandler(async (req, res) => {
+  // Watchlist is currently stubbed in this branch and returns an empty set.
   res.json({
     success: true,
     data: [],
@@ -606,6 +635,7 @@ export const getWatchlist = asyncHandler(async (req, res) => {
 });
 
 export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
+  // Sellers can only advance order fulfilment in a strict forward-only sequence.
   const { orderId } = req.params;
   const { status } = req.body;
 

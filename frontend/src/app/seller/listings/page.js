@@ -16,20 +16,25 @@ import {
 } from "@/components/seller/SellerIcons";
 
 const defaultForm = {
+  // Edit state mirrors the subset of listing fields this page allows the seller to change.
   title: "",
   category: "",
   description: "",
   price: "",
+  buyNowPrice: "",
   condition: "Good",
   auctionDurationDays: "5",
   auctionDurationUnit: "day",
 };
 const durationUnitOptions = ["minute", "day"];
 
+// Dashboard/API values are formatted currency strings, so editing needs a
+// helper that strips presentation characters back to raw numeric text.
 function toPlainAmount(value) {
   return String(value || "").replace(/[$,]/g, "");
 }
 
+// Listing cards use a human-friendly date/time summary for scheduled auction state.
 function formatDateTime(value) {
   if (!value) {
     return "Not scheduled";
@@ -47,6 +52,7 @@ function formatDateTime(value) {
   }).format(date);
 }
 
+// Time-left formatting keeps seller cards readable without exposing raw timestamps.
 function formatTimeLeft(value) {
   if (!value) {
     return "Waiting for schedule";
@@ -80,6 +86,7 @@ function formatTimeLeft(value) {
   return `${minutes}m left`;
 }
 
+// Duration labels combine the numeric amount with its day/minute unit.
 function formatAuctionDurationLabel(value, unit = "day") {
   const amount = Number(value) || 0;
   const normalizedUnit = unit === "minute" ? "minute" : "day";
@@ -87,6 +94,7 @@ function formatAuctionDurationLabel(value, unit = "day") {
   return `${amount} ${suffix} auction`;
 }
 
+// Status chips keep draft/review/live states visually distinct in the seller UI.
 function statusClass(status) {
   return status === "Live" || status === "Featured"
     ? shared.badgeActive
@@ -97,6 +105,7 @@ function statusClass(status) {
 
 export default function SellerListingsPage() {
   const searchParams = useSearchParams();
+  // Listing management is driven entirely from the seller dashboard API response.
   const { data, setData, error, isLoading } = useApiData("/dashboard/seller/listings", {
     initialData: [],
   });
@@ -107,9 +116,12 @@ export default function SellerListingsPage() {
   const [pageMessage, setPageMessage] = useState("");
   const confirmedFeatureSessionRef = useRef("");
 
+  // Memoized rows keep downstream rendering stable while data refreshes.
   const listingCards = useMemo(() => data || [], [data]);
 
   useEffect(() => {
+    // The listing page also acts as the return target for featured-listing
+    // Stripe checkouts, so it inspects query params on load.
     const featurePayment = searchParams.get("featurePayment");
     const sessionId = searchParams.get("session_id");
     const listingId = searchParams.get("listing");
@@ -119,6 +131,7 @@ export default function SellerListingsPage() {
     }
 
     if (featurePayment === "success" && sessionId) {
+      // Guard against duplicate confirmations during React rerenders/navigation updates.
       if (confirmedFeatureSessionRef.current === sessionId) {
         return;
       }
@@ -132,6 +145,8 @@ export default function SellerListingsPage() {
         body: { sessionId },
       })
         .then((result) => {
+          // Optimistically update the local row so the seller sees the featured
+          // state immediately after the payment confirmation completes.
           if (listingId) {
             setData((current) =>
               current.map((row) =>
@@ -154,6 +169,7 @@ export default function SellerListingsPage() {
     }
 
     if (featurePayment === "cancelled") {
+      // Cancellation still preserves the already-created listing.
       setPageError("");
       setPageMessage("Featured payment was cancelled. Your listing is still saved, and you can feature it later for $1.");
       window.history.replaceState({}, "", "/seller/listings");
@@ -161,6 +177,7 @@ export default function SellerListingsPage() {
     }
 
     if (featurePayment === "setup-failed") {
+      // Checkout setup failure is surfaced as guidance instead of a hard stop.
       setPageError("");
       setPageMessage("Your listing was saved, but Stripe could not open automatically. Use the Feature for $1 button below when you are ready.");
       window.history.replaceState({}, "", "/seller/listings");
@@ -168,12 +185,14 @@ export default function SellerListingsPage() {
   }, [searchParams, setData]);
 
   function startEditing(row) {
+    // Existing listing data is copied into local edit state in plain-text form.
     setEditingId(row.listingId);
     setFormValues({
       title: row.title || "",
       category: row.category || "",
       description: row.description || "",
       price: toPlainAmount(row.currentBid || row.price),
+      buyNowPrice: toPlainAmount(row.buyNowPrice),
       condition: row.condition || "Good",
       auctionDurationDays: String(row.auctionDurationDays || 5),
       auctionDurationUnit: row.auctionDurationUnit || "day",
@@ -183,6 +202,7 @@ export default function SellerListingsPage() {
   }
 
   function stopEditing() {
+    // Leaving edit mode resets the side-panel form completely.
     setEditingId("");
     setFormValues(defaultForm);
   }
@@ -197,7 +217,17 @@ export default function SellerListingsPage() {
     setBusyId(editingId);
 
     try {
+      // Price fields are validated client-side first so the seller gets fast feedback.
       const amount = Number(formValues.price || 0);
+      const buyNowAmount = Number(formValues.buyNowPrice || 0);
+
+      if (!buyNowAmount || buyNowAmount <= 0) {
+        throw new Error("Buy now price is required.");
+      }
+
+      if (buyNowAmount <= amount) {
+        throw new Error("Buy now price must be greater than the starting price.");
+      }
 
       const result = await apiRequest(`/auctions/listings/${editingId}`, {
         method: "PATCH",
@@ -206,6 +236,7 @@ export default function SellerListingsPage() {
           category: formValues.category,
           description: formValues.description,
           price: amount,
+          buyNowPrice: buyNowAmount,
           condition: formValues.condition,
           auctionDurationDays: Number(formValues.auctionDurationDays || 5),
           auctionDurationUnit: formValues.auctionDurationUnit,
@@ -216,6 +247,8 @@ export default function SellerListingsPage() {
         current.map((row) =>
           row.listingId === editingId
             ? {
+                // The updated row is patched locally so the UI reflects the edit
+                // without waiting for a full page refetch.
                 ...row,
                 ...result.data,
                 title: formValues.title,
@@ -226,6 +259,7 @@ export default function SellerListingsPage() {
                 auctionDurationUnit: formValues.auctionDurationUnit,
                 price: `$${amount.toLocaleString()}`,
                 currentBid: `$${amount.toLocaleString()}`,
+                buyNowPrice: `$${buyNowAmount.toLocaleString()}`,
               }
             : row,
         ),
@@ -240,6 +274,7 @@ export default function SellerListingsPage() {
   }
 
   async function handleStatusToggle(row) {
+    // Sellers can submit a draft for approval or move a review/live item back to draft.
     const nextStatus =
       row.status === "Draft" || row.status === "Rejected" ? "Pending approval" : "Draft";
 
@@ -271,6 +306,7 @@ export default function SellerListingsPage() {
   }
 
   async function handleDelete(row) {
+    // Deletion removes the row locally after the backend confirms the action.
     setPageError("");
     setPageMessage("");
     setBusyId(row.listingId);
@@ -293,6 +329,7 @@ export default function SellerListingsPage() {
   }
 
   async function handleFeatureCheckout(row) {
+    // Featuring an existing listing is a separate seller-paid Stripe flow.
     setPageError("");
     setPageMessage("");
     setBusyId(row.listingId);
@@ -337,6 +374,7 @@ export default function SellerListingsPage() {
       {isLoading ? <p className={shared.mutedText}>Loading your listings...</p> : null}
 
       <section className={shared.listingGrid}>
+        {/* Empty state keeps the management page informative before the seller has inventory. */}
         {!listingCards.length ? (
           <article className={`${shared.panel} ${shared.listingCard}`}>
             <div className={shared.listingBody}>
@@ -347,6 +385,7 @@ export default function SellerListingsPage() {
         ) : null}
 
         {listingCards.map((row) => {
+          // Auction-derived values take precedence when a linked auction exists.
           const activeAuction = row.auction;
           const displayBid = activeAuction?.currentBid || row.currentBid || row.price;
           const displayBidCount = activeAuction?.bidCount || row.bidCount || "0";
@@ -388,6 +427,7 @@ export default function SellerListingsPage() {
                 </p>
 
                 <div className={shared.listingStatGrid}>
+                  {/* These cards summarize the most actionable timing/performance fields. */}
                   <article className={shared.listingStatCard}>
                     <span>Auction time</span>
                     <strong>{formatAuctionDurationLabel(row.auctionDurationDays, row.auctionDurationUnit)}</strong>
@@ -450,6 +490,7 @@ export default function SellerListingsPage() {
                 ) : null}
 
                 <div className={shared.listingFooter}>
+                  {/* Action buttons cover featured placement, editing, status flow, and deletion. */}
                   <div className={shared.listingMetrics}>
                     <span className={shared.tableMetric}>
                       <span className={shared.tableIcon}><EyeIcon /></span>
@@ -509,6 +550,7 @@ export default function SellerListingsPage() {
 
       {editingId ? (
         <section className={`${shared.panel} ${shared.formPanel}`}>
+          {/* The edit panel reuses a compact subset of listing fields instead of the full create form. */}
           <div className={shared.sectionTop}>
             <h2 className={shared.panelTitle}>Edit Listing</h2>
             <button type="button" className={shared.darkButton} onClick={stopEditing}>
@@ -548,6 +590,19 @@ export default function SellerListingsPage() {
                   step="0.01"
                   value={formValues.price}
                   onChange={(event) => setFormValues((current) => ({ ...current, price: event.target.value }))}
+                />
+              </div>
+            </div>
+            <div className={shared.formSection}>
+              <label className={shared.fieldLabel} htmlFor="seller-listing-buy-now">Buy Now Price</label>
+              <div className={shared.inputWrap}>
+                <input
+                  id="seller-listing-buy-now"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={formValues.buyNowPrice}
+                  onChange={(event) => setFormValues((current) => ({ ...current, buyNowPrice: event.target.value }))}
                 />
               </div>
             </div>

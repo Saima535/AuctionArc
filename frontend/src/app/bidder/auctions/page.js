@@ -15,6 +15,7 @@ import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { apiRequest } from "@/lib/api";
 import styles from "@/components/member/MemberDashboard.module.css";
 
+// Category tone keeps the status badge color aligned with the marketplace theme.
 function categoryTone(category) {
   const normalized = String(category || "").toLowerCase();
 
@@ -32,6 +33,7 @@ function categoryTone(category) {
 export default function BidderAuctionsPage() {
   const router = useRouter();
   const { user } = useAuth();
+  // Discovery data is refreshed both on a timer and through live marketplace events.
   const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/bidder/discover", {
     initialData: [],
     refreshIntervalMs: 12000,
@@ -43,8 +45,10 @@ export default function BidderAuctionsPage() {
   const [busyAuctionId, setBusyAuctionId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  // A one-second clock tick lets the UI react to auction expiry without waiting for refetch.
   const [nowTick, setNowTick] = useState(() => Date.now());
   const liveChannels = useMemo(
+    // Auction cards refresh on auction/bid updates and on any user-specific notifications.
     () => ["market:auctions", "market:bids", user?.id ? `user:${user.id}` : ""],
     [user?.id],
   );
@@ -58,6 +62,7 @@ export default function BidderAuctionsPage() {
   });
 
   useEffect(() => {
+    // Keep countdown-sensitive availability labels current in the browser.
     const intervalId = window.setInterval(() => {
       setNowTick(Date.now());
     }, 1000);
@@ -68,6 +73,7 @@ export default function BidderAuctionsPage() {
   }, []);
 
   const categories = useMemo(() => {
+    // Categories are derived from the live dataset rather than hardcoded.
     const uniqueCategories = Array.from(
       new Set(
         data
@@ -80,6 +86,7 @@ export default function BidderAuctionsPage() {
   }, [data]);
 
   const filteredData = useMemo(() => {
+    // Expired auctions are hidden from the discover grid immediately on the client.
     const liveData = data.filter((item) => {
       if (!item.endAt) {
         return true;
@@ -95,7 +102,45 @@ export default function BidderAuctionsPage() {
     return liveData.filter((item) => item.category === selectedCategory);
   }, [data, nowTick, selectedCategory]);
 
+  async function handleBuyNow(item) {
+    // Buy now bypasses bidding and creates a Stripe checkout session immediately.
+    const busyKey = item.auctionId || item.listingId;
+
+    setPageError("");
+    setPageMessage("");
+
+    if (!item.listingId || !item.canBuyNow) {
+      setPageError("This product is not available for instant purchase right now.");
+      return;
+    }
+
+    setBusyAuctionId(busyKey);
+
+    try {
+      const result = await apiRequest("/payments/checkout-session", {
+        method: "POST",
+        body: {
+          // The backend uses purpose plus listing/auction ids to create the correct order flow.
+          purpose: "buy-now-order",
+          listingId: item.listingId,
+          auctionId: item.auctionId,
+        },
+      });
+
+      if (!result.data?.url) {
+        throw new Error("The Stripe checkout session could not be started.");
+      }
+
+      window.location.assign(result.data.url);
+    } catch (requestError) {
+      // The button returns to an actionable error state if checkout creation fails.
+      setPageError(requestError.message || "Could not start the buy now payment flow.");
+      setBusyAuctionId("");
+    }
+  }
+
   async function handlePlaceBid(item) {
+    // Bidding remains available for open auctions even when buy now is also enabled.
     const bidKey = item.auctionId || item.listingId;
     const amount = Number(bidValues[bidKey]);
 
@@ -129,6 +174,7 @@ export default function BidderAuctionsPage() {
       setData((current) =>
         current.map((row) =>
           row.auctionId === item.auctionId
+            // Local bid feedback is optimistic; background refresh then syncs the full card state.
             ? { ...row, price: `$${amount.toLocaleString()}`, currentBid: `$${amount.toLocaleString()}` }
             : row,
         ),
@@ -144,6 +190,7 @@ export default function BidderAuctionsPage() {
   }
 
   async function handleMessageSeller(item) {
+    // Messaging starts or reuses the direct conversation between buyer and seller.
     setPageError("");
     setPageMessage("");
     setBusyAuctionId(item.auctionId || item.listingId);
@@ -183,6 +230,7 @@ export default function BidderAuctionsPage() {
       />
 
       <div className={styles.categoryToolbar}>
+        {/* Category filtering is client-side because discovery payloads are already compact. */}
         <div className={styles.categoryMenuWrap}>
           <button
             type="button"
@@ -239,6 +287,7 @@ export default function BidderAuctionsPage() {
       {filteredData.length ? (
         <section className={styles.auctionGrid}>
           {filteredData.map((item) => {
+            // Availability is derived per card so UI states remain accurate while time advances.
             const busyKey = item.auctionId || item.listingId;
             const isExpired = item.endAt ? new Date(item.endAt).getTime() <= nowTick : false;
             const canBidNow = item.canBid && !isExpired;
@@ -274,10 +323,15 @@ export default function BidderAuctionsPage() {
                     {item.description || "No product description has been added yet."}
                   </p>
 
-                  <div className={styles.auctionStatGrid}>
-                    <div className={styles.auctionStatCard}>
+                <div className={styles.auctionStatGrid}>
+                  {/* Card stats show both the auction path and the instant-purchase path. */}
+                  <div className={styles.auctionStatCard}>
                       <span>{item.priceLabel || "Current price"}</span>
                       <strong>{item.currentBid || item.price}</strong>
+                    </div>
+                    <div className={styles.auctionStatCard}>
+                      <span>Buy now</span>
+                      <strong>{item.buyNowPrice || "Unavailable"}</strong>
                     </div>
                     <div className={styles.auctionStatCard}>
                       <span>Seller</span>
@@ -326,6 +380,15 @@ export default function BidderAuctionsPage() {
                   </div>
 
                   <div className={styles.auctionActionRow}>
+                    {/* Buy now and message actions sit alongside bidding so buyers can choose their path. */}
+                    <button
+                      type="button"
+                      className={styles.secondaryAction}
+                      disabled={busyAuctionId === busyKey || !item.canBuyNow}
+                      onClick={() => handleBuyNow(item)}
+                    >
+                      {busyAuctionId === busyKey ? "Working..." : item.canBuyNow ? `Buy Now${item.buyNowPrice ? ` ${item.buyNowPrice}` : ""}` : "Buy Now Unavailable"}
+                    </button>
                     <button
                       type="button"
                       className={styles.actionButton}

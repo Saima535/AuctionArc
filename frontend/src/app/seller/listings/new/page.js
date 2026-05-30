@@ -32,6 +32,8 @@ const durationOptions = [
   { value: "10", unit: "day", label: "10 Days" },
 ];
 
+// Each uploaded image gets a stable UI identifier plus an object URL so the
+// seller can preview the image before submitting the listing.
 function createPreviewRecord(file) {
   return {
     id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
@@ -40,6 +42,8 @@ function createPreviewRecord(file) {
   };
 }
 
+// File signatures are used to prevent the same image from being added twice
+// when the user reopens the file picker.
 function fileSignature(file) {
   return `${file.name}-${file.lastModified}-${file.size}`;
 }
@@ -53,15 +57,35 @@ export default function SellerNewListingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [premiumSelected, setPremiumSelected] = useState(false);
 
+  // Revoke preview URLs when the component unmounts so object URLs do not leak.
   useEffect(() => {
     return () => {
       imageRecords.forEach((record) => URL.revokeObjectURL(record.previewUrl));
     };
   }, [imageRecords]);
 
+  // Buy now is mandatory and must always exceed the opening auction price.
+  // This helper is shared between submit-time validation and field-level cleanup.
+  function validateBuyNowValues(startingPriceValue, buyNowPriceValue) {
+    const startingPrice = Number(startingPriceValue || 0);
+    const buyNowPrice = Number(buyNowPriceValue || 0);
+
+    if (!buyNowPrice || buyNowPrice <= 0) {
+      return "Buy now price is required.";
+    }
+
+    if (buyNowPrice <= startingPrice) {
+      return "Buy now price must be greater than the starting price.";
+    }
+
+    return "";
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
+    // We inspect the pressed submit button so the same form can save either a
+    // draft or an approval-ready listing without duplicating the component.
     const form = event.currentTarget;
     const submitter = event.nativeEvent.submitter;
     const intent = submitter?.value || "draft";
@@ -71,6 +95,8 @@ export default function SellerNewListingPage() {
     setSubmitError("");
     setSubmitSuccess("");
 
+    // Approval-ready listings must include at least one image because that is
+    // what admins and buyers use to review the product.
     if (intent === "approval" && imageRecords.length < 1) {
       setSubmitError("Upload at least one image before submitting for approval.");
       return;
@@ -81,6 +107,20 @@ export default function SellerNewListingPage() {
       return;
     }
 
+    // The seller-defined instant-purchase price is mandatory for this product
+    // flow and must always sit above the opening auction price.
+    const buyNowValidationError = validateBuyNowValues(
+      nativeFormData.get("price"),
+      nativeFormData.get("buyNowPrice"),
+    );
+
+    if (buyNowValidationError) {
+      setSubmitError(buyNowValidationError);
+      return;
+    }
+
+    // Copy all normal fields into the outgoing multipart payload while leaving
+    // image handling and duration normalization to dedicated logic below.
     for (const [key, value] of nativeFormData.entries()) {
       if (key === "images" || key === "auctionDurationPreset") {
         continue;
@@ -93,18 +133,25 @@ export default function SellerNewListingPage() {
       (option) => `${option.value}:${option.unit}` === nativeFormData.get("auctionDurationPreset"),
     ) || durationOptions[4];
 
+    // The backend stores duration value and unit separately, so we split the
+    // UI preset back into those two fields before submission.
     payload.set("auctionDurationDays", selectedDurationPreset.value);
     payload.set("auctionDurationUnit", selectedDurationPreset.unit);
 
+    // Image files are appended after basic field copying so the multipart body
+    // reflects the user’s current preview selection exactly.
     imageRecords.forEach((record) => {
       payload.append("images", record.file);
     });
 
+    // Drafts stay internal to the seller; approval submissions enter admin review.
     payload.set("status", intent === "approval" ? "Pending approval" : "Draft");
 
     setIsSubmitting(true);
 
     try {
+      // Listing creation is always the first step, even when the seller also
+      // opts into the separate $1 featured placement checkout.
       const result = await apiRequest("/auctions/listings", {
         method: "POST",
         body: payload,
@@ -112,6 +159,8 @@ export default function SellerNewListingPage() {
 
       const createdListingId = result.data?._id;
 
+      // Featured placement is modeled as a second payment step after the base
+      // listing exists, so we branch into Stripe only after creation succeeds.
       if (premiumSelected && createdListingId) {
         setSubmitSuccess("Listing saved. Redirecting to the $1 featured placement checkout...");
 
@@ -131,6 +180,8 @@ export default function SellerNewListingPage() {
           window.location.assign(checkoutResult.data.url);
           return;
         } catch (paymentError) {
+          // If Stripe cannot open, we still preserve the created listing and
+          // send the seller back to the listing management page to retry later.
           setSubmitError("Listing saved, but we could not open the $1 feature payment. You can complete it from the listings page.");
           window.setTimeout(() => {
             router.push(`/seller/listings?featurePayment=setup-failed&listing=${createdListingId}`);
@@ -140,6 +191,8 @@ export default function SellerNewListingPage() {
       }
 
       setSubmitSuccess(result.message || "Listing saved successfully.");
+      // Reset both the native form controls and preview state so the seller
+      // lands on a clean form after a successful create action.
       form.reset();
       imageRecords.forEach((record) => URL.revokeObjectURL(record.previewUrl));
       setImageRecords([]);
@@ -153,6 +206,8 @@ export default function SellerNewListingPage() {
         router.push("/seller/listings");
       }, 700);
     } catch (error) {
+      // API errors are shown inline so the seller can correct the listing
+      // without losing the page state.
       setSubmitError(error.message || "Could not save the listing. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -160,6 +215,8 @@ export default function SellerNewListingPage() {
   }
 
   function handleImageChange(event) {
+    // New files are merged into the existing preview collection so the seller
+    // can build the final set across multiple file-picker interactions.
     const nextFiles = Array.from(event.target.files || []);
     setSubmitError("");
     setSubmitSuccess("");
@@ -182,10 +239,13 @@ export default function SellerNewListingPage() {
       return [...current, ...filesToAdd.map(createPreviewRecord)];
     });
 
+    // Reset the input so selecting the same file again still triggers change.
     event.target.value = "";
   }
 
   function handleRemoveImage(imageId) {
+    // Removing a preview also revokes its object URL and reopens capacity for
+    // additional uploads without refreshing the page.
     setImageRecords((current) => {
       const nextRecords = current.filter((record) => record.id !== imageId);
       const removed = current.find((record) => record.id === imageId);
@@ -204,11 +264,31 @@ export default function SellerNewListingPage() {
     setSubmitSuccess("");
   }
 
+  // Most field changes only need to clear transient success/error messages so
+  // the seller gets fresh feedback on the next interaction.
   function clearMessages() {
     setSubmitError("");
     setSubmitSuccess("");
   }
 
+  // Price fields clear existing messages and immediately surface the
+  // buy-now-specific rule when the user enters an invalid combination.
+  function handlePriceFieldChange(event) {
+    clearMessages();
+
+    const form = event.target.form;
+    const validationError = validateBuyNowValues(
+      form?.price?.value,
+      form?.buyNowPrice?.value,
+    );
+
+    if (validationError && form?.buyNowPrice?.value) {
+      setSubmitError(validationError);
+    }
+  }
+
+  // Featured placement is a simple opt-in UI toggle that does not affect the
+  // core listing validation rules.
   function handlePremiumToggle() {
     clearMessages();
     setPremiumSelected((current) => !current);
@@ -370,25 +450,27 @@ export default function SellerNewListingPage() {
                   step="0.01"
                   placeholder="0.00"
                   required
-                  onChange={clearMessages}
+                  onChange={handlePriceFieldChange}
                 />
               </div>
             </div>
 
             <div>
-              <label className={shared.fieldLabel} htmlFor="listing-buy-now">Buy now price</label>
+              <label className={shared.fieldLabel} htmlFor="listing-buy-now">Buy now price *</label>
               <div className={shared.inputWrap}>
                 <span>$</span>
                 <input
                   id="listing-buy-now"
                   name="buyNowPrice"
                   type="number"
-                  min="0"
+                  min="0.01"
                   step="0.01"
-                  placeholder="Optional"
-                  onChange={clearMessages}
+                  placeholder="Higher than the starting price"
+                  required
+                  onChange={handlePriceFieldChange}
                 />
               </div>
+              <p className={shared.mutedText}>Buyers can instantly purchase the product at this price without continuing the auction.</p>
             </div>
           </div>
         </section>
