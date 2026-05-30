@@ -289,6 +289,10 @@ export const updateListing = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Invalid listing status.");
     }
 
+    if (status === "Draft") {
+      throw new ApiError(400, "Moving a listing back to draft is no longer available.");
+    }
+
     listing.status = status;
   }
 

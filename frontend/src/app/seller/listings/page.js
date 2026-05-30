@@ -273,10 +273,12 @@ export default function SellerListingsPage() {
   }
 
   async function handleStatusToggle(row) {
-    // Sellers can submit a draft for approval or move a review/live item back to draft.
-    const nextStatus =
-      row.status === "Draft" || row.status === "Rejected" ? "Pending approval" : "Draft";
+    // Seller-side status actions are now limited to approval submission only.
+    if (!(row.status === "Draft" || row.status === "Rejected")) {
+      return;
+    }
 
+    const nextStatus = "Pending approval";
     setPageError("");
     setPageMessage("");
     setBusyId(row.listingId);
@@ -292,11 +294,7 @@ export default function SellerListingsPage() {
           item.listingId === row.listingId ? { ...item, status: nextStatus } : item,
         ),
       );
-      setPageMessage(
-        nextStatus === "Pending approval"
-          ? `${row.title} submitted for approval.`
-          : `${row.title} moved back to draft.`,
-      );
+      setPageMessage(`${row.title} submitted for approval.`);
     } catch (requestError) {
       setPageError(requestError.message || "Could not update listing status.");
     } finally {
@@ -500,16 +498,18 @@ export default function SellerListingsPage() {
                       <EditIcon />
                       <span>Edit</span>
                     </button>
-                    <button
-                      type="button"
-                      className={shared.secondaryCta}
-                      disabled={busyId === row.listingId}
-                      aria-label={`Change status for ${row.title}`}
-                      onClick={() => handleStatusToggle(row)}
-                    >
-                      <PauseIcon />
-                      <span>{row.status === "Draft" || row.status === "Rejected" ? "Submit" : "Move to Draft"}</span>
-                    </button>
+                    {row.status === "Draft" || row.status === "Rejected" ? (
+                      <button
+                        type="button"
+                        className={shared.secondaryCta}
+                        disabled={busyId === row.listingId}
+                        aria-label={`Submit ${row.title} for approval`}
+                        onClick={() => handleStatusToggle(row)}
+                      >
+                        <PauseIcon />
+                        <span>Submit</span>
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className={shared.listingDanger}
