@@ -29,6 +29,7 @@ import { syncAuctionForListing } from "../services/auctionLifecycleService.js";
 import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { createNotification } from "../services/notificationService.js";
+import { activateUserAccount, suspendUserAccount } from "../services/userSuspensionService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCurrency } from "../utils/formatters.js";
@@ -112,8 +113,32 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
   }
 
   const nextStatus = req.body.status || user.status;
-  user.status = assertOneOf(nextStatus, USER_STATUSES, "User status");
-  await user.save();
+  const normalizedStatus = assertOneOf(nextStatus, USER_STATUSES, "User status");
+  const suspensionReason = String(req.body.reason || "").trim();
+
+  if (normalizedStatus === "Suspended") {
+    if (!suspensionReason) {
+      throw new ApiError(400, "A suspension reason is required.");
+    }
+
+    await suspendUserAccount({
+      user,
+      reason: suspensionReason,
+      source: "Admin",
+      suspendedBy: req.user?._id || null,
+      notificationTitle: "Account suspended by admin",
+      notificationBody: `Your account has been suspended. Reason: ${suspensionReason}`,
+      notificationHref: `/${user.role === "Bidder" ? "bidder" : "seller"}`,
+    });
+  } else {
+    user.status = normalizedStatus;
+
+    if (normalizedStatus === "Active") {
+      await activateUserAccount(user);
+    } else {
+      await user.save();
+    }
+  }
 
   res.json({
     success: true,

@@ -32,33 +32,6 @@ function UserIcon() {
   );
 }
 
-function BanIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="m8.7 8.7 6.6 6.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6S2.5 12 2.5 12Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="m8.6 12.2 2.2 2.2 4.6-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function toneForStatus(status) {
   return status === "Active" ? "green" : "red";
 }
@@ -79,11 +52,20 @@ export default function AdminUsersPage() {
   });
   const [expandedUserId, setExpandedUserId] = useState("");
   const [busyUserId, setBusyUserId] = useState("");
+  const [reasonUserId, setReasonUserId] = useState("");
+  const [suspensionReason, setSuspensionReason] = useState("");
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
 
-  async function handleStatusToggle(user) {
+  async function handleStatusToggle(user, reason = "") {
     const nextStatus = user.status === "Active" ? "Suspended" : "Active";
+    const trimmedReason = reason.trim();
+
+    if (nextStatus === "Suspended" && !trimmedReason) {
+      setReasonUserId(user.userId);
+      setPageError("A suspension reason is required before suspending a user.");
+      return;
+    }
 
     setBusyUserId(user.userId);
     setPageError("");
@@ -92,12 +74,17 @@ export default function AdminUsersPage() {
     try {
       const result = await apiRequest(`/admin/users/${user.userId}/status`, {
         method: "PATCH",
-        body: { status: nextStatus },
+        body: {
+          status: nextStatus,
+          ...(trimmedReason ? { reason: trimmedReason } : {}),
+        },
       });
 
       setData((current) =>
         current.map((item) => (item.userId === user.userId ? result.data : item)),
       );
+      setReasonUserId("");
+      setSuspensionReason("");
       setPageMessage(`${user.name} is now ${nextStatus.toLowerCase()}.`);
     } catch (requestError) {
       setPageError(requestError.message || "Could not update the user status.");
@@ -150,9 +137,16 @@ export default function AdminUsersPage() {
             </div>
 
             {expandedUserId === user.userId ? (
-              <p className={styles.helperText}>
-                Country: {user.country} | Joined: {user.joined} | Last seen: {user.lastSeen}
-              </p>
+              <div className={styles.helperBlock}>
+                <p className={styles.helperText}>
+                  Country: {user.country} | Joined: {user.joined} | Last seen: {user.lastSeen}
+                </p>
+                {user.suspensionReason ? (
+                  <p className={styles.helperText}>
+                    Suspension reason: {user.suspensionReason}
+                  </p>
+                ) : null}
+              </div>
             ) : null}
 
             <div className={styles.userActions}>
@@ -163,7 +157,6 @@ export default function AdminUsersPage() {
                   disabled={busyUserId === user.userId}
                   onClick={() => handleStatusToggle(user)}
                 >
-                  <CheckIcon />
                   <span>{busyUserId === user.userId ? "Updating..." : "Activate"}</span>
                 </button>
               ) : (
@@ -171,10 +164,13 @@ export default function AdminUsersPage() {
                   type="button"
                   className={styles.suspendButton}
                   disabled={busyUserId === user.userId}
-                  onClick={() => handleStatusToggle(user)}
+                  onClick={() => {
+                    setPageError("");
+                    setReasonUserId((current) => (current === user.userId ? "" : user.userId));
+                    setSuspensionReason("");
+                  }}
                 >
-                  <BanIcon />
-                  <span>{busyUserId === user.userId ? "Updating..." : "Suspend"}</span>
+                  <span>Suspend</span>
                 </button>
               )}
               <button
@@ -182,10 +178,45 @@ export default function AdminUsersPage() {
                 className={styles.detailsButton}
                 onClick={() => setExpandedUserId((current) => (current === user.userId ? "" : user.userId))}
               >
-                <EyeIcon />
                 <span>{expandedUserId === user.userId ? "Hide" : "Details"}</span>
               </button>
             </div>
+
+            {user.status !== "Suspended" && reasonUserId === user.userId ? (
+              <div className={styles.suspensionComposer}>
+                <label className={styles.composerLabel} htmlFor={`suspension-reason-${user.userId}`}>
+                  Suspension reason
+                </label>
+                <textarea
+                  id={`suspension-reason-${user.userId}`}
+                  className={styles.composerTextarea}
+                  value={suspensionReason}
+                  onChange={(event) => setSuspensionReason(event.target.value)}
+                  placeholder="Explain why this account is being suspended."
+                />
+                <div className={styles.composerActions}>
+                  <button
+                    type="button"
+                    className={styles.suspendButton}
+                    disabled={busyUserId === user.userId}
+                    onClick={() => handleStatusToggle(user, suspensionReason)}
+                  >
+                    <span>{busyUserId === user.userId ? "Updating..." : "Confirm suspend"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.detailsButton}
+                    onClick={() => {
+                      setReasonUserId("");
+                      setSuspensionReason("");
+                      setPageError("");
+                    }}
+                  >
+                    <span>Cancel</span>
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </PanelCard>
         ))}
       </div>

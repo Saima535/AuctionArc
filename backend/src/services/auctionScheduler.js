@@ -7,6 +7,7 @@ import { env } from "../config/env.js";
 import { syncStaleAuctionStates } from "./auctionLifecycleService.js";
 import { finalizeExpiredAuctions } from "./auctionSettlementService.js";
 import { publishLiveEvent } from "./liveUpdateService.js";
+import { suspendOverduePaymentUsers } from "./userSuspensionService.js";
 
 let schedulerTask = null;
 
@@ -20,6 +21,7 @@ async function runAuctionMaintenanceCycle() {
 
   const syncedAuctions = await syncStaleAuctionStates();
   const finalizedAuctions = await finalizeExpiredAuctions();
+  const suspendedUsers = await suspendOverduePaymentUsers();
 
   for (const auction of syncedAuctions) {
     const previousStatus = previousStatusById.get(String(auction._id));
@@ -43,6 +45,7 @@ async function runAuctionMaintenanceCycle() {
   return {
     syncedAuctions: syncedAuctions.length,
     finalizedAuctions: finalizedAuctions.filter((result) => result.finalized).length,
+    suspendedUsers,
   };
 }
 

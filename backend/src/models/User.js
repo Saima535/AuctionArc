@@ -34,6 +34,25 @@ const userPreferenceSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const suspensionSchema = new mongoose.Schema(
+  {
+    reason: { type: String, default: "" },
+    source: { type: String, enum: ["Admin", "System", ""], default: "" },
+    suspendedAt: { type: Date, default: null },
+    suspendedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    relatedOrder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -67,6 +86,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: USER_STATUSES,
       default: "Active",
+    },
+    suspension: {
+      type: suspensionSchema,
+      default: () => ({}),
     },
     gender: String,
     birthdate: Date,

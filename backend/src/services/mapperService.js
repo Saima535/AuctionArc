@@ -41,6 +41,7 @@ export function serializeUser(user) {
     role: user.role,
     publicRoleLabel: user.publicRoleLabel,
     status: user.status,
+    suspension: user.suspension || null,
     gender: user.gender,
     birthdate: user.birthdate,
     country: user.country,
@@ -65,6 +66,9 @@ export function toTableUser(user) {
     country: user.country || "Unknown",
     contact: user.contact || "Not set",
     profilePicture: user.profilePicture || null,
+    suspensionReason: user.suspension?.reason || "",
+    suspensionSource: user.suspension?.source || "",
+    suspendedAt: user.suspension?.suspendedAt || null,
     joined: user.createdAt?.toISOString().slice(0, 10),
     lastSeen: formatRelativeTime(user.lastSeenAt || user.updatedAt),
   };

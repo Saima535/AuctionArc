@@ -19,7 +19,9 @@ export function assertUserCanAccess(user) {
     throw new ApiError(
       403,
       user.status === "Suspended"
-        ? "This account has been suspended. Please contact support."
+        ? user.suspension?.reason
+          ? `This account has been suspended. Reason: ${user.suspension.reason}`
+          : "This account has been suspended. Please contact support."
         : "This account is under review and cannot access the platform right now.",
     );
   }
