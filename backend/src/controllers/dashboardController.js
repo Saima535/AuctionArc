@@ -31,6 +31,7 @@ import {
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatAuctionDuration } from "../utils/auctionDuration.js";
 import { formatCurrency } from "../utils/formatters.js";
+import { buildReportPdf } from "../services/adminReportingService.js";
 
 // Buyer dashboard rows combine listing merchandising, auction timing, and
 // user-specific interaction state in one frontend-ready object.
@@ -101,22 +102,220 @@ function buildBuyerAuctionRow({ auction, listing }) {
   };
 }
 
+function startOfDay(date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function endOfDay(date) {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+}
+
+function addDays(date, days) {
+  const value = new Date(date);
+  value.setDate(value.getDate() + days);
+  return value;
+}
+
+function getSellerReportWindow(range = "weekly") {
+  const normalizedRange = ["weekly", "monthly", "yearly"].includes(range) ? range : "weekly";
+  const days = normalizedRange === "yearly" ? 365 : normalizedRange === "monthly" ? 30 : 7;
+  const currentEnd = endOfDay(new Date());
+  const currentStart = startOfDay(addDays(currentEnd, -(days - 1)));
+  const previousEnd = endOfDay(addDays(currentStart, -1));
+  const previousStart = startOfDay(addDays(previousEnd, -(days - 1)));
+
+  return {
+    key: normalizedRange,
+    label:
+      normalizedRange === "yearly"
+        ? "Yearly report"
+        : normalizedRange === "monthly"
+          ? "Monthly report"
+          : "Weekly report",
+    days,
+    currentStart,
+    currentEnd,
+    previousStart,
+    previousEnd,
+  };
+}
+
+function formatLongDate(date) {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(date));
+}
+
+function formatShortDate(date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(date));
+}
+
+function formatSellerDelta(current, previous, suffix = "") {
+  if (!previous) {
+    return "No prior data";
+  }
+
+  const change = ((current - previous) / previous) * 100;
+  const rounded = Math.abs(change).toFixed(1);
+  const direction = change >= 0 ? "+" : "-";
+  return `${direction}${rounded}%${suffix}`;
+}
+
+function buildSellerTrendPoints({ orders, bids, listings, start, days }) {
+  return Array.from({ length: days }, (_, index) => {
+    const day = addDays(start, index);
+    const dayStart = startOfDay(day).getTime();
+    const dayEnd = endOfDay(day).getTime();
+    const label = days > 60
+      ? new Intl.DateTimeFormat("en-US", { month: "short" }).format(day)
+      : formatShortDate(day);
+
+    const revenue = orders
+      .filter((order) => {
+        const createdAt = new Date(order.createdAt).getTime();
+        return createdAt >= dayStart && createdAt <= dayEnd;
+      })
+      .reduce((sum, order) => sum + (order.amount || 0), 0);
+    const bidCount = bids.filter((bid) => {
+      const createdAt = new Date(bid.createdAt).getTime();
+      return createdAt >= dayStart && createdAt <= dayEnd;
+    }).length;
+    const listingCount = listings.filter((listing) => {
+      const createdAt = new Date(listing.createdAt).getTime();
+      return createdAt >= dayStart && createdAt <= dayEnd;
+    }).length;
+
+    return {
+      label,
+      revenue,
+      bids: bidCount,
+      listings: listingCount,
+    };
+  });
+}
+
+async function buildSellerReport({ sellerId, range = "weekly" }) {
+  const window = getSellerReportWindow(range);
+  const auctionIds = await Auction.find({ seller: sellerId }).distinct("_id");
+  const currentQuery = {
+    seller: sellerId,
+    createdAt: { $gte: window.currentStart, $lte: window.currentEnd },
+  };
+  const previousQuery = {
+    seller: sellerId,
+    createdAt: { $gte: window.previousStart, $lte: window.previousEnd },
+  };
+
+  const [
+    listings,
+    previousListings,
+    auctions,
+    previousAuctions,
+    bids,
+    previousBids,
+    orders,
+    previousOrders,
+  ] = await Promise.all([
+    Listing.find(currentQuery).lean(),
+    Listing.find(previousQuery).lean(),
+    Auction.find(currentQuery).lean(),
+    Auction.find(previousQuery).lean(),
+    Bid.find({
+      createdAt: { $gte: window.currentStart, $lte: window.currentEnd },
+      auction: { $in: auctionIds },
+    }).lean(),
+    Bid.find({
+      createdAt: { $gte: window.previousStart, $lte: window.previousEnd },
+      auction: { $in: auctionIds },
+    }).lean(),
+    Order.find(currentQuery).lean(),
+    Order.find(previousQuery).lean(),
+  ]);
+
+  const revenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const soldOrders = orders.filter((order) => ["Paid", "Awaiting shipment", "Delivered", "Completed"].includes(order.status)).length;
+  const previousSoldOrders = previousOrders.filter((order) => ["Paid", "Awaiting shipment", "Delivered", "Completed"].includes(order.status)).length;
+  const liveAuctions = auctions.filter((auction) => ["Live", "Extended"].includes(auction.status)).length;
+  const previousLiveAuctions = previousAuctions.filter((auction) => ["Live", "Extended"].includes(auction.status)).length;
+  const conversionRate = listings.length ? (orders.length / listings.length) * 100 : 0;
+  const previousConversionRate = previousListings.length ? (previousOrders.length / previousListings.length) * 100 : 0;
+  const averageBidValue = bids.length
+    ? bids.reduce((sum, bid) => sum + (bid.amount || 0), 0) / bids.length
+    : 0;
+  const trend = buildSellerTrendPoints({
+    orders,
+    bids,
+    listings,
+    start: window.currentStart,
+    days: window.days,
+  });
+
+  return {
+    key: window.key,
+    title: window.label,
+    generatedAt: new Date().toISOString(),
+    periodLabel: `${formatLongDate(window.currentStart)} to ${formatLongDate(window.currentEnd)}`,
+    summaryCards: [
+      {
+        label: "Revenue",
+        value: formatCurrency(revenue),
+        delta: formatSellerDelta(revenue, previousRevenue),
+        tone: revenue >= previousRevenue ? "good" : "warn",
+      },
+      {
+        label: "Orders closed",
+        value: String(soldOrders),
+        delta: formatSellerDelta(soldOrders, previousSoldOrders),
+        tone: soldOrders >= previousSoldOrders ? "good" : "warn",
+      },
+      {
+        label: "Live auctions",
+        value: String(liveAuctions),
+        delta: formatSellerDelta(liveAuctions, previousLiveAuctions),
+        tone: liveAuctions >= previousLiveAuctions ? "good" : "warn",
+      },
+      {
+        label: "Conversion rate",
+        value: `${Math.round(conversionRate)}%`,
+        delta: formatSellerDelta(conversionRate, previousConversionRate),
+        tone: conversionRate >= previousConversionRate ? "good" : "warn",
+      },
+    ],
+    sections: [
+      {
+        title: "Selling performance",
+        description: "A focused summary of listing, bidding, and order activity for the selected reporting window.",
+        rows: [
+          { label: "Listings created", value: String(listings.length), detail: `${auctions.length} auctions launched` },
+          { label: "Bids received", value: compactAmount(bids.length), detail: `${formatCurrency(averageBidValue)} average bid` },
+          { label: "Orders won", value: String(orders.length), detail: `${formatCurrency(revenue)} revenue processed` },
+          { label: "Completed pipeline", value: `${Math.round(conversionRate)}%`, detail: "Orders converted from created listings" },
+        ],
+      },
+    ],
+    trend,
+  };
+}
+
 export const getSellerOverview = asyncHandler(async (req, res) => {
   // Refresh settlement first so overview KPIs include auctions that just ended.
   await finalizeExpiredAuctions({ seller: req.user._id });
 
-  const [seller, listings, auctions, orders, threads, sellerAuctions] = await Promise.all([
-    User.findById(req.user._id),
-    Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
-    Auction.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
+  const [listings, auctions, orders] = await Promise.all([
+    Listing.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(6),
+    Auction.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(6),
     Order.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
-    Thread.find({ "participants.user": req.user._id }).sort({ updatedAt: -1 }).limit(2),
-    Auction.find({ seller: req.user._id }).select("_id"),
   ]);
-
-  const sellerBids = await Bid.find({
-    auction: { $in: sellerAuctions.map((auction) => auction._id) },
-  }).distinct("bidder");
 
   const grossSales = orders.reduce((sum, order) => sum + order.amount, 0);
   // derive live / active auction count from Auction documents, not Listing.status
@@ -124,19 +323,9 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
     seller: req.user._id,
     ...buildActiveAuctionFilter(),
   });
-  const processingOrders = orders.filter((item) => item.status !== "Completed").length;
   const totalBids = auctions.reduce((sum, auction) => sum + (auction.bidCount || 0), 0);
   const averageOrderValue = orders.length ? grossSales / orders.length : 0;
   const conversionRate = listings.length ? Math.round((orders.length / listings.length) * 100) : 0;
-  const locationQuery =
-    seller?.location?.trim() || seller?.country?.trim() || "";
-  const listingStatusGroups = [
-    { label: "Live", value: listings.filter((item) => item.status === "Live").length },
-    { label: "Featured", value: listings.filter((item) => item.status === "Featured").length },
-    { label: "Pending approval", value: listings.filter((item) => item.status === "Pending approval").length },
-    { label: "Draft", value: listings.filter((item) => item.status === "Draft").length },
-  ];
-
   res.json({
     success: true,
     data: {
@@ -148,21 +337,15 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
           `${listings.length} total listings`,
           "good",
         ),
-        toStats("Active buyers", String(sellerBids.length), `${auctions.length} seller auctions`, "good"),
         toStats("Gross sales", formatCurrency(grossSales), `${orders.length} completed orders`, "good"),
-        toStats("Orders in progress", String(processingOrders), `${orders.length} total orders`, processingOrders ? "warn" : "good"),
       ],
       // Secondary metrics capture traffic and commercial quality signals.
       performance: [
         toStats("Average order value", formatCurrency(averageOrderValue), `${orders.length} completed orders`, "good"),
-        toStats("Bid activity", compactAmount(totalBids), `${sellerBids.length} buyers engaged`, "good"),
         toStats("Conversion rate", `${conversionRate}%`, `${orders.length} orders won`, conversionRate >= 50 ? "good" : "warn"),
       ],
-      activity: auctions.map((auction) => ({
-        title: `${auction.title} updated`,
-        meta: `${deriveAuctionLifecycleLabel(auction)} auction refreshed ${auction.updatedAt.toISOString().slice(0, 10)}`,
-      })),
       auctionSummary: auctions.map((auction) => ({
+        auctionId: auction._id,
         id: auction.code,
         title: auction.title,
         status: deriveAuctionLifecycleLabel(auction),
@@ -171,39 +354,42 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
         startAt: auction.startAt || null,
         endAt: auction.endAt || null,
       })),
-      listingPipeline: listingStatusGroups,
-      location: {
-        label: locationQuery || "Location not added yet",
-        query: locationQuery,
-      },
-      messages: threads.map((thread) => ({
-        title: thread.subject,
-        meta: thread.messages.at(-1)?.body || "No recent message",
-      })),
-      // Current listing cards intentionally stay lightweight so the seller
-      // dashboard loads quickly while still surfacing essential commerce data.
-      currentListings: listings.slice(0, 4).map((listing) => ({
-        id: String(listing._id),
-        code: listing.code,
-        title: listing.title,
-        description: listing.description || "No product summary has been added yet.",
-        status: listing.status,
-        currentBid: formatCurrency(listing.currentBid || listing.price || 0),
-        delivery: listing.deliveryOption || "AuctionArc Delivery",
-        endTime:
-          auctions.find((auction) => String(auction.listing) === String(listing._id))?.endAt || null,
-        imageUrl: listing.images?.[0]?.url || "",
-        images: (listing.images || []).map((image) => image?.url).filter(Boolean),
-        premiumHighlight: Boolean(listing.premiumHighlight || listing.status === "Featured"),
-      })),
-      salesHistory: orders.map((order) => ({
-        id: order.code,
-        title: order.item,
-        price: formatCurrency(order.amount || 0),
-        status: order.status,
-      })),
     },
   });
+});
+
+export const getSellerReport = asyncHandler(async (req, res) => {
+  const report = await buildSellerReport({
+    sellerId: req.user._id,
+    range: String(req.query.range || "weekly").toLowerCase(),
+  });
+
+  res.json({
+    success: true,
+    data: report,
+  });
+});
+
+export const exportSellerReport = asyncHandler(async (req, res) => {
+  const range = String(req.query.range || "weekly").toLowerCase();
+  const report = await buildSellerReport({
+    sellerId: req.user._id,
+    range,
+  });
+  const stamp = new Date().toISOString().slice(0, 10);
+  const baseName = `auctionarc-seller-${report.key}-report-${stamp}`;
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${baseName}.pdf"`);
+  res.send(
+    buildReportPdf({
+      ...report,
+      topPerformers: {
+        sellers: [],
+        categories: [],
+      },
+    }),
+  );
 });
 
 export const getBidderOverview = asyncHandler(async (req, res) => {

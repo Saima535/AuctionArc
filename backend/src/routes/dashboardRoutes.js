@@ -14,6 +14,8 @@ import {
   getSellerListings,
   getSellerOrders,
   getSellerOverview,
+  getSellerReport,
+  exportSellerReport,
   updateSellerOrderStatus,
   getWatchlist,
 } from "../controllers/dashboardController.js";
@@ -27,6 +29,8 @@ router.get("/seller/auctions", requireRole("Seller"), getSellerAuctions);
 router.get("/seller/orders", requireRole("Seller"), getSellerOrders);
 router.patch("/seller/orders/:orderId", requireRole("Seller"), updateSellerOrderStatus);
 router.get("/seller/analytics", requireRole("Seller"), getSellerAnalytics);
+router.get("/seller/report", requireRole("Seller"), getSellerReport);
+router.get("/seller/report/export", requireRole("Seller"), exportSellerReport);
 
 router.get("/bidder", requireRole("Bidder"), getBidderOverview);
 router.get("/bidder/discover", requireRole("Bidder"), getBidderDiscover);
