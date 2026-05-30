@@ -19,7 +19,6 @@ const primaryNavItems = [
 const accountMenuItems = [
   { href: "/bidder/notifications", label: "Notifications" },
   { href: "/bidder/profile", label: "Profile" },
-  { href: "/bidder/settings", label: "Settings" },
 ];
 
 function CrownIcon() {

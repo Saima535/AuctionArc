@@ -6,7 +6,6 @@ export const sellerNavItems = [
   { href: "/seller/orders", label: "Orders", caption: "Sold items and settlements" },
   { href: "/seller/analytics", label: "Analytics", caption: "Performance signals" },
   { href: "/seller/messages", label: "Messages", caption: "Buyer support" },
-  { href: "/seller/settings", label: "Settings", caption: "Store and account" },
 ];
 
 export const bidderNavItems = [
@@ -16,5 +15,4 @@ export const bidderNavItems = [
   { href: "/bidder/my-bids", label: "My Bids", caption: "Active bid positions" },
   { href: "/bidder/wins", label: "Wins", caption: "Won auctions and payments" },
   { href: "/bidder/messages", label: "Messages", caption: "Seller and support chat" },
-  { href: "/bidder/settings", label: "Settings", caption: "Profile and preferences" },
 ];

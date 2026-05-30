@@ -19,7 +19,6 @@ const secondaryNavbarItems = [
   { href: "/seller/analytics", label: "Analytics" },
   { href: "/seller/notifications", label: "Notifications" },
   { href: "/seller/profile", label: "Profile" },
-  { href: "/seller/settings", label: "Settings" },
 ];
 
 function LogoMark() {

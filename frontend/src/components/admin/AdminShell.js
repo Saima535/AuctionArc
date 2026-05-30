@@ -18,7 +18,7 @@ const navGroups = [
   },
   {
     title: "Operations",
-    hrefs: ["/admin/chats", "/admin/reports", "/admin/notifications", "/admin/settings", "/admin/profile"],
+    hrefs: ["/admin/chats", "/admin/reports", "/admin/notifications", "/admin/profile"],
   },
 ];
 
@@ -110,15 +110,6 @@ function BellIcon() {
   );
 }
 
-function GearIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m12 3 1.1 2.5 2.8.4.7 2.7 2.3 1.6-1.2 2.5 1.2 2.5-2.3 1.6-.7 2.7-2.8.4L12 21l-1.1-2.5-2.8-.4-.7-2.7-2.3-1.6 1.2-2.5-1.2-2.5 2.3-1.6.7-2.7 2.8-.4L12 3Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.7" />
-    </svg>
-  );
-}
-
 function ProfileIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -139,7 +130,6 @@ function iconForHref(href) {
   if (href === "/admin/chats") return <MessageIcon />;
   if (href === "/admin/reports") return <AlertIcon />;
   if (href === "/admin/notifications") return <BellIcon />;
-  if (href === "/admin/settings") return <GearIcon />;
   if (href === "/admin/profile") return <ProfileIcon />;
   return <GridIcon />;
 }

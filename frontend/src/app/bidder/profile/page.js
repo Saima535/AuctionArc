@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ProfileEditor, SettingsEditor } from "@/components/account/ProfileForms";
+import { ProfileEditor } from "@/components/account/ProfileForms";
 import { SectionIntro } from "@/components/admin/AdminPrimitives";
 import { useApiData } from "@/hooks/useApiData";
 import { apiRequest } from "@/lib/api";
@@ -37,16 +37,6 @@ function buildProfileSnapshot(data) {
   ].filter((item) => item.value);
 }
 
-function buildPreferenceSnapshot(data) {
-  return [
-    { label: "Outbid alerts", value: data.preferences?.outbidAlerts },
-    { label: "Category focus", value: data.preferences?.categoryFocus },
-    { label: "Preferred currency", value: data.preferences?.currency },
-    { label: "Email alerts", value: data.preferences?.emailAlerts },
-    { label: "Support alerts", value: data.preferences?.supportAlerts },
-  ].filter((item) => item.value);
-}
-
 export default function BidderProfilePage() {
   const { data, setData, error } = useApiData("/users/me/profile", {
     initialData: {
@@ -66,17 +56,13 @@ export default function BidderProfilePage() {
   });
   const [profileMessage, setProfileMessage] = useState("");
   const [profileError, setProfileError] = useState("");
-  const [settingsMessage, setSettingsMessage] = useState("");
-  const [settingsError, setSettingsError] = useState("");
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
-  const [isSubmittingSettings, setIsSubmittingSettings] = useState(false);
 
   const verificationBadges = useMemo(
     () => buildVerificationBadges(data.verification),
     [data.verification],
   );
   const profileSnapshot = useMemo(() => buildProfileSnapshot(data), [data]);
-  const preferenceSnapshot = useMemo(() => buildPreferenceSnapshot(data), [data]);
   const profileImageUrl = data.profilePicture?.url || "";
   const identityMeta = [data.email, data.location || data.country].filter(Boolean).join(" | ");
 
@@ -107,35 +93,11 @@ export default function BidderProfilePage() {
     }
   }
 
-  async function handlePreferenceSubmit(values) {
-    setSettingsError("");
-    setSettingsMessage("");
-    setIsSubmittingSettings(true);
-
-    try {
-      const result = await apiRequest("/users/me/settings", {
-        method: "PATCH",
-        body: {
-          outbidAlerts: values.outbidAlerts,
-          categoryFocus: values.categoryFocus,
-          currency: values.currency,
-        },
-      });
-
-      setData((current) => ({ ...current, preferences: result.data }));
-      setSettingsMessage("Buyer preferences updated successfully.");
-    } catch (submitError) {
-      setSettingsError(submitError.message || "Could not update preferences.");
-    } finally {
-      setIsSubmittingSettings(false);
-    }
-  }
-
   return (
     <div className={styles.page}>
       <SectionIntro
         title="Buyer profile"
-        description="Keep your buyer identity, contact details, and bidding preferences clear, current, and ready for every auction."
+        description="Keep your buyer identity and contact details clear, current, and ready for every auction."
       />
 
       {error ? <p>{error}</p> : null}
@@ -194,19 +156,6 @@ export default function BidderProfilePage() {
           </article>
         ) : null}
 
-        {preferenceSnapshot.length ? (
-          <article className={styles.infoCard}>
-            <h3 className={styles.sectionTitle}>Buying preferences</h3>
-            <div className={styles.detailGrid}>
-              {preferenceSnapshot.map((item) => (
-                <div key={item.label} className={styles.detailCard}>
-                  <span className={styles.detailLabel}>{item.label}</span>
-                  <strong className={styles.detailValue}>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-          </article>
-        ) : null}
       </section>
 
       <section className={styles.formGrid}>
@@ -227,36 +176,6 @@ export default function BidderProfilePage() {
           submitMessage={profileMessage}
           submitError={profileError}
           helper="Changes here update your live buyer account details."
-        />
-
-        <SettingsEditor
-          key={`bidder-preferences-${data.preferences.outbidAlerts}-${data.preferences.categoryFocus}-${data.preferences.currency}`}
-          title="Bidding preferences"
-          description="Set how quickly you want alerts and how you prefer to browse auctions."
-          fields={[
-            {
-              name: "outbidAlerts",
-              label: "Outbid alerts",
-              type: "select",
-              defaultValue: data.preferences.outbidAlerts || "Instant",
-              options: ["Instant", "Hourly", "Daily"],
-            },
-            {
-              name: "categoryFocus",
-              label: "Preferred categories",
-              defaultValue: data.preferences.categoryFocus || "General",
-            },
-            {
-              name: "currency",
-              label: "Preferred currency",
-              defaultValue: data.preferences.currency || "USD",
-            },
-          ]}
-          onSubmit={handlePreferenceSubmit}
-          isSubmitting={isSubmittingSettings}
-          submitMessage={settingsMessage}
-          submitError={settingsError}
-          helper="These settings control buyer-side alerts and browsing preferences."
         />
       </section>
     </div>

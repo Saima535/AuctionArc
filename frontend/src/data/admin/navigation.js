@@ -10,5 +10,4 @@ export const adminNavItems = [
   { href: "/admin/winners", label: "Winners", caption: "Order and settlement flow" },
   { href: "/admin/notifications", label: "Notifications", caption: "Alerts and updates" },
   { href: "/admin/profile", label: "Profile", caption: "Admin identity" },
-  { href: "/admin/settings", label: "Settings", caption: "System controls" },
 ];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ProfileEditor, SettingsEditor } from "@/components/account/ProfileForms";
+import { ProfileEditor } from "@/components/account/ProfileForms";
 import { SectionIntro } from "@/components/admin/AdminPrimitives";
 import { useApiData } from "@/hooks/useApiData";
 import { apiRequest } from "@/lib/api";
@@ -37,17 +37,6 @@ function buildSellerSnapshot(data) {
   ].filter((item) => item.value);
 }
 
-function buildSellerPreferenceSnapshot(data) {
-  return [
-    { label: "Response window", value: data.preferences?.responseWindow },
-    { label: "Message alerts", value: data.preferences?.messageAlerts },
-    { label: "Featured appearance", value: data.preferences?.featuredAppearance },
-    { label: "Auction duration", value: data.preferences?.defaultAuctionDuration },
-    { label: "Shipping template", value: data.preferences?.defaultShipping },
-    { label: "Reserve reminder", value: data.preferences?.reserveReminder },
-  ].filter((item) => item.value);
-}
-
 export default function SellerProfilePage() {
   const { data, setData, error } = useApiData("/users/me/profile", {
     initialData: {
@@ -66,17 +55,13 @@ export default function SellerProfilePage() {
   });
   const [profileMessage, setProfileMessage] = useState("");
   const [profileError, setProfileError] = useState("");
-  const [settingsMessage, setSettingsMessage] = useState("");
-  const [settingsError, setSettingsError] = useState("");
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
-  const [isSubmittingSettings, setIsSubmittingSettings] = useState(false);
 
   const verificationBadges = useMemo(
     () => buildVerificationBadges(data.verification),
     [data.verification],
   );
   const sellerSnapshot = useMemo(() => buildSellerSnapshot(data), [data]);
-  const sellerPreferenceSnapshot = useMemo(() => buildSellerPreferenceSnapshot(data), [data]);
   const profileImageUrl = data.profilePicture?.url || "";
   const identityMeta = [data.publicRoleLabel || data.role, data.email, data.location || data.country]
     .filter(Boolean)
@@ -109,38 +94,11 @@ export default function SellerProfilePage() {
     }
   }
 
-  async function handlePreferenceSubmit(values) {
-    setSettingsError("");
-    setSettingsMessage("");
-    setIsSubmittingSettings(true);
-
-    try {
-      const result = await apiRequest("/users/me/settings", {
-        method: "PATCH",
-        body: {
-          responseWindow: values.responseWindow,
-          featuredAppearance: values.featuredAppearance,
-          messageAlerts: values.messageAlerts,
-          defaultAuctionDuration: values.defaultAuctionDuration,
-          defaultShipping: values.defaultShipping,
-          reserveReminder: values.reserveReminder,
-        },
-      });
-
-      setData((current) => ({ ...current, preferences: result.data }));
-      setSettingsMessage("Seller operating preferences updated successfully.");
-    } catch (submitError) {
-      setSettingsError(submitError.message || "Could not update seller preferences.");
-    } finally {
-      setIsSubmittingSettings(false);
-    }
-  }
-
   return (
     <div className={styles.page}>
       <SectionIntro
         title="Seller profile"
-        description="Keep your storefront identity, verification, contact details, and selling defaults clean and buyer-ready."
+        description="Keep your storefront identity, verification, and contact details clean and buyer-ready."
       />
 
       {error ? <p>{error}</p> : null}
@@ -199,20 +157,6 @@ export default function SellerProfilePage() {
           </article>
         ) : null}
 
-        {sellerPreferenceSnapshot.length ? (
-          <article className={styles.infoCard}>
-            <h3 className={styles.sectionTitle}>Selling preferences</h3>
-            <div className={styles.detailGrid}>
-              {sellerPreferenceSnapshot.map((item) => (
-                <div key={item.label} className={styles.detailCard}>
-                  <span className={styles.detailLabel}>{item.label}</span>
-                  <strong className={styles.detailValue}>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-          </article>
-        ) : null}
-
         <article className={styles.infoCard}>
           <h3 className={styles.sectionTitle}>Verification</h3>
           <div className={styles.detailGrid}>
@@ -243,54 +187,6 @@ export default function SellerProfilePage() {
           submitMessage={profileMessage}
           submitError={profileError}
           helper="These values update your seller-facing profile and internal marketplace records."
-        />
-
-        <SettingsEditor
-          title="Storefront defaults"
-          description="Control how your seller account behaves by default during listing and communication."
-          fields={[
-            {
-              name: "responseWindow",
-              label: "Preferred response window",
-              defaultValue: data.preferences?.responseWindow || "Within 1 hour",
-            },
-            {
-              name: "messageAlerts",
-              label: "Buyer message alerts",
-              type: "select",
-              defaultValue: data.preferences?.messageAlerts || "Instant",
-              options: ["Instant", "Hourly", "Daily"],
-            },
-            {
-              name: "featuredAppearance",
-              label: "Featured appearance",
-              type: "select",
-              defaultValue: data.preferences?.featuredAppearance || "Enabled",
-              options: ["Enabled", "Disabled"],
-            },
-            {
-              name: "defaultAuctionDuration",
-              label: "Default auction duration",
-              defaultValue: data.preferences?.defaultAuctionDuration || "7 days",
-            },
-            {
-              name: "defaultShipping",
-              label: "Shipping template",
-              defaultValue: data.preferences?.defaultShipping || "Standard insured shipping",
-            },
-            {
-              name: "reserveReminder",
-              label: "Reserve reminder",
-              type: "select",
-              defaultValue: data.preferences?.reserveReminder || "Enabled",
-              options: ["Enabled", "Disabled"],
-            },
-          ]}
-          onSubmit={handlePreferenceSubmit}
-          isSubmitting={isSubmittingSettings}
-          submitMessage={settingsMessage}
-          submitError={settingsError}
-          helper="These defaults power seller operations and listing preparation, not dummy placeholders."
         />
       </section>
     </div>

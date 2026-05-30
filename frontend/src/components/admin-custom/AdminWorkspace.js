@@ -19,7 +19,6 @@ const sidebarItems = [
   { href: "/admin/winners", label: "Winners", icon: "users" },
   { href: "/admin/notifications", label: "Notifications", icon: "alert" },
   { href: "/admin/profile", label: "Profile", icon: "users" },
-  { href: "/admin/settings", label: "Settings", icon: "grid" },
 ];
 
 const primaryTopNavItems = [
@@ -37,7 +36,6 @@ const accountMenuItems = [
   { href: "/admin/winners", label: "Winners" },
   { href: "/admin/notifications", label: "Notifications" },
   { href: "/admin/profile", label: "Profile" },
-  { href: "/admin/settings", label: "Settings" },
 ];
 
 function GridIcon() {
