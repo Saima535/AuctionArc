@@ -371,10 +371,7 @@
   background:
     radial-gradient(circle at top right, rgba(245, 170, 0, 0.18), transparent 36%),
     linear-gradient(180deg, #171717, #0d0d0d);
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: 20px;
+  overflow: hidden;
 }
 
 .listingMediaImage {
@@ -383,9 +380,16 @@
 }
 
 .listingBadgeRow {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 2;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
+  pointer-events: none;
 }
 
 .featureTag {
@@ -394,17 +398,19 @@
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: rgba(245, 170, 0, 0.18);
-  color: #f5aa00;
+  background: linear-gradient(180deg, rgba(245, 170, 0, 0.98), rgba(223, 137, 0, 0.94));
+  border: 1px solid rgba(255, 215, 140, 0.35);
+  color: #16110a;
   font-size: 0.82rem;
   font-weight: 800;
+  box-shadow: 0 10px 22px rgba(245, 170, 0, 0.24);
 }
 
 .listingBody {
-  padding: 24px 28px 28px;
+  padding: 22px 24px 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .listingHeader {
@@ -415,9 +421,10 @@
 }
 
 .listingHeader h3 {
-  margin-top: 10px;
-  font-size: 1.45rem;
+  margin-top: 8px;
+  font-size: 1.32rem;
   color: #fff;
+  line-height: 1.15;
 }
 
 .listingHeaderMeta {
@@ -431,7 +438,7 @@
 }
 
 .listingCategory {
-  margin-top: 10px;
+  margin-top: 8px;
   color: #f3a500;
   font-weight: 700;
 }
@@ -439,20 +446,22 @@
 .listingDescription {
   margin: 0;
   color: rgba(255, 255, 255, 0.72);
-  line-height: 1.7;
+  line-height: 1.55;
+  min-height: 48px;
 }
 
 .listingStatGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .listingStatCard {
-  padding: 16px;
-  border-radius: 18px;
+  min-height: 104px;
+  padding: 14px 16px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .listingStatCard span {
@@ -463,8 +472,9 @@
 
 .listingStatCard strong {
   display: block;
-  margin-top: 10px;
-  font-size: 1rem;
+  margin-top: 8px;
+  font-size: 1.02rem;
+  line-height: 1.25;
   color: #fff;
 }
 
@@ -472,6 +482,32 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.listingInfoCard {
+  min-height: 84px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.listingInfoCard span {
+  display: block;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 0.82rem;
+}
+
+.listingInfoCard strong {
+  display: block;
+  color: #fff7ee;
+  font-size: 1rem;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .notesStrip {
@@ -493,10 +529,11 @@
 
 .listingFooter {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+  padding-top: 6px;
 }
 
 .listingMetrics,
@@ -505,6 +542,15 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  width: 100%;
+}
+
+.listingActions .primaryCta,
+.listingActions .secondaryCta,
+.listingActions .darkButton,
+.listingActions .listingDanger {
+  min-height: 52px;
+  padding: 0 20px;
 }
 
 .listingDanger {
@@ -817,18 +863,22 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  max-width: min(100%, 220px);
+  white-space: nowrap;
 }
 
 .badgeActive {
-  background: rgba(0, 116, 55, 0.24);
-  color: #00d463;
-  border: 1px solid rgba(0, 212, 99, 0.3);
+  background: linear-gradient(180deg, rgba(16, 171, 91, 0.96), rgba(0, 132, 67, 0.94));
+  color: #f5fff9;
+  border: 1px solid rgba(180, 255, 219, 0.26);
+  box-shadow: 0 10px 22px rgba(0, 156, 78, 0.24);
 }
 
 .badgePending {
-  background: rgba(110, 76, 11, 0.24);
-  color: #f0b109;
-  border: 1px solid rgba(240, 177, 9, 0.26);
+  background: linear-gradient(180deg, rgba(243, 178, 17, 0.98), rgba(214, 133, 0, 0.94));
+  color: #1c1406;
+  border: 1px solid rgba(255, 228, 151, 0.32);
+  box-shadow: 0 10px 22px rgba(240, 177, 9, 0.26);
 }
 
 .tableMetric {

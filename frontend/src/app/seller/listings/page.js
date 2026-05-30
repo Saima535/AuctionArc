@@ -447,26 +447,26 @@ export default function SellerListingsPage() {
                 </div>
 
                 <div className={shared.listingInfoGrid}>
-                  <p className={shared.auctionMeta}>
+                  <article className={shared.listingInfoCard}>
                     <span>Condition</span>
                     <strong>{row.condition}</strong>
-                  </p>
-                  <p className={shared.auctionMeta}>
+                  </article>
+                  <article className={shared.listingInfoCard}>
                     <span>Delivery</span>
                     <strong>{row.delivery}</strong>
-                  </p>
-                  <p className={shared.auctionMeta}>
+                  </article>
+                  <article className={shared.listingInfoCard}>
                     <span>Buy now</span>
                     <strong>{row.buyNowPrice}</strong>
-                  </p>
-                  <p className={shared.auctionMeta}>
+                  </article>
+                  <article className={shared.listingInfoCard}>
                     <span>Start time</span>
                     <strong>{startTime}</strong>
-                  </p>
-                  <p className={shared.auctionMeta}>
+                  </article>
+                  <article className={shared.listingInfoCard}>
                     <span>Auction status</span>
                     <strong>{displayStatus}</strong>
-                  </p>
+                  </article>
                 </div>
 
                 {row.notes?.length ? (
