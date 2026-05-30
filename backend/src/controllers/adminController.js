@@ -11,6 +11,7 @@ import { Report } from "../models/Report.js";
 import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
+import { Watchlist } from "../models/Watchlist.js";
 import {
   buildAdminReport,
   buildReportCsv,
@@ -20,7 +21,6 @@ import {
   serializeUser,
   toAuctionRow,
   toBidRow,
-  toListingCard,
   toTableUser,
   toThreadRow,
   toTransactionRow,
@@ -30,9 +30,10 @@ import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { createNotification } from "../services/notificationService.js";
 import { activateUserAccount, suspendUserAccount } from "../services/userSuspensionService.js";
+import { deriveAuctionLifecycleLabel } from "../services/auctionQueryService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { formatCurrency } from "../utils/formatters.js";
+import { formatCountdown, formatCurrency, formatRelativeTime } from "../utils/formatters.js";
 import { assertOneOf, pickAllowedKeys } from "../utils/validation.js";
 
 function serializeBidDetail(bid) {
@@ -151,20 +152,36 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
 });
 
 export const getProducts = asyncHandler(async (req, res) => {
+  await finalizeExpiredAuctions();
+
   const listings = await Listing.find({}).populate("seller").sort({ updatedAt: -1 });
+  const listingIds = listings.map((listing) => listing._id);
+  const auctions = await Auction.find({ listing: { $in: listingIds } }).select("listing status startAt endAt bidCount winner");
+  const auctionByListingId = new Map(
+    auctions.map((auction) => [String(auction.listing), auction]),
+  );
 
   res.json({
     success: true,
-    data: listings.map((listing) => ({
-      listingId: listing._id,
-      id: listing.code,
-      title: listing.title,
-      seller: listing.seller?.name || "Unknown seller",
-      category: listing.category,
-      status: listing.status,
-      price: formatCurrency(listing.price),
-      bids: String(listing.bidCount),
-    })),
+    data: listings.map((listing) => {
+      const auction = auctionByListingId.get(String(listing._id));
+      const displayStatus = auction ? deriveAuctionLifecycleLabel(auction) : listing.status;
+
+      return {
+        listingId: listing._id,
+        id: listing.code,
+        title: listing.title,
+        seller: listing.seller?.name || "Unknown seller",
+        category: listing.category,
+        status: displayStatus,
+        countdown:
+          auction?.status === "Scheduled" && auction?.startAt
+            ? `Starts ${formatRelativeTime(auction.startAt)}`
+            : formatCountdown(auction?.endAt || null),
+        price: formatCurrency(listing.price),
+        bids: String(auction?.bidCount ?? listing.bidCount ?? 0),
+      };
+    }),
   });
 });
 
@@ -194,8 +211,11 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
 
   await createNotification({
     userId: listing.seller,
-    title: "Listing status updated",
-    body: `"${listing.title}" is now ${listing.status}.`,
+    title: listing.status === "Live" ? "Product approved" : "Listing status updated",
+    body:
+      listing.status === "Live"
+        ? `"${listing.title}" has been approved and is now live in the marketplace.`
+        : `"${listing.title}" is now ${listing.status}.`,
     type: "listing",
     href: "/seller/listings",
     metadata: {
@@ -210,7 +230,72 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
     message: "Listing status updated successfully.",
     data: {
       listingId: listing._id,
-      ...toListingCard(listing),
+      id: listing.code,
+      title: listing.title,
+      category: listing.category,
+      status: auction ? deriveAuctionLifecycleLabel(auction) : listing.status,
+      countdown:
+        auction?.status === "Scheduled" && auction?.startAt
+          ? `Starts ${formatRelativeTime(auction.startAt)}`
+          : formatCountdown(auction?.endAt || null),
+      price: formatCurrency(listing.price),
+      bids: String(auction?.bidCount ?? listing.bidCount ?? 0),
+    },
+  });
+});
+
+export const deleteProduct = asyncHandler(async (req, res) => {
+  const listing = await Listing.findById(req.params.listingId).populate("seller");
+
+  if (!listing) {
+    throw new ApiError(404, "Listing not found.");
+  }
+
+  const existingOrders = await Order.exists({ listing: listing._id });
+
+  if (existingOrders) {
+    throw new ApiError(400, "Products with existing orders can no longer be deleted.");
+  }
+
+  const auctions = await Auction.find({ listing: listing._id }).select("_id");
+  const auctionIds = auctions.map((auction) => auction._id);
+
+  if (auctionIds.length) {
+    await Watchlist.deleteMany({ auction: { $in: auctionIds } });
+    await Bid.deleteMany({ auction: { $in: auctionIds } });
+    await Auction.deleteMany({ _id: { $in: auctionIds } });
+  }
+
+  await listing.deleteOne();
+
+  publishLiveEvent({
+    event: "listing.deleted",
+    channels: ["market:auctions", "market:watchlist"],
+    userIds: [listing.seller?._id || listing.seller].filter(Boolean),
+    roles: ["Admin", "Bidder"],
+    payload: {
+      listingId: listing._id,
+      auctionIds,
+    },
+  });
+
+  await createNotification({
+    userId: listing.seller?._id || listing.seller,
+    title: "Product deleted by admin",
+    body: `"${listing.title}" has been removed from the marketplace by admin action.`,
+    type: "listing",
+    href: "/seller/listings",
+    metadata: {
+      listingId: listing._id,
+      deletedByAdmin: true,
+    },
+  });
+
+  res.json({
+    success: true,
+    message: "Product deleted successfully.",
+    data: {
+      listingId: String(listing._id),
     },
   });
 });

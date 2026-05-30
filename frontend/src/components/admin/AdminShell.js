@@ -14,7 +14,7 @@ const navGroups = [
   },
   {
     title: "Marketplace",
-    hrefs: ["/admin/users", "/admin/products", "/admin/auctions", "/admin/bids", "/admin/winners", "/admin/transactions"],
+    hrefs: ["/admin/users", "/admin/products", "/admin/bids", "/admin/winners", "/admin/transactions"],
   },
   {
     title: "Operations",
@@ -67,15 +67,6 @@ function BoxIcon() {
   );
 }
 
-function HammerIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m14 5 5 5-2 2-5-5 2-2ZM11 8l5 5M5 19l6-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4 20h4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function DollarIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -123,7 +114,6 @@ function iconForHref(href) {
   if (href === "/admin") return <GridIcon />;
   if (href === "/admin/users") return <UsersIcon />;
   if (href === "/admin/products") return <BoxIcon />;
-  if (href === "/admin/auctions" || href.startsWith("/admin/auctions")) return <HammerIcon />;
   if (href === "/admin/bids") return <TrendIcon />;
   if (href === "/admin/transactions") return <DollarIcon />;
   if (href === "/admin/winners") return <DollarIcon />;

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import {
   DataTable,
-  FilterBar,
   Panel,
   SectionIntro,
   StatusBadge,
@@ -13,20 +12,20 @@ import { apiRequest } from "@/lib/api";
 import styles from "../page.module.css";
 
 function toneForStatus(value) {
-  return value === "Live" || value === "Featured" ? "good" : value === "Rejected" ? "danger" : "warn";
+  return value === "Live" || value === "Extended" ? "good" : value === "Rejected" ? "danger" : value === "Closed" ? "neutral" : "warn";
+}
+
+function canModerateListing(status) {
+  return ["Pending approval", "Pending review", "Draft"].includes(status);
 }
 
 export default function AdminProductsPage() {
   const { data, setData, error } = useApiData("/admin/products", {
     initialData: [],
   });
-  const [selectedListingId, setSelectedListingId] = useState("");
   const [busyListingId, setBusyListingId] = useState("");
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
-
-  const selectedProduct =
-    data.find((item) => item.listingId === selectedListingId) || data[0];
 
   const productColumns = useMemo(
     () => [
@@ -39,48 +38,96 @@ export default function AdminProductsPage() {
         label: "Status",
         render: (value) => <StatusBadge tone={toneForStatus(value)}>{value}</StatusBadge>,
       },
+      { key: "countdown", label: "Countdown" },
       { key: "price", label: "Current price" },
       { key: "bids", label: "Bids" },
       {
         key: "actions",
         label: "Actions",
         render: (_, row) => (
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={() => setSelectedListingId(row.listingId)}
-          >
-            Inspect
-          </button>
+          <div className={styles.actionRow}>
+            {canModerateListing(row.status) ? (
+              <>
+                <button
+                  type="button"
+                  className={styles.actionButton}
+                  disabled={busyListingId === row.listingId}
+                  onClick={() => handleListingStatus(row, "Live")}
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  className={styles.dangerButton}
+                  disabled={busyListingId === row.listingId}
+                  onClick={() => handleListingStatus(row, "Rejected")}
+                >
+                  Reject
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className={styles.dangerButton}
+                disabled={busyListingId === row.listingId}
+                onClick={() => handleDeleteProduct(row)}
+              >
+                Delete
+              </button>
+            )}
+          </div>
         ),
       },
     ],
-    [],
+    [busyListingId],
   );
 
-  async function handleListingStatus(status) {
-    if (!selectedProduct) {
+  async function handleListingStatus(product, status) {
+    if (!product) {
       return;
     }
 
-    setBusyListingId(selectedProduct.listingId);
+    setBusyListingId(product.listingId);
     setPageError("");
     setPageMessage("");
 
     try {
-      const result = await apiRequest(`/admin/products/${selectedProduct.listingId}/status`, {
+      const result = await apiRequest(`/admin/products/${product.listingId}/status`, {
         method: "PATCH",
         body: { status },
       });
 
       setData((current) =>
         current.map((item) =>
-          item.listingId === selectedProduct.listingId ? { ...item, ...result.data } : item,
+          item.listingId === product.listingId ? { ...item, ...result.data } : item,
         ),
       );
-      setPageMessage(`${selectedProduct.title} updated to ${status}.`);
+      setPageMessage(`${product.title} updated to ${status}.`);
     } catch (requestError) {
       setPageError(requestError.message || "Could not update the listing status.");
+    } finally {
+      setBusyListingId("");
+    }
+  }
+
+  async function handleDeleteProduct(product) {
+    if (!product) {
+      return;
+    }
+
+    setBusyListingId(product.listingId);
+    setPageError("");
+    setPageMessage("");
+
+    try {
+      await apiRequest(`/admin/products/${product.listingId}`, {
+        method: "DELETE",
+      });
+
+      setData((current) => current.filter((item) => item.listingId !== product.listingId));
+      setPageMessage(`${product.title} deleted successfully.`);
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not delete the product.");
     } finally {
       setBusyListingId("");
     }
@@ -91,56 +138,15 @@ export default function AdminProductsPage() {
       <SectionIntro
         title="Products and listings"
         description="Review listing quality, seller inventory, category placement, and moderation decisions."
-        action={<FilterBar items={["Pending approval", "Live", "Featured", "Rejected", "Archived"]} />}
       />
 
       {error ? <p className={styles.inlineNotice}>{error}</p> : null}
       {pageError ? <p className={styles.inlineNotice}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successNotice}>{pageMessage}</p> : null}
 
-      <section className={styles.mainGrid}>
-        <Panel title="Listing control center" description="A moderation-first view of inventory entering the marketplace.">
-          <DataTable columns={productColumns} rows={data} />
-        </Panel>
-
-        {selectedProduct ? (
-          <aside className={styles.detailPanel}>
-            <strong>{selectedProduct.title}</strong>
-            <p>{selectedProduct.seller} | {selectedProduct.status}</p>
-            <ul className={styles.noteList}>
-              <li>{selectedProduct.category} listing</li>
-              <li>{selectedProduct.price} current price</li>
-              <li>{selectedProduct.bids} bids recorded</li>
-            </ul>
-            <div className={styles.actionRow}>
-              <button
-                type="button"
-                className={styles.actionButton}
-                disabled={busyListingId === selectedProduct.listingId}
-                onClick={() => handleListingStatus("Live")}
-              >
-                Approve
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                disabled={busyListingId === selectedProduct.listingId}
-                onClick={() => handleListingStatus("Featured")}
-              >
-                Feature
-              </button>
-              <button
-                type="button"
-                className={styles.dangerButton}
-                disabled={busyListingId === selectedProduct.listingId}
-                onClick={() => handleListingStatus("Rejected")}
-              >
-                Reject
-              </button>
-            </div>
-          </aside>
-        ) : null}
-      </section>
+      <Panel title="Listing control center" description="A moderation-first table of seller inventory entering the marketplace.">
+        <DataTable columns={productColumns} rows={data} />
+      </Panel>
     </div>
   );
 }

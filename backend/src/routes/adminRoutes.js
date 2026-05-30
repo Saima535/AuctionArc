@@ -17,6 +17,7 @@ import {
   getUsers,
   getWinners,
   exportReport,
+  deleteProduct,
   updateAuctionStatus,
   updateBidStatus,
   updateProductStatus,
@@ -34,6 +35,7 @@ router.get("/users", getUsers);
 router.patch("/users/:userId/status", updateUserStatus);
 router.get("/products", getProducts);
 router.patch("/products/:listingId/status", updateProductStatus);
+router.delete("/products/:listingId", deleteProduct);
 router.get("/auction-drilldown/:scope", getAuctionDrilldown);
 router.get("/auctions", getAuctions);
 router.patch("/auctions/:auctionId/status", updateAuctionStatus);

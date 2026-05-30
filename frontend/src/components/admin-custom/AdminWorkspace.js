@@ -11,7 +11,6 @@ const sidebarItems = [
   { href: "/admin", label: "Dashboard", icon: "grid" },
   { href: "/admin/users", label: "Users", icon: "users" },
   { href: "/admin/products", label: "Products", icon: "grid" },
-  { href: "/admin/auctions", label: "Auctions", icon: "grid" },
   { href: "/admin/bids", label: "Bids", icon: "money" },
   { href: "/admin/chats", label: "Chats", icon: "alert" },
   { href: "/admin/reports", label: "Reports", icon: "alert" },
@@ -25,7 +24,6 @@ const primaryTopNavItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/products", label: "Products" },
-  { href: "/admin/auctions", label: "Auctions" },
   { href: "/admin/chats", label: "Chats" },
   { href: "/admin/reports", label: "Reports" },
 ];
