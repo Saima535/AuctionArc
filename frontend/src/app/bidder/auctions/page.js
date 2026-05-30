@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  LiveRefreshControls,
   SectionIntro,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
@@ -34,7 +33,7 @@ export default function BidderAuctionsPage() {
   const router = useRouter();
   const { user } = useAuth();
   // Discovery data is refreshed both on a timer and through live marketplace events.
-  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/bidder/discover", {
+  const { data, setData, error, refresh } = useApiData("/dashboard/bidder/discover", {
     initialData: [],
     refreshIntervalMs: 12000,
     revalidateOnWindowFocus: true,
@@ -55,7 +54,7 @@ export default function BidderAuctionsPage() {
   const handleLiveEvent = useCallback(() => {
     refresh({ background: true });
   }, [refresh]);
-  const live = useLiveRefresh({
+  useLiveRefresh({
     channels: liveChannels,
     enabled: Boolean(user?.id),
     onEvent: handleLiveEvent,
@@ -218,15 +217,6 @@ export default function BidderAuctionsPage() {
       <SectionIntro
         title="Auctions"
         description="Browse listed auction products, filter by category, and join live bidding when a session is open."
-        action={
-          <LiveRefreshControls
-            onRefresh={refresh}
-            isRefreshing={isRefreshing}
-            lastUpdated={lastUpdated}
-            label="Realtime auctions + 12s fallback"
-            connectionState={live.connectionState}
-          />
-        }
       />
 
       <div className={styles.categoryToolbar}>

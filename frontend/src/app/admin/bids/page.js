@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState } from "react";
 import {
   DataTable,
   FilterBar,
-  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatCard,
@@ -21,7 +20,7 @@ function bidStatusTone(value) {
 }
 
 export default function AdminBidsPage() {
-  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/admin/bids", {
+  const { data, setData, error, refresh } = useApiData("/admin/bids", {
     initialData: [],
     refreshIntervalMs: 8000,
     revalidateOnWindowFocus: true,
@@ -30,7 +29,7 @@ export default function AdminBidsPage() {
   const [busyBidId, setBusyBidId] = useState("");
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
-  const live = useLiveRefresh({
+  useLiveRefresh({
     channels: ["market:bids", "role:Admin"],
     onEvent: useCallback(() => {
       refresh({ background: true });
@@ -108,15 +107,6 @@ export default function AdminBidsPage() {
       <SectionIntro
         title="Bids"
         description="Review bid flow, unusual activity, and escalation paths linked to auction disputes."
-        action={
-          <LiveRefreshControls
-            onRefresh={refresh}
-            isRefreshing={isRefreshing}
-            lastUpdated={lastUpdated}
-            label="Realtime admin bids + 8s fallback"
-            connectionState={live.connectionState}
-          />
-        }
       />
 
       <FilterBar items={["All bids", "Valid", "Held", "Review", "Suspicious signals"]} />

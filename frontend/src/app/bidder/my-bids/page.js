@@ -4,7 +4,6 @@ import { useCallback, useMemo } from "react";
 import {
   DataTable,
   FilterBar,
-  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
@@ -33,7 +32,7 @@ const bidColumns = [
 
 export default function BidderMyBidsPage() {
   const { user } = useAuth();
-  const { data, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/bidder/bids", {
+  const { data, error, refresh } = useApiData("/dashboard/bidder/bids", {
     initialData: [],
     refreshIntervalMs: 10000,
     revalidateOnWindowFocus: true,
@@ -42,7 +41,7 @@ export default function BidderMyBidsPage() {
     () => ["market:bids", user?.id ? `user:${user.id}` : ""],
     [user?.id],
   );
-  const live = useLiveRefresh({
+  useLiveRefresh({
     channels: liveChannels,
     enabled: Boolean(user?.id),
     onEvent: useCallback(() => {
@@ -55,15 +54,6 @@ export default function BidderMyBidsPage() {
       <SectionIntro
         title="My bids"
         description="Follow your live positions, competition pressure, and bids that require action."
-        action={
-          <LiveRefreshControls
-            onRefresh={refresh}
-            isRefreshing={isRefreshing}
-            lastUpdated={lastUpdated}
-            label="Realtime bids + 10s fallback"
-            connectionState={live.connectionState}
-          />
-        }
       />
 
       <FilterBar items={["All bids", "Leading", "Outbid", "Pending check"]} />

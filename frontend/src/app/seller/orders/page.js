@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   DataTable,
-  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
@@ -23,7 +22,7 @@ const nextStatusByCurrent = {
 
 export default function SellerOrdersPage() {
   const { user } = useAuth();
-  const { data, setData, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/seller/orders", {
+  const { data, setData, error, refresh } = useApiData("/dashboard/seller/orders", {
     initialData: [],
     refreshIntervalMs: 15000,
     revalidateOnWindowFocus: true,
@@ -31,7 +30,7 @@ export default function SellerOrdersPage() {
   const [pageMessage, setPageMessage] = useState("");
   const [pageError, setPageError] = useState("");
   const [busyOrderId, setBusyOrderId] = useState("");
-  const live = useLiveRefresh({
+  useLiveRefresh({
     channels: useMemo(() => ["market:orders", user?.id ? `user:${user.id}` : ""], [user?.id]),
     enabled: Boolean(user?.id),
     onEvent: useCallback(() => {
@@ -104,15 +103,6 @@ export default function SellerOrdersPage() {
       <SectionIntro
         title="Orders"
         description="Monitor sold items, buyer payment, shipment progress, and delivery status."
-        action={
-          <LiveRefreshControls
-            onRefresh={refresh}
-            isRefreshing={isRefreshing}
-            lastUpdated={lastUpdated}
-            label="Realtime orders + 15s fallback"
-            connectionState={live.connectionState}
-          />
-        }
       />
 
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}

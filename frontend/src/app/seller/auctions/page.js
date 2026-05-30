@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from "react";
 import {
   DataTable,
-  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
@@ -32,12 +31,12 @@ const auctionColumns = [
 
 export default function SellerAuctionsPage() {
   const { user } = useAuth();
-  const { data, error, isRefreshing, lastUpdated, refresh } = useApiData("/dashboard/seller/auctions", {
+  const { data, error, refresh } = useApiData("/dashboard/seller/auctions", {
     initialData: [],
     refreshIntervalMs: 12000,
     revalidateOnWindowFocus: true,
   });
-  const live = useLiveRefresh({
+  useLiveRefresh({
     channels: useMemo(() => ["market:auctions", user?.id ? `user:${user.id}` : ""], [user?.id]),
     enabled: Boolean(user?.id),
     onEvent: useCallback(() => {
@@ -51,15 +50,6 @@ export default function SellerAuctionsPage() {
       <SectionIntro
         title="Auctions"
         description="Follow selling sessions, bid activity, and auction timing in one table."
-        action={
-          <LiveRefreshControls
-            onRefresh={refresh}
-            isRefreshing={isRefreshing}
-            lastUpdated={lastUpdated}
-            label="Realtime auctions + 12s fallback"
-            connectionState={live.connectionState}
-          />
-        }
       />
 
       <Panel title="Selling activity" description="A focused view of auctions tied to your inventory.">

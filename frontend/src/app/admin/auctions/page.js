@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import {
   DataTable,
-  LiveRefreshControls,
   Panel,
   SectionIntro,
   StatusBadge,
@@ -18,12 +17,12 @@ function statusTone(value) {
 }
 
 export default function AdminAuctionsPage() {
-  const { data, error, isRefreshing, lastUpdated, refresh } = useApiData("/admin/auctions", {
+  const { data, error, refresh } = useApiData("/admin/auctions", {
     initialData: [],
     refreshIntervalMs: 10000,
     revalidateOnWindowFocus: true,
   });
-  const live = useLiveRefresh({
+  useLiveRefresh({
     channels: ["market:auctions", "role:Admin"],
     onEvent: useCallback(() => {
       refresh({ background: true });
@@ -49,15 +48,6 @@ export default function AdminAuctionsPage() {
       <SectionIntro
         title="Auctions"
         description="A clean operational table for auction status, countdown state, and bid activity."
-        action={
-          <LiveRefreshControls
-            onRefresh={refresh}
-            isRefreshing={isRefreshing}
-            lastUpdated={lastUpdated}
-            label="Realtime admin auctions + 10s fallback"
-            connectionState={live.connectionState}
-          />
-        }
       />
 
       {error ? <ApiErrorNotice title="Admin auction board unavailable" message={error} /> : null}
