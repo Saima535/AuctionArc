@@ -1,6 +1,8 @@
 import styles from "@/components/public/PublicPage.module.css";
 import { RegisterForm } from "@/components/public/RegisterForm";
 
+// Static metadata keeps the public registration route descriptive for browsers
+// and search engines without adding any client-side logic here.
 export const metadata = {
   title: "Register | AuctionArc",
   description: "Create a seller or buyer AuctionArc account.",
@@ -8,6 +10,8 @@ export const metadata = {
 
 export default function RegisterPage() {
   return (
+    // The page layout mirrors the other public auth screens: explanatory copy
+    // on the left and the live registration form on the right.
     <div className={styles.authWrap}>
       <section className={styles.authCard}>
         <span className={styles.eyebrow}>Create account</span>
@@ -24,6 +28,7 @@ export default function RegisterPage() {
       </section>
 
       <section className={styles.authCard}>
+        {/* The interactive registration flow lives in the client component below. */}
         <RegisterForm />
       </section>
     </div>

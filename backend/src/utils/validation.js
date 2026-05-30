@@ -71,6 +71,24 @@ export function assertPhoneNumber(value, label = "Phone number") {
   return normalized;
 }
 
+export function assertPersonName(value, label = "Name", { maxLength = 120 } = {}) {
+  const normalized = assertRequiredText(value, label, { maxLength });
+
+  // Allow letters, spaces, apostrophes, periods, and hyphens for common real names.
+  if (!/^[A-Za-z][A-Za-z\s.'-]*$/.test(normalized)) {
+    throw new ApiError(
+      400,
+      `${label} can contain letters, spaces, apostrophes, periods, and hyphens only.`,
+    );
+  }
+
+  if (/\d/.test(normalized)) {
+    throw new ApiError(400, `${label} cannot contain numbers.`);
+  }
+
+  return normalized;
+}
+
 export function assertDigitsOnly(value, label, { minLength = 1, maxLength = 100 } = {}) {
   const normalized = cleanString(value);
 

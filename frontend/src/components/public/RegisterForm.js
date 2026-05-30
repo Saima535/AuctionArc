@@ -6,12 +6,29 @@ import { useState } from "react";
 import styles from "@/components/public/PublicPage.module.css";
 import { registerUser } from "@/lib/auth-actions";
 
+// Keep name validation aligned with the backend so the user gets immediate
+// feedback before the request is submitted.
+function isValidName(value) {
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  return /^[A-Za-z][A-Za-z\s.'-]*$/.test(normalized) && !/\d/.test(normalized);
+}
+
 export function RegisterForm() {
   const router = useRouter();
+  // Birthdate is managed separately because the UI is split into day/month/year
+  // selectors while the backend expects a single YYYY-MM-DD field.
   const [birthdateError, setBirthdateError] = useState("");
   const [birthdateValue, setBirthdateValue] = useState("");
+  // Name validation is surfaced inline so users understand why numeric input is rejected.
+  const [nameError, setNameError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
+  // The selected image name is shown as a lightweight confirmation of the chosen file.
   const [selectedImageName, setSelectedImageName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const today = new Date();
@@ -74,14 +91,29 @@ export function RegisterForm() {
   async function handleSubmit(event) {
     event.preventDefault();
 
+    // FormData is sent directly because registration includes an uploaded image.
     const formData = new FormData(event.currentTarget);
+    const name = formData.get("name");
     const birthdate = formData.get("birthdate");
     const role = formData.get("role");
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
+    const profilePicture = formData.get("profilePicture");
+    const nameValue = typeof name === "string" ? name : "";
     const birthdateValue = typeof birthdate === "string" ? birthdate : "";
+    setNameError("");
     setSubmitError("");
     setSubmitSuccess("");
+
+    if (!isValidName(nameValue)) {
+      setNameError("Full name can contain letters, spaces, apostrophes, periods, and hyphens only.");
+      return;
+    }
+
+    if (!(profilePicture instanceof File) || profilePicture.size === 0) {
+      setSubmitError("Profile picture is required.");
+      return;
+    }
 
     if (!birthdateValue) {
       setBirthdateError("Birthdate is required. Only users aged 18 or older can register.");
@@ -147,9 +179,38 @@ export function RegisterForm() {
     setBirthdateError("");
   }
 
+  function handleNameChange(event) {
+    const sanitizedValue = event.target.value.replace(/[0-9]/g, "");
+
+    if (sanitizedValue !== event.target.value) {
+      event.target.value = sanitizedValue;
+    }
+
+    if (!sanitizedValue.trim()) {
+      setNameError("");
+      handleFieldChange();
+      return;
+    }
+
+    if (!isValidName(sanitizedValue)) {
+      setNameError("Full name can contain letters, spaces, apostrophes, periods, and hyphens only.");
+    } else {
+      setNameError("");
+    }
+
+    handleFieldChange();
+  }
+
   function handleProfilePictureChange(event) {
     const file = event.target.files?.[0];
     setSelectedImageName(file ? file.name : "");
+    setSubmitSuccess("");
+
+    if (!file) {
+      setSubmitError("Profile picture is required.");
+      return;
+    }
+
     setSubmitError("");
   }
 
@@ -169,6 +230,8 @@ export function RegisterForm() {
   }
 
   return (
+    // The form is intentionally grouped by identity, eligibility, contact,
+    // media, and credential fields so validation remains easy to follow.
     <form className={styles.authForm} onSubmit={handleSubmit}>
       <div className={styles.fieldGrid}>
         <div className={styles.field}>
@@ -179,8 +242,10 @@ export function RegisterForm() {
             type="text"
             placeholder="Enter your full name"
             required
-            onChange={handleFieldChange}
+            inputMode="text"
+            onChange={handleNameChange}
           />
+          {nameError ? <p className={styles.errorText}>{nameError}</p> : null}
         </div>
         <div className={styles.field}>
           <label htmlFor="register-email">Email address</label>
@@ -341,10 +406,11 @@ export function RegisterForm() {
           name="profilePicture"
           type="file"
           accept="image/png,image/jpeg,image/webp"
+          required
           onChange={handleProfilePictureChange}
         />
         <p className={styles.helperText}>
-          Upload a JPG, PNG, or WEBP image.
+          Upload a JPG, PNG, or WEBP image. This is required for registration.
           {selectedImageName ? ` Selected file: ${selectedImageName}` : ""}
         </p>
       </div>
@@ -398,7 +464,6 @@ export function RegisterForm() {
           Already have an account?
         </Link>
       </div>
-      <p className={styles.helperText}>Admin registration remains private.</p>
     </form>
   );
 }

@@ -21,8 +21,8 @@ import {
   assertEmail,
   assertOptionalText,
   assertPassword,
+  assertPersonName,
   assertPhoneNumber,
-  assertRequiredText,
 } from "../utils/validation.js";
 
 // Registration is restricted to adults because auction participation carries
@@ -57,6 +57,8 @@ function buildAuthResponse(user) {
 }
 
 export const register = asyncHandler(async (req, res) => {
+  // Registration collects identity-oriented fields, so we validate them
+  // strictly here instead of relying only on frontend form constraints.
   const {
     name,
     email,
@@ -75,7 +77,11 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Please complete all required registration fields.");
   }
 
-  const normalizedName = assertRequiredText(name, "Name", { maxLength: 120 });
+  if (!req.file) {
+    throw new ApiError(400, "Profile picture is required.");
+  }
+
+  const normalizedName = assertPersonName(name, "Name", { maxLength: 120 });
   const normalizedEmail = assertEmail(email);
   const normalizedNid = assertDigitsOnly(nid, "NID", { minLength: 5, maxLength: 30 });
   const normalizedCountry = assertOptionalText(country, "Country", { maxLength: 120 });
@@ -104,13 +110,11 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(409, "An account with that email already exists.");
   }
 
-  const profilePicture = req.file
-    ? await uploadImageBuffer(
-        req.file.buffer,
-        "auctionarc/profile-pictures",
-        `${normalizedEmail.replace(/[^a-z0-9]/g, "-")}-${Date.now()}`,
-      )
-    : null;
+  const profilePicture = await uploadImageBuffer(
+    req.file.buffer,
+    "auctionarc/profile-pictures",
+    `${normalizedEmail.replace(/[^a-z0-9]/g, "-")}-${Date.now()}`,
+  );
 
   const user = await User.create({
     name: normalizedName,
