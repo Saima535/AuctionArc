@@ -466,12 +466,12 @@ export const getSellerListings = asyncHandler(async (req, res) => {
 export const getSellerAuctions = asyncHandler(async (req, res) => {
   await finalizeExpiredAuctions({ seller: req.user._id });
 
-  // Only show LIVE auctions for the seller (not Scheduled, not Closed)
+  // Seller auctions should include the seller's full auction activity table,
+  // not just currently-live sessions.
   const auctions = await Auction.find({
     seller: req.user._id,
-    status: "Live", // Only show live auctions
-    endAt: { $gt: new Date() }, // Must have future end date
   }).sort({ updatedAt: -1 });
+  const now = Date.now();
 
   res.json({
     success: true,
@@ -481,7 +481,11 @@ export const getSellerAuctions = asyncHandler(async (req, res) => {
       stage: deriveAuctionLifecycleLabel(auction),
       currentBid: auction.currentBid ? formatCurrency(auction.currentBid) : "--",
       endAt: auction.endAt || null,
-      ends: auction.endAt ? `${Math.max(Math.round((auction.endAt.getTime() - Date.now()) / 60000), 0)}m` : "Pending",
+      ends: auction.endAt
+        ? auction.endAt.getTime() <= now
+          ? "Closed"
+          : `${Math.max(Math.round((auction.endAt.getTime() - now) / 60000), 0)}m`
+        : "Pending",
     })),
   });
 });

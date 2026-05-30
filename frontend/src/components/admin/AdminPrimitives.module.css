@@ -131,9 +131,9 @@
 }
 
 .badgeNeutral {
-  background: #f3f7fc;
-  border-color: var(--admin-border);
-  color: var(--admin-muted, var(--color-muted));
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 248, 238, 0.92);
 }
 
 .filterBar,
