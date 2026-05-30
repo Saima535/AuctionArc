@@ -553,6 +553,12 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
       throw new ApiError(404, "Listing not found.");
     }
 
+    const linkedAuction = await Auction.findOne({ listing: listing._id }).select("_id status");
+
+    if (linkedAuction || ["Live", "Featured"].includes(listing.status)) {
+      throw new ApiError(400, "Featured placement is only available before a listing becomes live.");
+    }
+
     if (listing.premiumHighlight) {
       throw new ApiError(400, "This listing is already featured.");
     }

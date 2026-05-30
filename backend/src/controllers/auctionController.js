@@ -210,6 +210,12 @@ export const updateListing = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Listing not found.");
   }
 
+  const linkedAuction = await Auction.findOne({ listing: listing._id }).select("_id status");
+
+  if (linkedAuction || ["Live", "Featured"].includes(listing.status)) {
+    throw new ApiError(400, "Approved or auctioned listings can no longer be edited from the seller listings page.");
+  }
+
   const {
     title,
     category,
@@ -375,7 +381,7 @@ export const deleteListing = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only sellers can delete listings.");
   }
 
-  const listing = await Listing.findOneAndDelete({
+  const listing = await Listing.findOne({
     _id: req.params.listingId,
     seller: req.user._id,
   });
@@ -384,6 +390,13 @@ export const deleteListing = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Listing not found.");
   }
 
+  const linkedAuction = await Auction.findOne({ listing: listing._id }).select("_id status");
+
+  if (linkedAuction || ["Live", "Featured"].includes(listing.status)) {
+    throw new ApiError(400, "Approved or auctioned listings can no longer be deleted from the seller listings page.");
+  }
+
+  await listing.deleteOne();
   await Auction.deleteMany({ listing: listing._id, seller: req.user._id });
 
   res.json({

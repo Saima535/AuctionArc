@@ -95,9 +95,9 @@ function formatAuctionDurationLabel(value, unit = "day") {
 
 // Status chips keep draft/review/live states visually distinct in the seller UI.
 function statusClass(status) {
-  return status === "Live" || status === "Featured"
+  return status === "Live" || status === "Featured" || status === "Extended"
     ? shared.badgeActive
-    : status === "Pending approval" || status === "Pending review"
+    : status === "Pending approval" || status === "Pending review" || status === "Scheduled"
       ? shared.badgePending
       : shared.badgeMuted;
 }
@@ -384,11 +384,14 @@ export default function SellerListingsPage() {
         {listingCards.map((row) => {
           // Auction-derived values take precedence when a linked auction exists.
           const activeAuction = row.auction;
+          const displayStatus = activeAuction?.status || row.status;
           const displayBid = activeAuction?.currentBid || row.currentBid || row.price;
           const displayBidCount = activeAuction?.bidCount || row.bidCount || "0";
           const timeLeft = formatTimeLeft(activeAuction?.endAt);
           const endTime = formatDateTime(activeAuction?.endAt);
           const startTime = formatDateTime(activeAuction?.startAt);
+          const canManageBeforeApproval =
+            !activeAuction && !["Live", "Featured"].includes(row.status);
 
           return (
             <article key={row.listingId} className={`${shared.panel} ${shared.listingCard}`}>
@@ -401,7 +404,7 @@ export default function SellerListingsPage() {
                 />
 
                 <div className={shared.listingBadgeRow}>
-                  <span className={`${shared.badge} ${statusClass(row.status)}`}>{row.status}</span>
+                  <span className={`${shared.badge} ${statusClass(displayStatus)}`}>{displayStatus}</span>
                   {row.premiumHighlight ? <span className={shared.featureTag}>Featured</span> : null}
                 </div>
               </div>
@@ -462,7 +465,7 @@ export default function SellerListingsPage() {
                   </p>
                   <p className={shared.auctionMeta}>
                     <span>Auction status</span>
-                    <strong>{activeAuction?.status || "Not scheduled"}</strong>
+                    <strong>{displayStatus}</strong>
                   </p>
                 </div>
 
@@ -477,7 +480,7 @@ export default function SellerListingsPage() {
                 <div className={shared.listingFooter}>
                   {/* Action buttons cover featured placement, editing, status flow, and deletion. */}
                   <div className={shared.listingActions}>
-                    {!row.premiumHighlight ? (
+                    {canManageBeforeApproval && !row.premiumHighlight ? (
                       <button
                         type="button"
                         className={shared.primaryCta}
@@ -488,16 +491,18 @@ export default function SellerListingsPage() {
                         <span>{busyId === row.listingId ? "Opening..." : "Feature for $1"}</span>
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      className={shared.darkButton}
-                      disabled={busyId === row.listingId}
-                      aria-label={`Edit ${row.title}`}
-                      onClick={() => startEditing(row)}
-                    >
-                      <EditIcon />
-                      <span>Edit</span>
-                    </button>
+                    {canManageBeforeApproval ? (
+                      <button
+                        type="button"
+                        className={shared.darkButton}
+                        disabled={busyId === row.listingId}
+                        aria-label={`Edit ${row.title}`}
+                        onClick={() => startEditing(row)}
+                      >
+                        <EditIcon />
+                        <span>Edit</span>
+                      </button>
+                    ) : null}
                     {row.status === "Draft" || row.status === "Rejected" ? (
                       <button
                         type="button"
@@ -510,16 +515,18 @@ export default function SellerListingsPage() {
                         <span>Submit</span>
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      className={shared.listingDanger}
-                      disabled={busyId === row.listingId}
-                      aria-label={`Delete ${row.title}`}
-                      onClick={() => handleDelete(row)}
-                    >
-                      <TrashIcon />
-                      <span>Delete</span>
-                    </button>
+                    {canManageBeforeApproval ? (
+                      <button
+                        type="button"
+                        className={shared.listingDanger}
+                        disabled={busyId === row.listingId}
+                        aria-label={`Delete ${row.title}`}
+                        onClick={() => handleDelete(row)}
+                      >
+                        <TrashIcon />
+                        <span>Delete</span>
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </div>
