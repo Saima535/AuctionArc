@@ -121,6 +121,8 @@ export default function AdminTransactionsPage() {
               <th>Seller</th>
               <th>Type</th>
               <th>Amount</th>
+              <th>Commission</th>
+              <th>Seller Payout</th>
               <th>Status</th>
               <th>Channel</th>
               <th>Date</th>
@@ -130,7 +132,7 @@ export default function AdminTransactionsPage() {
           <tbody>
             {!data.length ? (
               <tr>
-                <td colSpan={10}>No transactions found.</td>
+                <td colSpan={12}>No transactions found.</td>
               </tr>
             ) : null}
             {data.map((row) => (
@@ -148,6 +150,8 @@ export default function AdminTransactionsPage() {
                 <td>{row.seller}</td>
                 <td>{row.type}</td>
                 <td className={styles.moneyText}>{row.amount}</td>
+                <td className={styles.moneyText}>{row.commission}</td>
+                <td className={styles.moneyText}>{row.payoutAmount}</td>
                 <td>
                   <StatusPill tone={toneForStatus(row.status)}>
                     {row.status}

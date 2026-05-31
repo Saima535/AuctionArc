@@ -12,6 +12,7 @@ import {
   createNotificationsOnce,
 } from "./notificationService.js";
 import { publishLiveEvent } from "./liveUpdateService.js";
+import { calculateCommissionBreakdown } from "./commissionService.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
 import { formatCurrency } from "../utils/formatters.js";
 import { isAuctionExpired } from "./auctionQueryService.js";
@@ -28,6 +29,7 @@ async function createWinnerOrder({ auction, listing, winningBid, session }) {
   // A fresh code is generated only for true inserts; repeated settlement passes
   // still reuse the same logical order if it already exists.
   const code = await generateUniqueCode(Order, "ORD-", { digits: 4, min: 5001 });
+  const { commissionAmount, sellerPayoutAmount } = calculateCommissionBreakdown(winningBid.amount);
 
   const order = await Order.findOneAndUpdate(
     {
@@ -45,7 +47,9 @@ async function createWinnerOrder({ auction, listing, winningBid, session }) {
         bidder: winningBid.bidder,
         listing: listing._id,
         amount: winningBid.amount,
-        escrowAmount: winningBid.amount,
+        commissionAmount,
+        sellerPayoutAmount,
+        escrowAmount: sellerPayoutAmount,
         // Auction settlement orders are explicitly tagged so they remain
         // distinguishable from instant buy-now purchases.
         purchaseType: "Auction win",

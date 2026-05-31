@@ -228,7 +228,7 @@ export default function SellerDashboardPage() {
             <div className={shared.sectionTop}>
               <div>
                 <h3 className={shared.reportSubheading}>Revenue trend</h3>
-                <p className={shared.panelCopy}>A bar chart view of seller revenue for the selected reporting window.</p>
+                <p className={shared.panelCopy}>A bar chart view of seller payout after the 5% commission for the selected reporting window.</p>
               </div>
             </div>
             <div className={shared.reportChartWrap}>

@@ -41,6 +41,10 @@ const orderSchema = new mongoose.Schema(
     },
     // Amount is the payable purchase value in platform currency units.
     amount: { type: Number, required: true },
+    // Commission amount is the platform fee deducted from won-product revenue.
+    commissionAmount: { type: Number, default: 0 },
+    // Seller payout amount is the seller's net proceeds after commission.
+    sellerPayoutAmount: { type: Number, default: 0 },
     // Escrow amount allows the same model to support payout-hold workflows.
     escrowAmount: { type: Number, default: 0 },
     // Stripe references are persisted for support, reconciliation, and idempotency.

@@ -68,7 +68,9 @@ export default function SellerOrdersPage() {
     { key: "id", label: "Order ID" },
     { key: "item", label: "Item" },
     { key: "buyer", label: "Buyer" },
-    { key: "amount", label: "Amount" },
+    { key: "grossAmount", label: "Sale" },
+    { key: "commission", label: "Commission" },
+    { key: "payoutAmount", label: "Payout" },
     {
       key: "status",
       label: "Status",
@@ -102,13 +104,13 @@ export default function SellerOrdersPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Orders"
-        description="Monitor sold items, buyer payment, shipment progress, and delivery status."
+        description="Monitor sold items, buyer payment, 5% commission deductions, payout totals, and delivery status."
       />
 
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successText}>{pageMessage}</p> : null}
 
-      <Panel title="Order pipeline" description="Track winner payment confirmation and the fulfilment progress after a successful auction.">
+      <Panel title="Order pipeline" description="Track buyer payment, seller payout after commission, and fulfilment progress after a successful sale.">
         {error ? <ApiErrorNotice title="Seller orders unavailable" message={error} /> : <DataTable columns={orderColumns} rows={data} />}
       </Panel>
     </div>

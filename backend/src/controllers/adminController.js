@@ -30,6 +30,7 @@ import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { createNotification } from "../services/notificationService.js";
 import { activateUserAccount, suspendUserAccount } from "../services/userSuspensionService.js";
 import { deriveAuctionLifecycleLabel } from "../services/auctionQueryService.js";
+import { getOrderFinancials } from "../services/commissionService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCountdown, formatCurrency, formatRelativeTime } from "../utils/formatters.js";
@@ -667,6 +668,9 @@ export const getTransactions = asyncHandler(async (req, res) => {
         type: normalizeTransactionType(transaction),
         status: transaction.status,
         amount: formatCurrency(transaction.amount),
+        grossAmount: order ? formatCurrency(getOrderFinancials(order).grossAmount) : formatCurrency(transaction.metadata?.grossAmount || transaction.amount),
+        commission: order ? formatCurrency(getOrderFinancials(order).commissionAmount) : formatCurrency(transaction.metadata?.commissionAmount || 0),
+        payoutAmount: order ? formatCurrency(getOrderFinancials(order).sellerPayoutAmount) : formatCurrency(transaction.metadata?.sellerPayoutAmount || transaction.amount),
         channel: transaction.channel,
         date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
       };
@@ -711,7 +715,8 @@ export const getWinners = asyncHandler(async (req, res) => {
       seller: order.seller?.name || "Unknown seller",
       sellerEmail: order.seller?.email || "Not available",
       amount: formatCurrency(order.amount),
-      escrow: formatCurrency(order.escrowAmount || 0),
+      commission: formatCurrency(getOrderFinancials(order).commissionAmount),
+      escrow: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
       status: order.status,
       closedAt: order.updatedAt?.toISOString().slice(0, 10) || "Unknown",
     })),

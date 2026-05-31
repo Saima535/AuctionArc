@@ -7,6 +7,7 @@ import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
 import { compactAmount, toStats } from "./mapperService.js";
+import { getOrderFinancials } from "./commissionService.js";
 import { formatCurrency } from "../utils/formatters.js";
 
 function startOfDay(date) {
@@ -317,7 +318,7 @@ function buildTopCategories({ orders, listingById, auctionByListingId }) {
     const auction = auctionByListingId.get(String(order.listing?._id || order.listing));
     const category = listing?.category || auction?.category || "Uncategorized";
     const current = totals.get(category) || { revenue: 0, orders: 0 };
-    current.revenue += order.amount || 0;
+    current.revenue += getOrderFinancials(order).sellerPayoutAmount;
     current.orders += 1;
     totals.set(category, current);
   });
@@ -343,7 +344,7 @@ function buildTopSellers({ orders }) {
       revenue: 0,
       orders: 0,
     };
-    current.revenue += order.amount || 0;
+    current.revenue += getOrderFinancials(order).sellerPayoutAmount;
     current.orders += 1;
     totals.set(sellerId, current);
   });
@@ -555,6 +556,8 @@ export async function buildAdminReport(range = "weekly") {
   const revenue = sumAmounts(transactions);
   const previousRevenue = sumAmounts(previousTransactions);
   const orderValue = sumAmounts(orders);
+  const sellerPayoutValue = orders.reduce((sum, order) => sum + getOrderFinancials(order).sellerPayoutAmount, 0);
+  const commissionValue = orders.reduce((sum, order) => sum + getOrderFinancials(order).commissionAmount, 0);
   const suspiciousBidCount = countBy(bids, suspiciousBidPredicate);
   const previousSuspiciousBidCount = countBy(previousBids, suspiciousBidPredicate);
   const openReports = countBy(reports, (report) => !["Resolved", "Closed"].includes(report.status));
@@ -622,7 +625,8 @@ export async function buildAdminReport(range = "weekly") {
         description: "Commercial performance for processed payments and bidding depth.",
         rows: [
           { label: "Transaction volume", value: formatCurrency(revenue), detail: `${transactions.length} processed payments` },
-          { label: "Average order value", value: orders.length ? formatCurrency(orderValue / orders.length) : formatCurrency(0), detail: `${packageTransactions} package payments` },
+          { label: "Seller payout", value: formatCurrency(sellerPayoutValue), detail: "Net proceeds after 5% commission" },
+          { label: "Platform commission", value: formatCurrency(commissionValue), detail: "Collected from won products" },
           { label: "Bid throughput", value: bids.length ? formatCurrency(averageBidAmount) : formatCurrency(0), detail: "Average bid amount" },
           { label: "Marketplace conversion", value: toPercent(conversionRate), detail: `Previous ${toPercent(previousConversionRate)}` },
         ],

@@ -109,6 +109,7 @@ export default function BidderWinsPage() {
   { key: "item", label: "Item" },
   { key: "seller", label: "Seller" },
   { key: "amount", label: "Amount" },
+  { key: "commission", label: "Platform fee" },
   {
     key: "status",
     label: "Status",
@@ -150,7 +151,7 @@ export default function BidderWinsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Wins"
-        description="Review auctions you have won, payment status, and fulfillment progress."
+        description="Review won products, payment totals, platform fee, and fulfillment progress."
       />
 
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}

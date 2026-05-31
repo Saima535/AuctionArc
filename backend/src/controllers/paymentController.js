@@ -12,6 +12,11 @@ import { Transaction } from "../models/Transaction.js";
 import { createNotification } from "../services/notificationService.js";
 import { syncAuctionForListing } from "../services/auctionLifecycleService.js";
 import { publishLiveEvent } from "../services/liveUpdateService.js";
+import {
+  calculateCommissionBreakdown,
+  getOrderFinancials,
+  PLATFORM_COMMISSION_RATE,
+} from "../services/commissionService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { generateUniqueCode } from "../utils/codeGenerator.js";
@@ -95,8 +100,13 @@ async function applyWinnerOrderSessionEffects(session) {
         throw new ApiError(400, "This winning order is not awaiting payment anymore.");
       }
 
+      const { commissionAmount, sellerPayoutAmount } = getOrderFinancials(order);
+
       // Persist Stripe references directly on the order for reconciliation/support.
       order.status = "Paid";
+      order.commissionAmount = commissionAmount;
+      order.sellerPayoutAmount = sellerPayoutAmount;
+      order.escrowAmount = sellerPayoutAmount;
       order.paymentSessionId = session.id;
       order.paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : "";
       order.paidAt = new Date();
@@ -114,6 +124,9 @@ async function applyWinnerOrderSessionEffects(session) {
           metadata: {
             orderId: String(order._id),
             stripeSessionId: session.id,
+            grossAmount: amount,
+            commissionAmount,
+            sellerPayoutAmount,
           },
         }], { session: dbSession });
       }
@@ -125,11 +138,14 @@ async function applyWinnerOrderSessionEffects(session) {
           order: order._id,
           type: "Auction sale",
           status: "Pending payout",
-          amount,
+          amount: sellerPayoutAmount,
           channel: "Stripe",
           metadata: {
             orderId: String(order._id),
             stripeSessionId: session.id,
+            grossAmount: amount,
+            commissionAmount,
+            sellerPayoutAmount,
           },
         }], { session: dbSession });
       }
@@ -160,7 +176,7 @@ async function applyWinnerOrderSessionEffects(session) {
     createNotification({
       userId: order.seller,
       title: "Winner payment received",
-      body: `Payment for order ${order.code} has been received. You can prepare the shipment now.`,
+      body: `Payment for order ${order.code} has been received. Your payout after the 5% commission is ${formatCurrency(getOrderFinancials(order).sellerPayoutAmount)}.`,
       type: "order",
       href: "/seller/orders",
       metadata: {
@@ -305,6 +321,7 @@ async function getOrCreateBuyNowOrder({ listing, buyerId, amount, session }) {
   }
 
   const code = await generateUniqueCode(Order, "ORD-", { digits: 4, min: 5001 });
+  const { commissionAmount, sellerPayoutAmount } = calculateCommissionBreakdown(amount);
 
   // Buy-now orders enter the same fulfilment pipeline as auction-win orders,
   // but are tagged with a different purchase type.
@@ -316,7 +333,9 @@ async function getOrCreateBuyNowOrder({ listing, buyerId, amount, session }) {
     listing: listing._id,
     purchaseType: "Buy now",
     amount,
-    escrowAmount: amount,
+    commissionAmount,
+    sellerPayoutAmount,
+    escrowAmount: sellerPayoutAmount,
     status: "Payment pending",
   }], { session });
 
@@ -376,7 +395,12 @@ async function applyBuyNowSessionEffects(session) {
           throw new ApiError(400, "This buy now order is not awaiting payment anymore.");
         }
 
+        const { commissionAmount, sellerPayoutAmount } = getOrderFinancials(order);
+
         order.status = "Paid";
+        order.commissionAmount = commissionAmount;
+        order.sellerPayoutAmount = sellerPayoutAmount;
+        order.escrowAmount = sellerPayoutAmount;
         order.paymentSessionId = session.id;
         order.paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : "";
         order.paidAt = new Date();
@@ -396,6 +420,9 @@ async function applyBuyNowSessionEffects(session) {
               orderId: String(order._id),
               listingId: String(listing._id),
               stripeSessionId: session.id,
+              grossAmount: amount,
+              commissionAmount,
+              sellerPayoutAmount,
             },
           }], { session: dbSession });
         }
@@ -408,12 +435,15 @@ async function applyBuyNowSessionEffects(session) {
             order: order._id,
             type: "Buy now sale",
             status: "Pending payout",
-            amount,
+            amount: sellerPayoutAmount,
             channel: "Stripe",
             metadata: {
               orderId: String(order._id),
               listingId: String(listing._id),
               stripeSessionId: session.id,
+              grossAmount: amount,
+              commissionAmount,
+              sellerPayoutAmount,
             },
           }], { session: dbSession });
         }
@@ -453,7 +483,7 @@ async function applyBuyNowSessionEffects(session) {
     createNotification({
       userId: order.seller,
       title: "Buy now order paid",
-      body: `"${listing.title}" was purchased instantly for ${formatCurrency(amount)}. Prepare the shipment now.`,
+      body: `"${listing.title}" was purchased instantly for ${formatCurrency(amount)}. Your payout after the 5% commission is ${formatCurrency(getOrderFinancials(order).sellerPayoutAmount)}.`,
       type: "order",
       href: "/seller/orders",
       metadata: {
@@ -677,6 +707,7 @@ export const createCheckoutSession = asyncHandler(async (req, res) => {
     data: {
       sessionId: session.id,
       url: session.url,
+      commissionRate: PLATFORM_COMMISSION_RATE,
     },
   });
 });

@@ -19,6 +19,7 @@ import {
 import { createNotification } from "../services/notificationService.js";
 import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js";
 import { buildAdminInsights } from "../services/adminReportingService.js";
+import { getOrderFinancials } from "../services/commissionService.js";
 import {
   compactAmount,
   toAuctionRow,
@@ -184,7 +185,7 @@ function buildSellerTrendPoints({ orders, bids, listings, start, days }) {
         const createdAt = new Date(order.createdAt).getTime();
         return createdAt >= dayStart && createdAt <= dayEnd;
       })
-      .reduce((sum, order) => sum + (order.amount || 0), 0);
+      .reduce((sum, order) => sum + getOrderFinancials(order).sellerPayoutAmount, 0);
     const bidCount = bids.filter((bid) => {
       const createdAt = new Date(bid.createdAt).getTime();
       return createdAt >= dayStart && createdAt <= dayEnd;
@@ -219,34 +220,27 @@ async function buildSellerReport({ sellerId, range = "weekly" }) {
     listings,
     previousListings,
     auctions,
-    previousAuctions,
     bids,
-    previousBids,
     orders,
     previousOrders,
   ] = await Promise.all([
     Listing.find(currentQuery).lean(),
     Listing.find(previousQuery).lean(),
     Auction.find(currentQuery).lean(),
-    Auction.find(previousQuery).lean(),
     Bid.find({
       createdAt: { $gte: window.currentStart, $lte: window.currentEnd },
-      auction: { $in: auctionIds },
-    }).lean(),
-    Bid.find({
-      createdAt: { $gte: window.previousStart, $lte: window.previousEnd },
       auction: { $in: auctionIds },
     }).lean(),
     Order.find(currentQuery).lean(),
     Order.find(previousQuery).lean(),
   ]);
 
-  const revenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
-  const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const previousRevenue = previousOrders.reduce((sum, order) => sum + getOrderFinancials(order).sellerPayoutAmount, 0);
+  const currentRevenue = orders.reduce((sum, order) => sum + getOrderFinancials(order).sellerPayoutAmount, 0);
+  const currentCommission = orders.reduce((sum, order) => sum + getOrderFinancials(order).commissionAmount, 0);
+  const previousCommission = previousOrders.reduce((sum, order) => sum + getOrderFinancials(order).commissionAmount, 0);
   const soldOrders = orders.filter((order) => ["Paid", "Awaiting shipment", "Delivered", "Completed"].includes(order.status)).length;
   const previousSoldOrders = previousOrders.filter((order) => ["Paid", "Awaiting shipment", "Delivered", "Completed"].includes(order.status)).length;
-  const liveAuctions = auctions.filter((auction) => ["Live", "Extended"].includes(auction.status)).length;
-  const previousLiveAuctions = previousAuctions.filter((auction) => ["Live", "Extended"].includes(auction.status)).length;
   const conversionRate = listings.length ? (orders.length / listings.length) * 100 : 0;
   const previousConversionRate = previousListings.length ? (previousOrders.length / previousListings.length) * 100 : 0;
   const averageBidValue = bids.length
@@ -267,10 +261,10 @@ async function buildSellerReport({ sellerId, range = "weekly" }) {
     periodLabel: `${formatLongDate(window.currentStart)} to ${formatLongDate(window.currentEnd)}`,
     summaryCards: [
       {
-        label: "Revenue",
-        value: formatCurrency(revenue),
-        delta: formatSellerDelta(revenue, previousRevenue),
-        tone: revenue >= previousRevenue ? "good" : "warn",
+        label: "Net revenue",
+        value: formatCurrency(currentRevenue),
+        delta: formatSellerDelta(currentRevenue, previousRevenue),
+        tone: currentRevenue >= previousRevenue ? "good" : "warn",
       },
       {
         label: "Orders closed",
@@ -279,10 +273,10 @@ async function buildSellerReport({ sellerId, range = "weekly" }) {
         tone: soldOrders >= previousSoldOrders ? "good" : "warn",
       },
       {
-        label: "Live auctions",
-        value: String(liveAuctions),
-        delta: formatSellerDelta(liveAuctions, previousLiveAuctions),
-        tone: liveAuctions >= previousLiveAuctions ? "good" : "warn",
+        label: "Commission paid",
+        value: formatCurrency(currentCommission),
+        delta: formatSellerDelta(currentCommission, previousCommission),
+        tone: currentCommission <= previousCommission ? "good" : "warn",
       },
       {
         label: "Conversion rate",
@@ -298,7 +292,8 @@ async function buildSellerReport({ sellerId, range = "weekly" }) {
         rows: [
           { label: "Listings created", value: String(listings.length), detail: `${auctions.length} auctions launched` },
           { label: "Bids received", value: compactAmount(bids.length), detail: `${formatCurrency(averageBidValue)} average bid` },
-          { label: "Orders won", value: String(orders.length), detail: `${formatCurrency(revenue)} revenue processed` },
+          { label: "Orders won", value: String(orders.length), detail: `${formatCurrency(currentRevenue)} seller payout after commission` },
+          { label: "Commission charged", value: formatCurrency(currentCommission), detail: "5% platform fee across won products" },
           { label: "Completed pipeline", value: `${Math.round(conversionRate)}%`, detail: "Orders converted from created listings" },
         ],
       },
@@ -317,14 +312,14 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
     Order.find({ seller: req.user._id }).sort({ updatedAt: -1 }).limit(4),
   ]);
 
-  const grossSales = orders.reduce((sum, order) => sum + order.amount, 0);
+  const netSales = orders.reduce((sum, order) => sum + getOrderFinancials(order).sellerPayoutAmount, 0);
   // derive live / active auction count from Auction documents, not Listing.status
   const activeAuctionCount = await Auction.countDocuments({
     seller: req.user._id,
     ...buildActiveAuctionFilter(),
   });
   const totalBids = auctions.reduce((sum, auction) => sum + (auction.bidCount || 0), 0);
-  const averageOrderValue = orders.length ? grossSales / orders.length : 0;
+  const averageOrderValue = orders.length ? netSales / orders.length : 0;
   const conversionRate = listings.length ? Math.round((orders.length / listings.length) * 100) : 0;
   res.json({
     success: true,
@@ -337,7 +332,7 @@ export const getSellerOverview = asyncHandler(async (req, res) => {
           `${listings.length} total listings`,
           "good",
         ),
-        toStats("Gross sales", formatCurrency(grossSales), `${orders.length} completed orders`, "good"),
+        toStats("Net sales", formatCurrency(netSales), "After 5% commission", "good"),
       ],
       // Secondary metrics capture traffic and commercial quality signals.
       performance: [
@@ -689,7 +684,10 @@ export const getSellerOrders = asyncHandler(async (req, res) => {
       id: order.code,
       item: order.item,
       buyer: order.bidder?.name || "Unknown buyer",
-      amount: formatCurrency(order.amount),
+      amount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
+      grossAmount: formatCurrency(order.amount),
+      commission: formatCurrency(getOrderFinancials(order).commissionAmount),
+      payoutAmount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
       status: order.status,
     })),
   });
@@ -797,6 +795,7 @@ export const getBidderWins = asyncHandler(async (req, res) => {
       seller: order.seller?.name || "Unknown seller",
       sellerId: order.seller?._id || null,
       amount: formatCurrency(order.amount),
+      commission: formatCurrency(getOrderFinancials(order).commissionAmount),
       status: order.status,
       canPay: order.status === "Payment pending",
       paidAt: order.paidAt || null,

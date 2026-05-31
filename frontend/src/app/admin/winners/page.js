@@ -32,7 +32,8 @@ export default function AdminWinnersPage() {
               <th>Winning buyer</th>
               <th>Seller</th>
               <th>Final amount</th>
-              <th>Held amount</th>
+              <th>Commission</th>
+              <th>Seller payout</th>
               <th>Status</th>
               <th>Closed</th>
             </tr>
@@ -40,7 +41,7 @@ export default function AdminWinnersPage() {
           <tbody>
             {!data.length ? (
               <tr>
-                <td colSpan={8}>No winning buyer records found.</td>
+                <td colSpan={9}>No winning buyer records found.</td>
               </tr>
             ) : null}
             {data.map((row) => (
@@ -60,6 +61,7 @@ export default function AdminWinnersPage() {
                 </td>
                 <td>{row.seller}</td>
                 <td className={styles.moneyText}>{row.amount}</td>
+                <td>{row.commission}</td>
                 <td>{row.escrow}</td>
                 <td><StatusPill tone={toneForStatus(row.status)}>{row.status}</StatusPill></td>
                 <td>{row.closedAt}</td>

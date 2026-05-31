@@ -2,11 +2,15 @@
  * Formats money, counts, countdowns, and relative timestamps for UI responses.
  */
 export function formatCurrency(amount = 0, currency = "USD") {
+  const numericAmount = Number(amount || 0);
+  const fractionDigits = Number.isInteger(numericAmount) ? 0 : 2;
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: 2,
+  }).format(numericAmount);
 }
 
 export function formatCompactNumber(value = 0) {
