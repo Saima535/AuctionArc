@@ -21,6 +21,11 @@ import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js
 import { buildAdminInsights } from "../services/adminReportingService.js";
 import { getOrderFinancials } from "../services/commissionService.js";
 import {
+  getPayoutTransactionsByOrderIds,
+  releaseEligibleSellerPayouts,
+  releaseSellerPayoutForOrder,
+} from "../services/payoutService.js";
+import {
   compactAmount,
   toAuctionRow,
   toBidRow,
@@ -674,8 +679,10 @@ export const getSellerAuctions = asyncHandler(async (req, res) => {
 export const getSellerOrders = asyncHandler(async (req, res) => {
   // Seller orders are the fulfilment queue after either auction settlement or buy now.
   await finalizeExpiredAuctions({ seller: req.user._id });
+  await releaseEligibleSellerPayouts({ seller: req.user._id });
 
   const orders = await Order.find({ seller: req.user._id }).populate("bidder").sort({ updatedAt: -1 });
+  const payoutTransactions = await getPayoutTransactionsByOrderIds(orders.map((order) => order._id));
 
   res.json({
     success: true,
@@ -688,6 +695,8 @@ export const getSellerOrders = asyncHandler(async (req, res) => {
       grossAmount: formatCurrency(order.amount),
       commission: formatCurrency(getOrderFinancials(order).commissionAmount),
       payoutAmount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
+      payoutStatus: payoutTransactions.get(String(order._id))?.status || (order.status === "Payment pending" ? "Awaiting payment" : "Pending payout"),
+      payoutReleasedAt: order.payoutReleasedAt || null,
       status: order.status,
     })),
   });
@@ -840,6 +849,7 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
 
   order.status = status;
   await order.save();
+  await releaseSellerPayoutForOrder(order);
 
   if (order.bidder?._id) {
     await createNotification({

@@ -52,6 +52,8 @@ const orderSchema = new mongoose.Schema(
     paymentIntentId: { type: String, default: "" },
     // Paid-at is null until Stripe confirmation finishes successfully.
     paidAt: { type: Date, default: null },
+    // Payout release time records when the seller-side funds were marked released.
+    payoutReleasedAt: { type: Date, default: null },
     // Status tracks the post-purchase fulfilment lifecycle through delivery.
     status: {
       type: String,

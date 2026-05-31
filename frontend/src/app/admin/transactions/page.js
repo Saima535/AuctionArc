@@ -61,14 +61,14 @@ export default function AdminTransactionsPage() {
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
 
-  const totalValue = data.reduce((sum, item) => sum + parseCurrency(item.amount), 0);
-  const completedCount = data.filter((item) => /success|complete|paid/i.test(item.status)).length;
-  const inReviewCount = data.filter((item) => /escrow|pending|hold/i.test(item.status)).length;
+  const totalValue = data.reduce((sum, item) => sum + parseCurrency(item.grossAmount || item.amount), 0);
+  const completedCount = data.filter((item) => /success|complete|paid/i.test(item.paymentStatus)).length;
+  const pendingPayoutCount = data.filter((item) => /pending/i.test(item.payoutStatus)).length;
 
   const summary = [
-    { value: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(totalValue), label: "Total Transaction Value", icon: <DollarIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
-    { value: String(completedCount), label: "Completed Transactions", icon: <CheckIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
-    { value: String(inReviewCount), label: "In Review / Escrow", icon: <TrendIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
+    { value: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(totalValue), label: "Total Transaction Value", icon: <DollarIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
+    { value: String(completedCount), label: "Completed Payment Records", icon: <CheckIcon />, iconClass: styles.greenIcon, cardClass: styles.greenLine },
+    { value: String(pendingPayoutCount), label: "Seller Payouts Pending", icon: <TrendIcon />, iconClass: styles.goldIcon, cardClass: styles.yellowLine },
   ];
 
   async function handleDeleteTransaction(row) {
@@ -120,10 +120,11 @@ export default function AdminTransactionsPage() {
               <th>Buyer</th>
               <th>Seller</th>
               <th>Type</th>
-              <th>Amount</th>
+              <th>Gross Amount</th>
               <th>Commission</th>
               <th>Seller Payout</th>
-              <th>Status</th>
+              <th>Payment Status</th>
+              <th>Payout Status</th>
               <th>Channel</th>
               <th>Date</th>
               <th>Action</th>
@@ -132,11 +133,11 @@ export default function AdminTransactionsPage() {
           <tbody>
             {!data.length ? (
               <tr>
-                <td colSpan={12}>No transactions found.</td>
+                <td colSpan={13}>No transactions found.</td>
               </tr>
             ) : null}
             {data.map((row) => (
-              <tr key={row.id}>
+              <tr key={row.transactionId || `${row.id}-${row.date}`}>
                 <td>{row.id}</td>
                 <td>
                   <div className={styles.listItemWrap}>
@@ -149,12 +150,17 @@ export default function AdminTransactionsPage() {
                 <td>{row.buyer}</td>
                 <td>{row.seller}</td>
                 <td>{row.type}</td>
-                <td className={styles.moneyText}>{row.amount}</td>
+                <td className={styles.moneyText}>{row.grossAmount || row.amount}</td>
                 <td className={styles.moneyText}>{row.commission}</td>
                 <td className={styles.moneyText}>{row.payoutAmount}</td>
                 <td>
-                  <StatusPill tone={toneForStatus(row.status)}>
-                    {row.status}
+                  <StatusPill tone={toneForStatus(row.paymentStatus)}>
+                    {row.paymentStatus}
+                  </StatusPill>
+                </td>
+                <td>
+                  <StatusPill tone={/not applicable/i.test(row.payoutStatus) ? "gold" : toneForStatus(row.payoutStatus)}>
+                    {row.payoutStatus}
                   </StatusPill>
                 </td>
                 <td>{row.channel}</td>

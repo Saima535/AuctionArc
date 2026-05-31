@@ -20,6 +20,14 @@ const nextStatusByCurrent = {
   "Delivered": "Completed",
 };
 
+function payoutTone(value) {
+  return /completed|released/i.test(value)
+    ? "good"
+    : /pending/i.test(value)
+      ? "warn"
+      : "neutral";
+}
+
 export default function SellerOrdersPage() {
   const { user } = useAuth();
   const { data, setData, error, refresh } = useApiData("/dashboard/seller/orders", {
@@ -72,6 +80,15 @@ export default function SellerOrdersPage() {
     { key: "commission", label: "Commission" },
     { key: "payoutAmount", label: "Payout" },
     {
+      key: "payoutStatus",
+      label: "Payout Status",
+      render: (value) => (
+        <StatusBadge tone={payoutTone(value)}>
+          {value}
+        </StatusBadge>
+      ),
+    },
+    {
       key: "status",
       label: "Status",
       render: (value) => (
@@ -104,7 +121,7 @@ export default function SellerOrdersPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Orders"
-        description="Monitor sold items, buyer payment, 5% commission deductions, payout totals, and delivery status."
+        description="Monitor sold items, buyer payment, 5% commission deductions, payout totals, and auto-released seller payouts after delivery."
       />
 
       {pageError ? <p className={styles.errorText}>{pageError}</p> : null}

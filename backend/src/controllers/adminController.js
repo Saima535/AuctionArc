@@ -31,6 +31,7 @@ import { createNotification } from "../services/notificationService.js";
 import { activateUserAccount, suspendUserAccount } from "../services/userSuspensionService.js";
 import { deriveAuctionLifecycleLabel } from "../services/auctionQueryService.js";
 import { getOrderFinancials } from "../services/commissionService.js";
+import { releaseEligibleSellerPayouts } from "../services/payoutService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCountdown, formatCurrency, formatRelativeTime } from "../utils/formatters.js";
@@ -713,6 +714,8 @@ export const updateReportStatus = asyncHandler(async (req, res) => {
 });
 
 export const getTransactions = asyncHandler(async (req, res) => {
+  await releaseEligibleSellerPayouts();
+
   const transactions = await Transaction.find({})
     .populate("user")
     .populate({
@@ -737,47 +740,117 @@ export const getTransactions = asyncHandler(async (req, res) => {
       return "Feature payment";
     }
 
-    if (/buy now/i.test(transaction.type)) {
-      return "Buy now payment";
+    if (/winning bid/i.test(transaction.type) || /auction sale/i.test(transaction.type)) {
+      return "Auction win order";
     }
 
-    if (/winning bid|auction sale/i.test(transaction.type)) {
-      return "Auction win price payment";
+    if (/buy now/i.test(transaction.type)) {
+      return "Buy now order";
     }
 
     return transaction.type;
   }
 
+  function getTransactionRole(transaction) {
+    if (/winning bid payment|buy now payment/i.test(transaction.type)) {
+      return "buyer-payment";
+    }
+
+    if (/auction sale|buy now sale|seller payout/i.test(transaction.type)) {
+      return "seller-payout";
+    }
+
+    return "standalone";
+  }
+
+  const groupedRows = [];
+  const groupedSaleRows = new Map();
+
+  for (const transaction of transactions) {
+    const order = transaction.order;
+    const fallbackListing = transaction.metadata?.listingId
+      ? listingById.get(String(transaction.metadata.listingId))
+      : null;
+    const role = getTransactionRole(transaction);
+    const stripeSessionId = transaction.metadata?.stripeSessionId || "";
+    const groupKey =
+      order && role !== "standalone"
+        ? `order:${String(order._id)}:${stripeSessionId || "sale"}`
+        : "";
+
+    if (groupKey) {
+      if (!groupedSaleRows.has(groupKey)) {
+        groupedSaleRows.set(groupKey, {
+          transactionId: String(transaction._id),
+          id: order?.code || transaction.code,
+          product:
+            order?.item ||
+            order?.listing?.title ||
+            fallbackListing?.title ||
+            "Unassigned transaction",
+          buyer: order?.bidder?.name || "Not applicable",
+          seller: order?.seller?.name || "Not applicable",
+          type: normalizeTransactionType(transaction),
+          amount: formatCurrency(getOrderFinancials(order).grossAmount),
+          grossAmount: formatCurrency(getOrderFinancials(order).grossAmount),
+          commission: formatCurrency(getOrderFinancials(order).commissionAmount),
+          payoutAmount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
+          paymentStatus: "Missing payment record",
+          payoutStatus: "Missing payout record",
+          channel: transaction.channel,
+          date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
+          sortTimestamp: transaction.createdAt?.getTime?.() || 0,
+        });
+      }
+
+      const row = groupedSaleRows.get(groupKey);
+
+      if (role === "buyer-payment") {
+        row.transactionId = String(transaction._id);
+        row.paymentStatus = transaction.status;
+        row.channel = transaction.channel || row.channel;
+        row.date = transaction.createdAt?.toISOString().slice(0, 10) || row.date;
+        row.sortTimestamp = Math.max(row.sortTimestamp || 0, transaction.createdAt?.getTime?.() || 0);
+      }
+
+      if (role === "seller-payout") {
+        row.payoutStatus = transaction.status;
+        row.sortTimestamp = Math.max(row.sortTimestamp || 0, transaction.createdAt?.getTime?.() || 0);
+      }
+
+      continue;
+    }
+
+    groupedRows.push({
+      transactionId: transaction._id,
+      id: transaction.code,
+      product:
+        order?.item ||
+        order?.listing?.title ||
+        fallbackListing?.title ||
+        "Unassigned transaction",
+      buyer: order?.bidder?.name || (transaction.user?.role === "Bidder" ? transaction.user?.name : "Not applicable"),
+      seller:
+        order?.seller?.name ||
+        (transaction.user?.role === "Seller" ? transaction.user?.name : /feature|featured/i.test(transaction.type) ? transaction.user?.name : "Not applicable"),
+      type: normalizeTransactionType(transaction),
+      amount: formatCurrency(transaction.metadata?.grossAmount || transaction.amount),
+      grossAmount: formatCurrency(transaction.metadata?.grossAmount || transaction.amount),
+      commission: formatCurrency(transaction.metadata?.commissionAmount || 0),
+      payoutAmount: formatCurrency(transaction.metadata?.sellerPayoutAmount || transaction.amount),
+      paymentStatus: transaction.status,
+      payoutStatus: "Not applicable",
+      channel: transaction.channel,
+      date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
+      sortTimestamp: transaction.createdAt?.getTime?.() || 0,
+    });
+  }
+
   res.json({
     success: true,
-    data: transactions.map((transaction) => {
-      const order = transaction.order;
-      const fallbackListing = transaction.metadata?.listingId
-        ? listingById.get(String(transaction.metadata.listingId))
-        : null;
-
-      return {
-        transactionId: transaction._id,
-        id: transaction.code,
-        product:
-          order?.item ||
-          order?.listing?.title ||
-          fallbackListing?.title ||
-          "Platform payment",
-        buyer: order?.bidder?.name || (transaction.user?.role === "Bidder" ? transaction.user?.name : "N/A"),
-        seller:
-          order?.seller?.name ||
-          (transaction.user?.role === "Seller" ? transaction.user?.name : /feature|featured/i.test(transaction.type) ? transaction.user?.name : "N/A"),
-        type: normalizeTransactionType(transaction),
-        status: transaction.status,
-        amount: formatCurrency(transaction.amount),
-        grossAmount: order ? formatCurrency(getOrderFinancials(order).grossAmount) : formatCurrency(transaction.metadata?.grossAmount || transaction.amount),
-        commission: order ? formatCurrency(getOrderFinancials(order).commissionAmount) : formatCurrency(transaction.metadata?.commissionAmount || 0),
-        payoutAmount: order ? formatCurrency(getOrderFinancials(order).sellerPayoutAmount) : formatCurrency(transaction.metadata?.sellerPayoutAmount || transaction.amount),
-        channel: transaction.channel,
-        date: transaction.createdAt?.toISOString().slice(0, 10) || "Unknown",
-      };
-    }),
+    data: [...groupedSaleRows.values(), ...groupedRows]
+      .sort((left, right) => (right.sortTimestamp || 0) - (left.sortTimestamp || 0))
+      .map(({ sortTimestamp, ...row }) => row),
   });
 });
 
@@ -788,19 +861,38 @@ export const deleteTransaction = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Transaction not found.");
   }
 
-  await transaction.deleteOne();
+  const relatedTransactionIds = new Set([String(transaction._id)]);
+  const stripeSessionId = transaction.metadata?.stripeSessionId || "";
+
+  if (transaction.order && stripeSessionId) {
+    const relatedTransactions = await Transaction.find({
+      order: transaction.order,
+      "metadata.stripeSessionId": stripeSessionId,
+      type: { $in: ["Winning bid payment", "Auction sale", "Buy now payment", "Buy now sale"] },
+    }).select("_id");
+
+    relatedTransactions.forEach((entry) => {
+      relatedTransactionIds.add(String(entry._id));
+    });
+  }
+
+  await Transaction.deleteMany({
+    _id: { $in: [...relatedTransactionIds] },
+  });
 
   res.json({
     success: true,
     message: "Transaction deleted successfully.",
     data: {
       transactionId: String(transaction._id),
+      deletedCount: relatedTransactionIds.size,
     },
   });
 });
 
 export const getWinners = asyncHandler(async (req, res) => {
   await finalizeExpiredAuctions();
+  await releaseEligibleSellerPayouts();
 
   const orders = await Order.find({ status: { $in: ["Payment pending", "Paid", "Awaiting shipment", "Delivered", "Completed"] } })
     .populate("seller bidder listing")
@@ -820,6 +912,7 @@ export const getWinners = asyncHandler(async (req, res) => {
       amount: formatCurrency(order.amount),
       commission: formatCurrency(getOrderFinancials(order).commissionAmount),
       escrow: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
+      payoutReleasedAt: order.payoutReleasedAt?.toISOString().slice(0, 10) || "Pending release",
       status: order.status,
       closedAt: order.updatedAt?.toISOString().slice(0, 10) || "Unknown",
     })),
