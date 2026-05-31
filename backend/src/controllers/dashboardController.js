@@ -27,6 +27,7 @@ import {
 } from "../services/payoutService.js";
 import {
   compactAmount,
+  normalizeUserStatus,
   toAuctionRow,
   toBidRow,
   toListingCard,
@@ -528,8 +529,8 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
           level: "medium",
         },
         {
-          title: "Pending verification wave",
-          body: `${await User.countDocuments({ role: "Seller", status: "Pending verification" })} sellers are waiting for review.`,
+          title: "Seller activity snapshot",
+          body: `${await User.countDocuments({ role: "Seller", status: "Active" })} sellers are active on the platform.`,
           level: "low",
         },
       ],
@@ -542,7 +543,7 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
         name: user.name,
         role: user.role,
         country: user.country,
-        status: user.status,
+        status: normalizeUserStatus(user.status),
       })),
       supportQueue: [
         {
@@ -558,10 +559,10 @@ export const getAdminOverview = asyncHandler(async (req, res) => {
           status: "Healthy",
         },
         {
-          queue: "Account reviews",
-          open: String(await User.countDocuments({ status: "Pending verification" })).padStart(2, "0"),
-          sla: "2h 05m",
-          status: "Busy",
+          queue: "Seller accounts",
+          open: String(await User.countDocuments({ role: "Seller", status: "Active" })).padStart(2, "0"),
+          sla: "Live",
+          status: "Healthy",
         },
       ],
       recentThreads: threads.map(toThreadRow),

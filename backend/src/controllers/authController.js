@@ -6,6 +6,7 @@ import { PUBLIC_ROLES } from "../constants/enums.js";
 import { assertUserCanAccess } from "../middleware/auth.js";
 import { User } from "../models/User.js";
 import { createNotifications } from "../services/notificationService.js";
+import { normalizeUserStatus } from "../services/mapperService.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -48,7 +49,7 @@ function buildAuthResponse(user) {
       name: user.name,
       email: user.email,
       role: user.role,
-      status: user.status,
+      status: normalizeUserStatus(user.status),
       profilePicture: user.profilePicture || null,
     },
     destination:
@@ -122,7 +123,7 @@ export const register = asyncHandler(async (req, res) => {
     password: await hashPassword(password),
     role,
     publicRoleLabel: role === "Seller" ? "Verified seller" : "Active buyer",
-    status: role === "Seller" ? "Pending verification" : "Active",
+    status: "Active",
     gender,
     nid: normalizedNid,
     birthdate,
@@ -142,8 +143,8 @@ export const register = asyncHandler(async (req, res) => {
     await createNotifications(
       admins.map((admin) => ({
         userId: admin._id,
-        title: "Seller verification request",
-        body: `${user.name} registered as a seller and is awaiting verification.`,
+        title: "New seller registration",
+        body: `${user.name} registered as a seller and is now active on the platform.`,
         type: "admin-review",
         href: "/admin/users",
         metadata: {

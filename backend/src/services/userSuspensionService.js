@@ -2,9 +2,12 @@
  * Centralizes manual and automated user suspension flows.
  */
 import { Order } from "../models/Order.js";
+import { User } from "../models/User.js";
 import { createNotificationOnce } from "./notificationService.js";
+import { deleteUserAccountCompletely } from "./userDeletionService.js";
 
 const PAYMENT_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
+const SUSPENSION_DELETION_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 
 function buildSuspensionPayload({
   reason,
@@ -116,4 +119,22 @@ export async function suspendOverduePaymentUsers() {
   }
 
   return suspendedUsers;
+}
+
+export async function deleteExpiredSuspendedUsers() {
+  const threshold = new Date(Date.now() - SUSPENSION_DELETION_GRACE_PERIOD_MS);
+  const suspendedUsers = await User.find({
+    status: "Suspended",
+    "suspension.suspendedAt": { $lte: threshold },
+    role: { $in: ["Seller", "Bidder"] },
+  });
+
+  let deletedUsers = 0;
+
+  for (const user of suspendedUsers) {
+    await deleteUserAccountCompletely(user._id, { deletedByAdmin: false });
+    deletedUsers += 1;
+  }
+
+  return deletedUsers;
 }

@@ -20,6 +20,7 @@ import {
   deleteBid,
   deleteTransaction,
   deleteProduct,
+  deleteUser,
   updateAuctionStatus,
   updateBidStatus,
   updateProductStatus,
@@ -35,6 +36,7 @@ router.use(requireRole("Admin"));
 router.get("/profile", getAdminProfile);
 router.get("/users", getUsers);
 router.patch("/users/:userId/status", updateUserStatus);
+router.delete("/users/:userId", deleteUser);
 router.get("/products", getProducts);
 router.patch("/products/:listingId/status", updateProductStatus);
 router.delete("/products/:listingId", deleteProduct);

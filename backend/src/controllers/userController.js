@@ -9,7 +9,7 @@ import { Report } from "../models/Report.js";
 import { Thread } from "../models/Thread.js";
 import { Transaction } from "../models/Transaction.js";
 import { User } from "../models/User.js";
-import { serializeUser, toStats } from "../services/mapperService.js";
+import { normalizeUserStatus, serializeUser, toStats } from "../services/mapperService.js";
 import { uploadImageBuffer } from "../services/uploadService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -40,7 +40,7 @@ async function buildSellerProfileContext(user) {
       toStats("Active listings", String(activeListings), `${pendingListings} pending`, activeListings ? "good" : "neutral"),
       toStats("Completed sales", String(completedSales), `${orders.length} total orders`, completedSales ? "good" : "neutral"),
       toStats("Open conversations", String(openThreads), user.preferences.responseWindow || "Within 1 hour", openThreads ? "warn" : "good"),
-      toStats("Store status", user.status, user.verification.isAdultVerified ? "Adult verified" : "Adult review", user.status === "Active" ? "good" : "warn"),
+      toStats("Store status", normalizeUserStatus(user.status), user.verification.isAdultVerified ? "Adult verified" : "Adult review", normalizeUserStatus(user.status) === "Active" ? "good" : "warn"),
     ],
     sections: [
       {
@@ -136,8 +136,8 @@ async function buildBidderProfileContext(user) {
 }
 
 async function buildAdminProfileContext(user) {
-  const [pendingSellers, reports, transactions, listings, threads] = await Promise.all([
-    User.countDocuments({ role: "Seller", status: "Pending verification" }),
+  const [activeSellers, reports, transactions, listings, threads] = await Promise.all([
+    User.countDocuments({ role: "Seller", status: "Active" }),
     Report.find({}).select("status"),
     Transaction.countDocuments({}),
     Listing.countDocuments({}),
@@ -148,7 +148,7 @@ async function buildAdminProfileContext(user) {
 
   return {
     stats: [
-      toStats("Pending seller reviews", String(pendingSellers), "Verification queue", pendingSellers ? "warn" : "good"),
+      toStats("Active sellers", String(activeSellers), "Seller accounts live", activeSellers ? "good" : "neutral"),
       toStats("Open disputes", String(openReports), `${threads.length} active threads`, openReports ? "warn" : "good"),
       toStats("Marketplace listings", String(listings), `${transactions} transactions tracked`, listings ? "good" : "neutral"),
       toStats("Admin sessions", String(user.stats.adminSessions || 0), `${user.preferences.sessionTimeout || "30 minutes"} timeout`, "neutral"),
@@ -176,7 +176,7 @@ async function buildAdminProfileContext(user) {
         title: "Notification routing",
         description: "How critical marketplace alerts should reach the super admin.",
         items: [
-          `${pendingSellers} seller reviews awaiting action`,
+          `${activeSellers} seller accounts active`,
           `${openReports} reports require attention`,
           `${threads.length} active support threads`,
         ],

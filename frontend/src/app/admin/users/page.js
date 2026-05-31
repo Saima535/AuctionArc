@@ -57,6 +57,32 @@ export default function AdminUsersPage() {
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
 
+  async function handleDeleteUser(user) {
+    if (!user?.userId) {
+      return;
+    }
+
+    setBusyUserId(user.userId);
+    setPageError("");
+    setPageMessage("");
+
+    try {
+      await apiRequest(`/admin/users/${user.userId}`, {
+        method: "DELETE",
+      });
+
+      setData((current) => current.filter((item) => item.userId !== user.userId));
+      setExpandedUserId((current) => (current === user.userId ? "" : current));
+      setReasonUserId((current) => (current === user.userId ? "" : current));
+      setSuspensionReason("");
+      setPageMessage(`${user.name} was deleted completely.`);
+    } catch (requestError) {
+      setPageError(requestError.message || "Could not delete the user.");
+    } finally {
+      setBusyUserId("");
+    }
+  }
+
   async function handleStatusToggle(user, reason = "") {
     const nextStatus = user.status === "Active" ? "Suspended" : "Active";
     const trimmedReason = reason.trim();
@@ -146,6 +172,11 @@ export default function AdminUsersPage() {
                     Suspension reason: {user.suspensionReason}
                   </p>
                 ) : null}
+                {user.status === "Suspended" ? (
+                  <p className={styles.helperText}>
+                    Suspended accounts are deleted automatically after 7 days if they remain suspended.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -179,6 +210,14 @@ export default function AdminUsersPage() {
                 onClick={() => setExpandedUserId((current) => (current === user.userId ? "" : user.userId))}
               >
                 <span>{expandedUserId === user.userId ? "Hide" : "Details"}</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.suspendButton} ${styles.fullWidthAction}`.trim()}
+                disabled={busyUserId === user.userId}
+                onClick={() => handleDeleteUser(user)}
+              >
+                <span>{busyUserId === user.userId ? "Deleting..." : "Delete"}</span>
               </button>
             </div>
 

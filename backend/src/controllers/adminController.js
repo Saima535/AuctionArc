@@ -29,6 +29,7 @@ import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js
 import { publishLiveEvent } from "../services/liveUpdateService.js";
 import { createNotification } from "../services/notificationService.js";
 import { activateUserAccount, suspendUserAccount } from "../services/userSuspensionService.js";
+import { deleteUserAccountCompletely } from "../services/userDeletionService.js";
 import { deriveAuctionLifecycleLabel } from "../services/auctionQueryService.js";
 import { getOrderFinancials } from "../services/commissionService.js";
 import { releaseEligibleSellerPayouts } from "../services/payoutService.js";
@@ -237,6 +238,16 @@ export const getProducts = asyncHandler(async (req, res) => {
   });
 });
 
+export const deleteUser = asyncHandler(async (req, res) => {
+  const deleted = await deleteUserAccountCompletely(req.params.userId, { deletedByAdmin: true });
+
+  res.json({
+    success: true,
+    message: "User deleted successfully.",
+    data: deleted,
+  });
+});
+
 export const updateProductStatus = asyncHandler(async (req, res) => {
   const listing = await Listing.findById(req.params.listingId);
 
@@ -263,10 +274,17 @@ export const updateProductStatus = asyncHandler(async (req, res) => {
 
   await createNotification({
     userId: listing.seller,
-    title: listing.status === "Live" ? "Product approved" : "Listing status updated",
+    title:
+      listing.status === "Live"
+        ? "Product approved"
+        : listing.status === "Rejected"
+          ? "Product rejected"
+          : "Listing status updated",
     body:
       listing.status === "Live"
         ? `"${listing.title}" has been approved and is now live in the marketplace.`
+        : listing.status === "Rejected"
+          ? `"${listing.title}" was rejected by admin review and will not appear in the marketplace.`
         : `"${listing.title}" is now ${listing.status}.`,
     type: "listing",
     href: "/seller/listings",

@@ -7,7 +7,7 @@ import { env } from "../config/env.js";
 import { syncStaleAuctionStates } from "./auctionLifecycleService.js";
 import { finalizeExpiredAuctions } from "./auctionSettlementService.js";
 import { publishLiveEvent } from "./liveUpdateService.js";
-import { suspendOverduePaymentUsers } from "./userSuspensionService.js";
+import { deleteExpiredSuspendedUsers, suspendOverduePaymentUsers } from "./userSuspensionService.js";
 
 let schedulerTask = null;
 
@@ -22,6 +22,7 @@ async function runAuctionMaintenanceCycle() {
   const syncedAuctions = await syncStaleAuctionStates();
   const finalizedAuctions = await finalizeExpiredAuctions();
   const suspendedUsers = await suspendOverduePaymentUsers();
+  const deletedSuspendedUsers = await deleteExpiredSuspendedUsers();
 
   for (const auction of syncedAuctions) {
     const previousStatus = previousStatusById.get(String(auction._id));
@@ -46,6 +47,7 @@ async function runAuctionMaintenanceCycle() {
     syncedAuctions: syncedAuctions.length,
     finalizedAuctions: finalizedAuctions.filter((result) => result.finalized).length,
     suspendedUsers,
+    deletedSuspendedUsers,
   };
 }
 

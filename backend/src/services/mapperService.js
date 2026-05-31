@@ -3,6 +3,10 @@
  */
 import { formatCompactNumber, formatCountdown, formatCurrency, formatRelativeTime } from "../utils/formatters.js";
 
+export function normalizeUserStatus(status = "") {
+  return status === "Pending verification" ? "Active" : status;
+}
+
 function dedupeThreadMessages(messages = []) {
   const seen = new Set();
   const normalized = [];
@@ -40,7 +44,7 @@ export function serializeUser(user) {
     email: user.email,
     role: user.role,
     publicRoleLabel: user.publicRoleLabel,
-    status: user.status,
+    status: normalizeUserStatus(user.status),
     suspension: user.suspension || null,
     gender: user.gender,
     birthdate: user.birthdate,
@@ -62,7 +66,7 @@ export function toTableUser(user) {
     id: `USR-${String(user._id).slice(-4).toUpperCase()}`,
     name: user.name,
     role: user.role,
-    status: user.status,
+    status: normalizeUserStatus(user.status),
     country: user.country || "Unknown",
     contact: user.contact || "Not set",
     profilePicture: user.profilePicture || null,
