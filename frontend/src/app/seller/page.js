@@ -19,31 +19,6 @@ const reportRanges = [
   { id: "yearly", label: "Yearly" },
 ];
 
-function formatChartValue(value) {
-  if (value >= 1000) {
-    return `${Math.round(value / 100) / 10}k`;
-  }
-
-  return `${Math.round(value)}`;
-}
-
-function buildChartTicks(maxValue) {
-  if (!maxValue) {
-    return [0];
-  }
-
-  return [maxValue, maxValue / 2, 0];
-}
-
-function formatXAxisLabel(label, range) {
-  if (range === "monthly") {
-    const parts = String(label || "").split(" ");
-    return parts.at(-1) || label;
-  }
-
-  return label;
-}
-
 function formatTimeLeft(value) {
   if (!value) {
     return "Schedule pending";
@@ -101,18 +76,12 @@ export default function SellerDashboardPage() {
       generatedAt: "",
       summaryCards: [],
       sections: [],
-      trend: [],
     },
   });
 
   const auctionSummary = data.auctionSummary ?? [];
   const reportSummary = reportData.summaryCards ?? [];
-  const reportTrend = reportData.trend ?? [];
   const reportSection = reportData.sections?.[0] ?? null;
-  const reportPeakRevenue = reportTrend.reduce((maxValue, item) => Math.max(maxValue, item.revenue || 0), 0);
-  const reportTicks = buildChartTicks(reportPeakRevenue);
-  const reportLabelStep =
-    reportTrend.length > 20 ? Math.ceil(reportTrend.length / 6) : reportTrend.length > 10 ? 2 : 1;
 
   async function handleDownloadReport() {
     setIsDownloadingReport(true);
@@ -222,54 +191,6 @@ export default function SellerDashboardPage() {
                 <p>{card.delta}</p>
               </article>
             ))}
-          </div>
-
-          <div className={shared.reportTrendPanel}>
-            <div className={shared.sectionTop}>
-              <div>
-                <h3 className={shared.reportSubheading}>Revenue trend</h3>
-                <p className={shared.panelCopy}>A bar chart view of seller payout after the 5% commission for the selected reporting window.</p>
-              </div>
-            </div>
-            <div className={shared.reportChartWrap}>
-              <div className={shared.reportAxis}>
-                {reportTicks.map((tick) => (
-                  <span key={`tick-${tick}`}>{formatChartValue(tick)}</span>
-                ))}
-              </div>
-              <div className={shared.reportChartShell}>
-                <div className={shared.reportChart}>
-                  <div className={shared.reportGridLineTop} />
-                  <div className={shared.reportGridLineMiddle} />
-                  <div className={shared.reportGridLineBottom} />
-                  {reportTrend.map((point, index) => {
-                    const height = reportPeakRevenue ? Math.max((point.revenue / reportPeakRevenue) * 100, 0) : 0;
-
-                    return (
-                      <div key={`report-bar-${index}-${point.label}`} className={shared.reportBarColumn}>
-                        <div
-                          className={shared.reportBarFill}
-                          style={{ height: `${height}%` }}
-                          title={`${point.label}: ${formatChartValue(point.revenue || 0)}`}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className={shared.reportXAxis}>
-                  {reportTrend.map((point, index) => {
-                    const showLabel =
-                      index === 0 || index === reportTrend.length - 1 || index % reportLabelStep === 0;
-
-                    return (
-                      <span key={`report-label-${index}-${point.label}`} className={shared.reportBarLabel}>
-                        {showLabel ? formatXAxisLabel(point.label, reportRange) : ""}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
           </div>
 
           {reportSection ? (
