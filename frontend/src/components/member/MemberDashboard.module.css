@@ -337,6 +337,12 @@
   color: var(--member-text);
   padding: 0 14px;
   font: inherit;
+  color-scheme: dark;
+}
+
+.selectInput option {
+  background: #161616;
+  color: #f7f1e8;
 }
 
 .textareaInput {
