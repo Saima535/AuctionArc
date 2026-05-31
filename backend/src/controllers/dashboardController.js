@@ -21,6 +21,13 @@ import { finalizeExpiredAuctions } from "../services/auctionSettlementService.js
 import { buildAdminInsights } from "../services/adminReportingService.js";
 import { getOrderFinancials } from "../services/commissionService.js";
 import {
+  canBidderLeaveFeedback,
+  canSellerLeaveFeedback,
+  getFeedbackMapsForOrders,
+  serializeFeedbackSummary,
+  submitOrderFeedback,
+} from "../services/feedbackService.js";
+import {
   getPayoutTransactionsByOrderIds,
   releaseEligibleSellerPayouts,
   releaseSellerPayoutForOrder,
@@ -684,22 +691,31 @@ export const getSellerOrders = asyncHandler(async (req, res) => {
 
   const orders = await Order.find({ seller: req.user._id }).populate("bidder").sort({ updatedAt: -1 });
   const payoutTransactions = await getPayoutTransactionsByOrderIds(orders.map((order) => order._id));
+  const { byOrderAndRole } = await getFeedbackMapsForOrders(orders.map((order) => order._id));
 
   res.json({
     success: true,
-    data: orders.map((order) => ({
-      orderId: order._id,
-      id: order.code,
-      item: order.item,
-      buyer: order.bidder?.name || "Unknown buyer",
-      amount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
-      grossAmount: formatCurrency(order.amount),
-      commission: formatCurrency(getOrderFinancials(order).commissionAmount),
-      payoutAmount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
-      payoutStatus: payoutTransactions.get(String(order._id))?.status || (order.status === "Payment pending" ? "Awaiting payment" : "Pending payout"),
-      payoutReleasedAt: order.payoutReleasedAt || null,
-      status: order.status,
-    })),
+    data: orders.map((order) => {
+      const feedbackLeft = byOrderAndRole.get(`${String(order._id)}:Seller`) || null;
+      const feedbackReceived = byOrderAndRole.get(`${String(order._id)}:Bidder`) || null;
+
+      return {
+        orderId: order._id,
+        id: order.code,
+        item: order.item,
+        buyer: order.bidder?.name || "Unknown buyer",
+        amount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
+        grossAmount: formatCurrency(order.amount),
+        commission: formatCurrency(getOrderFinancials(order).commissionAmount),
+        payoutAmount: formatCurrency(getOrderFinancials(order).sellerPayoutAmount),
+        payoutStatus: payoutTransactions.get(String(order._id))?.status || (order.status === "Payment pending" ? "Awaiting payment" : "Pending payout"),
+        payoutReleasedAt: order.payoutReleasedAt || null,
+        status: order.status,
+        canLeaveFeedback: canSellerLeaveFeedback(order) && !feedbackLeft,
+        feedbackLeft: serializeFeedbackSummary(feedbackLeft),
+        feedbackReceived: serializeFeedbackSummary(feedbackReceived),
+      };
+    }),
   });
 });
 
@@ -790,26 +806,35 @@ export const getBidderWins = asyncHandler(async (req, res) => {
   const listingIds = orders.map((order) => order.listing).filter(Boolean);
   // Orders point at listings directly, so we recover auction ids here for wins UI.
   const auctions = await Auction.find({ listing: { $in: listingIds } }).select("_id listing");
+  const { byOrderAndRole } = await getFeedbackMapsForOrders(orders.map((order) => order._id));
   const auctionByListingId = new Map(
     auctions.map((auction) => [String(auction.listing), String(auction._id)]),
   );
 
   res.json({
     success: true,
-    data: orders.map((order) => ({
-      orderId: order._id,
-      listingId: order.listing,
-      auctionId: auctionByListingId.get(String(order.listing)) || null,
-      id: order.code,
-      item: order.item,
-      seller: order.seller?.name || "Unknown seller",
-      sellerId: order.seller?._id || null,
-      amount: formatCurrency(order.amount),
-      commission: formatCurrency(getOrderFinancials(order).commissionAmount),
-      status: order.status,
-      canPay: order.status === "Payment pending",
-      paidAt: order.paidAt || null,
-    })),
+    data: orders.map((order) => {
+      const feedbackLeft = byOrderAndRole.get(`${String(order._id)}:Bidder`) || null;
+      const feedbackReceived = byOrderAndRole.get(`${String(order._id)}:Seller`) || null;
+
+      return {
+        orderId: order._id,
+        listingId: order.listing,
+        auctionId: auctionByListingId.get(String(order.listing)) || null,
+        id: order.code,
+        item: order.item,
+        seller: order.seller?.name || "Unknown seller",
+        sellerId: order.seller?._id || null,
+        amount: formatCurrency(order.amount),
+        commission: formatCurrency(getOrderFinancials(order).commissionAmount),
+        status: order.status,
+        canPay: order.status === "Payment pending",
+        paidAt: order.paidAt || null,
+        canLeaveFeedback: canBidderLeaveFeedback(order) && !feedbackLeft,
+        feedbackLeft: serializeFeedbackSummary(feedbackLeft),
+        feedbackReceived: serializeFeedbackSummary(feedbackReceived),
+      };
+    }),
   });
 });
 
@@ -869,5 +894,49 @@ export const updateSellerOrderStatus = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: order,
+  });
+});
+
+export const createSellerOrderFeedback = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.orderId);
+
+  if (!order) {
+    throw new ApiError(404, "Order not found.");
+  }
+
+  const feedback = await submitOrderFeedback({
+    order,
+    actorRole: "Seller",
+    actorUserId: req.user._id,
+    rating: req.body.rating,
+    comment: req.body.comment,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Buyer feedback submitted successfully.",
+    data: serializeFeedbackSummary(feedback),
+  });
+});
+
+export const createBidderOrderFeedback = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.orderId);
+
+  if (!order) {
+    throw new ApiError(404, "Order not found.");
+  }
+
+  const feedback = await submitOrderFeedback({
+    order,
+    actorRole: "Bidder",
+    actorUserId: req.user._id,
+    rating: req.body.rating,
+    comment: req.body.comment,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Seller feedback submitted successfully.",
+    data: serializeFeedbackSummary(feedback),
   });
 });

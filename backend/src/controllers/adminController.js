@@ -5,6 +5,7 @@ import { AppSettings } from "../models/AppSettings.js";
 import { AUCTION_STATUSES, BID_STATUSES, LISTING_STATUSES, USER_STATUSES } from "../constants/enums.js";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
+import { Feedback } from "../models/Feedback.js";
 import { Listing } from "../models/Listing.js";
 import { Order } from "../models/Order.js";
 import { Report } from "../models/Report.js";
@@ -869,6 +870,34 @@ export const getTransactions = asyncHandler(async (req, res) => {
     data: [...groupedSaleRows.values(), ...groupedRows]
       .sort((left, right) => (right.sortTimestamp || 0) - (left.sortTimestamp || 0))
       .map(({ sortTimestamp, ...row }) => row),
+  });
+});
+
+export const getFeedback = asyncHandler(async (req, res) => {
+  const feedbackEntries = await Feedback.find({})
+    .populate("fromUser", "name")
+    .populate("toUser", "name")
+    .populate("order", "code item status purchaseType")
+    .populate("listing", "title code")
+    .sort({ createdAt: -1 });
+
+  res.json({
+    success: true,
+    data: feedbackEntries.map((feedback) => ({
+      feedbackId: feedback._id,
+      id: feedback.code,
+      order: feedback.order?.code || "Unknown order",
+      product: feedback.order?.item || feedback.listing?.title || "Unknown product",
+      direction: `${feedback.fromRole} to ${feedback.toRole}`,
+      from: feedback.fromUser?.name || feedback.fromRole,
+      to: feedback.toUser?.name || feedback.toRole,
+      rating: `${feedback.rating}/5`,
+      ratingValue: feedback.rating,
+      comment: feedback.comment || "No written feedback",
+      orderStatus: feedback.order?.status || "Unknown",
+      purchaseType: feedback.order?.purchaseType || "Unknown",
+      submittedAt: feedback.createdAt?.toISOString().slice(0, 10) || "Unknown",
+    })),
   });
 });
 

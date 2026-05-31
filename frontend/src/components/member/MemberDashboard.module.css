@@ -328,6 +328,54 @@
   font: inherit;
 }
 
+.selectInput {
+  min-height: 42px;
+  min-width: 120px;
+  border-radius: 14px;
+  border: 1px solid var(--member-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--member-text);
+  padding: 0 14px;
+  font: inherit;
+}
+
+.textareaInput {
+  width: 100%;
+  min-height: 92px;
+  border-radius: 14px;
+  border: 1px solid var(--member-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--member-text);
+  padding: 12px 14px;
+  font: inherit;
+  resize: vertical;
+}
+
+.feedbackStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.feedbackCard {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--member-border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.feedbackCard strong {
+  color: var(--member-text);
+}
+
+.feedbackCard p,
+.feedbackHint {
+  margin: 6px 0 0;
+  color: var(--member-muted);
+  line-height: 1.5;
+}
+
 .emptyState {
   margin: 0;
   color: var(--member-muted);

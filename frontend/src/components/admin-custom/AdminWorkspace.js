@@ -16,6 +16,7 @@ const sidebarItems = [
   { href: "/admin/reports", label: "Reports", icon: "alert" },
   { href: "/admin/transactions", label: "Transactions", icon: "money" },
   { href: "/admin/winners", label: "Winners", icon: "users" },
+  { href: "/admin/feedback", label: "Feedback", icon: "alert" },
   { href: "/admin/notifications", label: "Notifications", icon: "alert" },
 ];
 
@@ -31,6 +32,7 @@ const accountMenuItems = [
   { href: "/admin/bids", label: "Bids" },
   { href: "/admin/transactions", label: "Transactions" },
   { href: "/admin/winners", label: "Winners" },
+  { href: "/admin/feedback", label: "Feedback" },
   { href: "/admin/notifications", label: "Notifications" },
 ];
 

@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { Auction } from "../models/Auction.js";
 import { Bid } from "../models/Bid.js";
 import { Conversation } from "../models/Conversation.js";
+import { Feedback } from "../models/Feedback.js";
 import { Listing } from "../models/Listing.js";
 import { Message } from "../models/Message.js";
 import { Notification } from "../models/Notification.js";
@@ -93,6 +94,13 @@ export async function deleteUserAccountCompletely(userId, { deletedByAdmin = fal
       await Thread.deleteMany({ "participants.user": user._id }).session(session);
 
       if (orderIds.length) {
+        await Feedback.deleteMany({
+          $or: [
+            { order: { $in: orderIds } },
+            { fromUser: user._id },
+            { toUser: user._id },
+          ],
+        }).session(session);
         await Transaction.deleteMany({
           $or: [
             { order: { $in: orderIds } },
@@ -101,6 +109,9 @@ export async function deleteUserAccountCompletely(userId, { deletedByAdmin = fal
         }).session(session);
         await Order.deleteMany({ _id: { $in: orderIds } }).session(session);
       } else {
+        await Feedback.deleteMany({
+          $or: [{ fromUser: user._id }, { toUser: user._id }],
+        }).session(session);
         await Transaction.deleteMany({ user: user._id }).session(session);
       }
 

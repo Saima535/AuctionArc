@@ -14,7 +14,7 @@ const navGroups = [
   },
   {
     title: "Marketplace",
-    hrefs: ["/admin/users", "/admin/products", "/admin/bids", "/admin/winners", "/admin/transactions"],
+    hrefs: ["/admin/users", "/admin/products", "/admin/bids", "/admin/winners", "/admin/transactions", "/admin/feedback"],
   },
   {
     title: "Operations",
@@ -101,6 +101,14 @@ function BellIcon() {
   );
 }
 
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m12 3.8 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 17l-5.2 2.8 1-5.8-4.2-4.1 5.8-.8L12 3.8Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function iconForHref(href) {
   if (href === "/admin") return <GridIcon />;
   if (href === "/admin/users") return <UsersIcon />;
@@ -108,6 +116,7 @@ function iconForHref(href) {
   if (href === "/admin/bids") return <TrendIcon />;
   if (href === "/admin/transactions") return <DollarIcon />;
   if (href === "/admin/winners") return <DollarIcon />;
+  if (href === "/admin/feedback") return <StarIcon />;
   if (href === "/admin/chats") return <MessageIcon />;
   if (href === "/admin/reports") return <AlertIcon />;
   if (href === "/admin/notifications") return <BellIcon />;

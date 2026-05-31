@@ -18,6 +18,7 @@ import {
   getWinners,
   exportReport,
   deleteBid,
+  getFeedback,
   deleteTransaction,
   deleteProduct,
   deleteUser,
@@ -46,6 +47,7 @@ router.patch("/auctions/:auctionId/status", updateAuctionStatus);
 router.get("/bids", getBids);
 router.patch("/bids/:bidId/status", updateBidStatus);
 router.delete("/bids/:bidId", deleteBid);
+router.get("/feedback", getFeedback);
 router.get("/chats", getChats);
 router.get("/audit-queue", getAuditQueue);
 router.get("/reports/summary", getReportSummary);
