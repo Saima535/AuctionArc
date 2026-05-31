@@ -8,5 +8,4 @@ export const adminNavItems = [
   { href: "/admin/transactions", label: "Transactions", caption: "Payments and payouts" },
   { href: "/admin/winners", label: "Winners", caption: "Order and settlement flow" },
   { href: "/admin/notifications", label: "Notifications", caption: "Alerts and updates" },
-  { href: "/admin/profile", label: "Profile", caption: "Admin identity" },
 ];

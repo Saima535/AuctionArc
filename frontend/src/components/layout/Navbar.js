@@ -25,7 +25,7 @@ function getDashboardHref(auth) {
 
 function getProfileHref(role) {
   if (role === "Admin") {
-    return "/admin/profile";
+    return "/admin";
   }
 
   if (role === "Seller") {

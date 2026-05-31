@@ -18,7 +18,7 @@ const navGroups = [
   },
   {
     title: "Operations",
-    hrefs: ["/admin/chats", "/admin/reports", "/admin/notifications", "/admin/profile"],
+    hrefs: ["/admin/chats", "/admin/reports", "/admin/notifications"],
   },
 ];
 
@@ -101,15 +101,6 @@ function BellIcon() {
   );
 }
 
-function ProfileIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="8.2" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M6.5 18a5.5 5.5 0 0 1 11 0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function iconForHref(href) {
   if (href === "/admin") return <GridIcon />;
   if (href === "/admin/users") return <UsersIcon />;
@@ -120,7 +111,6 @@ function iconForHref(href) {
   if (href === "/admin/chats") return <MessageIcon />;
   if (href === "/admin/reports") return <AlertIcon />;
   if (href === "/admin/notifications") return <BellIcon />;
-  if (href === "/admin/profile") return <ProfileIcon />;
   return <GridIcon />;
 }
 
@@ -193,7 +183,7 @@ export function AdminShell({ children }) {
         </div>
 
         <div className={styles.sidebarFooter}>
-          <Link href="/admin/profile" className={styles.profileCard}>
+          <div className={styles.profileCard}>
             {imageUrl ? (
               <span
                 className={styles.profilePhoto}
@@ -207,7 +197,7 @@ export function AdminShell({ children }) {
               <strong>{profile?.name || "Super Admin"}</strong>
               <small>{profile?.publicRoleLabel || profile?.role || "Administrator"}</small>
             </span>
-          </Link>
+          </div>
 
           <Link href="/logout" className={styles.signoutButton}>
             Sign out
