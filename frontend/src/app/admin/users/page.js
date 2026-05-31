@@ -32,6 +32,14 @@ function UserIcon() {
   );
 }
 
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6.6 4.8h2.9l1.4 3.7-1.9 1.7a15.6 15.6 0 0 0 4.8 4.8l1.7-1.9 3.7 1.4v2.9c0 .8-.6 1.4-1.4 1.4C10.9 19 5 13.1 5 6.2c0-.8.6-1.4 1.6-1.4Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function toneForStatus(status) {
   return status === "Active" ? "green" : "red";
 }
@@ -143,7 +151,7 @@ export default function AdminUsersPage() {
                   <h3>{user.name}</h3>
                   <span className={`${styles.roleMeta} ${user.role === "Bidder" ? styles.buyerMeta : styles.sellerMeta}`}>
                     <ShieldIcon />
-                    <span>{user.role === "Bidder" ? "Buyer" : user.role}</span>
+                    <span>{user.roleLabel || (user.role === "Bidder" ? "Buyer account" : `${user.role} account`)}</span>
                   </span>
                 </div>
               </div>
@@ -154,8 +162,14 @@ export default function AdminUsersPage() {
             <div className={styles.userDetails}>
               <div className={styles.infoRow}>
                 <MailIcon />
-                <span>{user.contact}</span>
+                <span>{user.email || "Not set"}</span>
               </div>
+              {user.contact && user.contact !== "Not set" ? (
+                <div className={styles.infoRow}>
+                  <PhoneIcon />
+                  <span>{user.contact}</span>
+                </div>
+              ) : null}
               <div className={styles.infoRow}>
                 <UserIcon />
                 <span>User ID: {user.id}</span>
@@ -165,7 +179,7 @@ export default function AdminUsersPage() {
             {expandedUserId === user.userId ? (
               <div className={styles.helperBlock}>
                 <p className={styles.helperText}>
-                  Country: {user.country} | Joined: {user.joined} | Last seen: {user.lastSeen}
+                  Account type: {user.roleLabel || user.role} | Country: {user.country} | Joined: {user.joined} | Last seen: {user.lastSeen}
                 </p>
                 {user.suspensionReason ? (
                   <p className={styles.helperText}>
