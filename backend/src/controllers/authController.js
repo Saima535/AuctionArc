@@ -84,7 +84,7 @@ export const register = asyncHandler(async (req, res) => {
 
   const normalizedName = assertPersonName(name, "Name", { maxLength: 120 });
   const normalizedEmail = assertEmail(email);
-  const normalizedNid = assertDigitsOnly(nid, "NID", { minLength: 5, maxLength: 30 });
+  const normalizedNid = assertDigitsOnly(nid, "NID", { minLength: 11, maxLength: 11 });
   const normalizedCountry = assertOptionalText(country, "Country", { maxLength: 120 });
   const normalizedContact = assertPhoneNumber(contact, "Contact number");
   assertPassword(password);

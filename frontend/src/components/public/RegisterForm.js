@@ -26,6 +26,7 @@ export function RegisterForm() {
   const [birthdateValue, setBirthdateValue] = useState("");
   // Name validation is surfaced inline so users understand why numeric input is rejected.
   const [nameError, setNameError] = useState("");
+  const [nidError, setNidError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
   // The selected image name is shown as a lightweight confirmation of the chosen file.
@@ -101,7 +102,9 @@ export function RegisterForm() {
     const profilePicture = formData.get("profilePicture");
     const nameValue = typeof name === "string" ? name : "";
     const birthdateValue = typeof birthdate === "string" ? birthdate : "";
+    const nidValue = typeof formData.get("nid") === "string" ? String(formData.get("nid")) : "";
     setNameError("");
+    setNidError("");
     setSubmitError("");
     setSubmitSuccess("");
 
@@ -112,6 +115,11 @@ export function RegisterForm() {
 
     if (!(profilePicture instanceof File) || profilePicture.size === 0) {
       setSubmitError("Profile picture is required.");
+      return;
+    }
+
+    if (!/^\d{11}$/.test(nidValue)) {
+      setNidError("NID must contain exactly 11 digits.");
       return;
     }
 
@@ -219,13 +227,25 @@ export function RegisterForm() {
     setSubmitSuccess("");
   }
 
+  function handleEmailChange(event) {
+    event.target.value = event.target.value.toLowerCase();
+    handleFieldChange();
+  }
+
   function handleContactChange(event) {
     event.target.value = event.target.value.replace(/\D/g, "").slice(0, 15);
     handleFieldChange();
   }
 
   function handleNidChange(event) {
-    event.target.value = event.target.value.replace(/\D/g, "").slice(0, 30);
+    event.target.value = event.target.value.replace(/\D/g, "").slice(0, 11);
+
+    if (event.target.value && event.target.value.length !== 11) {
+      setNidError("NID must contain exactly 11 digits.");
+    } else {
+      setNidError("");
+    }
+
     handleFieldChange();
   }
 
@@ -255,7 +275,9 @@ export function RegisterForm() {
             type="email"
             placeholder="Enter your email"
             required
-            onChange={handleFieldChange}
+            autoCapitalize="none"
+            autoCorrect="off"
+            onChange={handleEmailChange}
           />
         </div>
       </div>
@@ -297,10 +319,11 @@ export function RegisterForm() {
             placeholder="Enter NID number"
             required
             inputMode="numeric"
-            pattern="[0-9]{5,30}"
-            maxLength={30}
+            pattern="[0-9]{11}"
+            maxLength={11}
             onChange={handleNidChange}
           />
+          {nidError ? <p className={styles.errorText}>{nidError}</p> : null}
         </div>
         <div className={styles.field}>
           <label htmlFor="register-birthdate-day">Birthdate</label>
