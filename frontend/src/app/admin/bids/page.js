@@ -3,10 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   DataTable,
-  FilterBar,
   Panel,
   SectionIntro,
-  StatCard,
   StatusBadge,
 } from "@/components/admin/AdminPrimitives";
 import { ApiErrorNotice } from "@/components/feedback/ApiFeedback";
@@ -16,7 +14,13 @@ import { apiRequest } from "@/lib/api";
 import styles from "../page.module.css";
 
 function bidStatusTone(value) {
-  return value === "Valid" || value === "Top bid" ? "good" : value === "Held" || value === "Review" ? "warn" : "neutral";
+  return value === "Valid" || value === "Top bid"
+    ? "good"
+    : value === "Outbid"
+      ? "danger"
+      : value === "Held" || value === "Review" || value === "Pending check"
+        ? "warn"
+        : "neutral";
 }
 
 export default function AdminBidsPage() {
@@ -25,7 +29,6 @@ export default function AdminBidsPage() {
     refreshIntervalMs: 8000,
     revalidateOnWindowFocus: true,
   });
-  const [selectedBidId, setSelectedBidId] = useState("");
   const [busyBidId, setBusyBidId] = useState("");
   const [pageError, setPageError] = useState("");
   const [pageMessage, setPageMessage] = useState("");
@@ -36,12 +39,10 @@ export default function AdminBidsPage() {
     }, [refresh]),
   });
 
-  const selectedBid = data.find((item) => item.bidId === selectedBidId) || data[0];
-
   const bidColumns = useMemo(
     () => [
       { key: "id", label: "Bid ID" },
-      { key: "auction", label: "Auction" },
+      { key: "product", label: "Product" },
       { key: "bidder", label: "Buyer" },
       { key: "amount", label: "Amount" },
       {
@@ -50,53 +51,41 @@ export default function AdminBidsPage() {
         render: (value) => <StatusBadge tone={bidStatusTone(value)}>{value}</StatusBadge>,
       },
       {
-        key: "signal",
-        label: "Signal",
-        render: (value) => (
-          <StatusBadge tone={value === "Normal" || value === "High intent" ? "good" : "danger"}>
-            {value}
-          </StatusBadge>
-        ),
-      },
-      {
         key: "actions",
         label: "Actions",
         render: (_, row) => (
           <button
             type="button"
             className={styles.secondaryButton}
-            onClick={() => setSelectedBidId(row.bidId)}
+            disabled={busyBidId === row.bidId}
+            onClick={() => handleDeleteBid(row)}
           >
-            Review
+            {busyBidId === row.bidId ? "Deleting..." : "Delete"}
           </button>
         ),
       },
     ],
-    [],
+    [busyBidId],
   );
 
-  async function handleBidStatus(status) {
-    if (!selectedBid) {
+  async function handleDeleteBid(row) {
+    if (!row?.bidId) {
       return;
     }
 
-    setBusyBidId(selectedBid.bidId);
+    setBusyBidId(row.bidId);
     setPageError("");
     setPageMessage("");
 
     try {
-      const result = await apiRequest(`/admin/bids/${selectedBid.bidId}/status`, {
-        method: "PATCH",
-        body: { status },
+      await apiRequest(`/admin/bids/${row.bidId}`, {
+        method: "DELETE",
       });
-
-      setData((current) =>
-        current.map((item) => (item.bidId === selectedBid.bidId ? result.data : item)),
-      );
-      setPageMessage(`${selectedBid.id} updated to ${status}.`);
-      refresh({ background: true });
+      setData((current) => current.filter((item) => item.bidId !== row.bidId));
+      setPageMessage(`${row.id} deleted successfully.`);
+      await refresh({ background: true });
     } catch (requestError) {
-      setPageError(requestError.message || "Could not update bid status.");
+      setPageError(requestError.message || "Could not delete the bid.");
     } finally {
       setBusyBidId("");
     }
@@ -106,52 +95,16 @@ export default function AdminBidsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="Bids"
-        description="Review bid flow, unusual activity, and escalation paths linked to auction disputes."
+        description="Monitor all placed bids in one table with real product, buyer, amount, and status data."
       />
-
-      <FilterBar items={["All bids", "Valid", "Held", "Review", "Suspicious signals"]} />
 
       {error ? <ApiErrorNotice title="Admin bid review unavailable" message={error} /> : null}
       {pageError ? <p className={styles.inlineNotice}>{pageError}</p> : null}
       {pageMessage ? <p className={styles.successNotice}>{pageMessage}</p> : null}
 
-      <section className={styles.statGrid}>
-        <StatCard label="Bid approvals" value={`${data.length ? Math.round((data.filter((item) => item.status === "Valid" || item.status === "Top bid").length / data.length) * 100) : 0}%`} delta="Live moderation" tone="good" />
-        <StatCard label="Held bids" value={String(data.filter((item) => item.status === "Held").length)} delta="Requires review" tone="warn" />
-        <StatCard label="Review flags" value={String(data.filter((item) => item.status === "Review").length)} delta="Manual checks" tone="warn" />
-        <StatCard label="Resolved flow" value={String(data.filter((item) => item.status === "Valid" || item.status === "Top bid").length)} delta="Clean bids" tone="good" />
-      </section>
-
-      <section className={styles.mainGrid}>
-        <Panel title="Bid review table" description="Signal-heavy table for spotting suspicious patterns quickly.">
-          <DataTable columns={bidColumns} rows={data} />
-        </Panel>
-
-        {selectedBid ? (
-          <aside className={styles.detailPanel}>
-            <strong>{selectedBid.id}</strong>
-            <p>{selectedBid.auction} | {selectedBid.bidder}</p>
-            <ul className={styles.noteList}>
-              <li>Amount: {selectedBid.amount}</li>
-              <li>Status: {selectedBid.status}</li>
-              <li>Signal: {selectedBid.signal}</li>
-            </ul>
-            <div className={styles.actionRow}>
-              {["Valid", "Held", "Review", "Pending check"].map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  className={status === "Valid" ? styles.actionButton : styles.secondaryButton}
-                  disabled={busyBidId === selectedBid.bidId}
-                  onClick={() => handleBidStatus(status)}
-                >
-                  {busyBidId === selectedBid.bidId ? "Updating..." : status}
-                </button>
-              ))}
-            </div>
-          </aside>
-        ) : null}
-      </section>
+      <Panel title="Bids table" description="A clean operational view of placed bids, tied directly to real products and live bid statuses.">
+        <DataTable columns={bidColumns} rows={data} />
+      </Panel>
     </div>
   );
 }

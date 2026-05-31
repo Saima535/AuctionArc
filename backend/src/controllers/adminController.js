@@ -36,6 +36,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { formatCountdown, formatCurrency, formatRelativeTime } from "../utils/formatters.js";
 import { assertOneOf, pickAllowedKeys } from "../utils/validation.js";
 
+const REVIEW_BID_STATUSES = ["Held", "Review", "Pending check"];
+
 function serializeBidDetail(bid) {
   return {
     id: bid.code,
@@ -46,6 +48,47 @@ function serializeBidDetail(bid) {
     signal: bid.signal,
     placedAt: bid.createdAt?.toISOString().slice(0, 10) || "Unknown",
   };
+}
+
+async function refreshBidStateForAuction({ auctionId, listingId }) {
+  const [auction, listing, bids] = await Promise.all([
+    Auction.findById(auctionId),
+    Listing.findById(listingId),
+    Bid.find({ auction: auctionId }).sort({ amount: -1, createdAt: 1 }),
+  ]);
+
+  if (!auction || !listing) {
+    return;
+  }
+
+  const eligibleBids = bids.filter((bid) => !REVIEW_BID_STATUSES.includes(bid.status));
+  const topBid = eligibleBids[0] || null;
+
+  await Promise.all(
+    bids.map((bid) => {
+      if (REVIEW_BID_STATUSES.includes(bid.status)) {
+        return null;
+      }
+
+      const nextStatus = topBid && String(bid._id) === String(topBid._id) ? "Top bid" : "Outbid";
+
+      if (bid.status === nextStatus) {
+        return null;
+      }
+
+      return Bid.updateOne({ _id: bid._id }, { $set: { status: nextStatus } });
+    }).filter(Boolean),
+  );
+
+  const currentBid = topBid ? Number(topBid.amount || 0) : Number(listing.price || 0);
+  const bidCount = bids.length;
+
+  auction.currentBid = currentBid;
+  auction.bidCount = bidCount;
+  listing.currentBid = currentBid;
+  listing.bidCount = bidCount;
+
+  await Promise.all([auction.save(), listing.save()]);
 }
 
 async function serializeAuctionDetail(auction) {
@@ -419,11 +462,14 @@ export const updateAuctionStatus = asyncHandler(async (req, res) => {
 export const getBids = asyncHandler(async (req, res) => {
   await finalizeExpiredAuctions();
 
-  const bids = await Bid.find({}).populate("auction bidder").sort({ createdAt: -1 });
+  const bids = await Bid.find({}).populate("auction bidder listing").sort({ createdAt: -1 });
 
   res.json({
     success: true,
-    data: bids.map(toBidRow),
+    data: bids.map((bid) => ({
+      ...toBidRow(bid),
+      product: bid.listing?.title || bid.auction?.title || "Unknown product",
+    })),
   });
 });
 
@@ -482,7 +528,64 @@ export const updateBidStatus = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: "Bid status updated successfully.",
-    data: toBidRow(bid),
+    data: {
+      ...toBidRow(bid),
+      product: bid.listing?.title || bid.auction?.title || "Unknown product",
+    },
+  });
+});
+
+export const deleteBid = asyncHandler(async (req, res) => {
+  const bid = await Bid.findById(req.params.bidId).populate("auction bidder listing");
+
+  if (!bid) {
+    throw new ApiError(404, "Bid not found.");
+  }
+
+  const auctionId = bid.auction?._id || bid.auction;
+  const listingId = bid.listing?._id || bid.listing;
+  const bidderId = bid.bidder?._id || bid.bidder;
+  const auctionTitle = bid.listing?.title || bid.auction?.title || "the product";
+
+  await bid.deleteOne();
+
+  if (auctionId && listingId) {
+    await refreshBidStateForAuction({ auctionId, listingId });
+  }
+
+  publishLiveEvent({
+    event: "bid.deleted",
+    channels: ["market:bids", "market:auctions"],
+    userIds: [bidderId].filter(Boolean),
+    roles: ["Admin"],
+    payload: {
+      bidId: bid._id,
+      auctionId: auctionId || null,
+      listingId: listingId || null,
+    },
+  });
+
+  if (bidderId) {
+    await createNotification({
+      userId: bidderId,
+      title: "Bid removed by admin",
+      body: `Your bid on "${auctionTitle}" has been removed by admin review.`,
+      type: "bid",
+      href: "/bidder/my-bids",
+      metadata: {
+        bidId: bid._id,
+        auctionId: auctionId || null,
+        listingId: listingId || null,
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    message: "Bid deleted successfully.",
+    data: {
+      bidId: String(bid._id),
+    },
   });
 });
 
