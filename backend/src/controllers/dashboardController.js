@@ -783,16 +783,22 @@ export const getBidderBids = asyncHandler(async (req, res) => {
   // Bid rows are simplified for the bidder dashboard and bid history views.
   await finalizeExpiredAuctions();
 
-  const bids = await Bid.find({ bidder: req.user._id }).populate("auction");
+  const bids = await Bid.find({ bidder: req.user._id })
+    .populate("auction")
+    .populate("listing")
+    .sort({ createdAt: -1 });
 
   res.json({
     success: true,
     data: bids.map((bid) => ({
       id: bid.code,
-      auction: bid.auction?.title || "Unknown auction",
+      product: bid.listing?.title || bid.auction?.title || "Unknown product",
+      auction: bid.auction?.code || "No auction code",
       yourBid: formatCurrency(bid.amount),
-      standing: bid.status === "Top bid" ? "Leading" : bid.status === "Outbid" ? "2nd place" : "Review hold",
+      currentBid: formatCurrency(bid.auction?.currentBid || bid.listing?.currentBid || bid.listing?.price || bid.amount),
+      stage: bid.auction ? deriveAuctionLifecycleLabel(bid.auction) : "Unknown",
       status: bid.status,
+      placedAt: bid.createdAt?.toISOString().slice(0, 10) || "Unknown",
     })),
   });
 });

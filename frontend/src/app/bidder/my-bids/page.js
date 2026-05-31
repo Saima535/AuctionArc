@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from "react";
 import {
   DataTable,
-  FilterBar,
   Panel,
   SectionIntro,
   StatusBadge,
@@ -16,9 +15,11 @@ import styles from "@/components/member/MemberDashboard.module.css";
 
 const bidColumns = [
   { key: "id", label: "Bid ID" },
+  { key: "product", label: "Product" },
   { key: "auction", label: "Auction" },
   { key: "yourBid", label: "Your bid" },
-  { key: "standing", label: "Standing" },
+  { key: "currentBid", label: "Current bid" },
+  { key: "stage", label: "Auction stage" },
   {
     key: "status",
     label: "Status",
@@ -28,6 +29,7 @@ const bidColumns = [
       </StatusBadge>
     ),
   },
+  { key: "placedAt", label: "Placed on" },
 ];
 
 export default function BidderMyBidsPage() {
@@ -53,12 +55,10 @@ export default function BidderMyBidsPage() {
     <div className={styles.page}>
       <SectionIntro
         title="My bids"
-        description="Follow your live positions, competition pressure, and bids that require action."
+        description="Review every real bid with the product name, auction code, your bid amount, current live bid, auction stage, and stored bid status."
       />
 
-      <FilterBar items={["All bids", "Leading", "Outbid", "Pending check"]} />
-
-      <Panel title="Bid positions" description="Current standing across auctions you are participating in.">
+      <Panel title="Bid history" description="A complete table of your actual bid records across every auction you have joined.">
         {error ? <ApiErrorNotice title="Bid positions unavailable" message={error} /> : <DataTable columns={bidColumns} rows={data} />}
       </Panel>
     </div>
