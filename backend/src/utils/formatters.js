@@ -1,11 +1,11 @@
 /**
  * Formats money, counts, countdowns, and relative timestamps for UI responses.
  */
-export function formatCurrency(amount = 0, currency = "USD") {
+export function formatCurrency(amount = 0, currency = "BDT") {
   const numericAmount = Number(amount || 0);
   const fractionDigits = Number.isInteger(numericAmount) ? 0 : 2;
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("bn-BD", {
     style: "currency",
     currency,
     minimumFractionDigits: fractionDigits,

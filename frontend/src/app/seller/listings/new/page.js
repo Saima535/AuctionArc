@@ -29,7 +29,7 @@ const durationOptions = [
   { value: "3", unit: "day", label: "3 Days" },
   { value: "5", unit: "day", label: "5 Days" },
   { value: "7", unit: "day", label: "7 Days" },
-  { value: "10", unit: "day", label: "10 Days" },
+  
 ];
 
 // Each uploaded image gets a stable UI identifier plus an object URL so the
@@ -151,7 +151,7 @@ export default function SellerNewListingPage() {
 
     try {
       // Listing creation is always the first step, even when the seller also
-      // opts into the separate $1 featured placement checkout.
+      // opts into the separate $5 featured placement checkout.
       const result = await apiRequest("/auctions/listings", {
         method: "POST",
         body: payload,
@@ -162,7 +162,7 @@ export default function SellerNewListingPage() {
       // Featured placement is modeled as a second payment step after the base
       // listing exists, so we branch into Stripe only after creation succeeds.
       if (premiumSelected && createdListingId) {
-        setSubmitSuccess("Listing saved. Redirecting to the $1 featured placement checkout...");
+        setSubmitSuccess("Listing saved. Redirecting to the $5 featured placement checkout...");
 
         try {
           const checkoutResult = await apiRequest("/payments/checkout-session", {
@@ -182,7 +182,7 @@ export default function SellerNewListingPage() {
         } catch (paymentError) {
           // If Stripe cannot open, we still preserve the created listing and
           // send the seller back to the listing management page to retry later.
-          setSubmitError("Listing saved, but we could not open the $1 feature payment. You can complete it from the listings page.");
+          setSubmitError("Listing saved, but we could not open the $5 feature payment. You can complete it from the listings page.");
           window.setTimeout(() => {
             router.push(`/seller/listings?featurePayment=setup-failed&listing=${createdListingId}`);
           }, 700);
@@ -518,7 +518,7 @@ export default function SellerNewListingPage() {
                   <strong>Feature this listing</strong>
                   {premiumSelected ? <span className={shared.featureReadyBadge}>Featured</span> : null}
                 </div>
-                <p>After you save this listing, Stripe will open so you can pay $1 and place it higher in AuctionArc.</p>
+                <p>After you save this listing, Stripe will open so you can pay $5 and place it higher in AuctionArc.</p>
               </div>
             </label>
           </div>

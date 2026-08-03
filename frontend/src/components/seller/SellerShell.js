@@ -13,6 +13,7 @@ const primaryNavbarItems = [
   { href: "/seller/auctions", label: "Auctions" },
   { href: "/seller/orders", label: "Orders" },
   { href: "/seller/messages", label: "Messages" },
+  { href: "/seller/messages", label: "Messages" },
 ];
 
 const secondaryNavbarItems = [

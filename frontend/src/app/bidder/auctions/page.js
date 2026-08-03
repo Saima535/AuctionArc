@@ -229,7 +229,7 @@ export default function BidderAuctionsPage() {
             aria-expanded={isCategoryMenuOpen}
             aria-haspopup="menu"
           >
-            Categories
+            Categorie
           </button>
           {isCategoryMenuOpen ? (
             <div className={styles.categoryMenu} role="menu" aria-label="Auction categories">

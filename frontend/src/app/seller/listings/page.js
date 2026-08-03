@@ -170,7 +170,7 @@ export default function SellerListingsPage() {
     if (featurePayment === "cancelled") {
       // Cancellation still preserves the already-created listing.
       setPageError("");
-      setPageMessage("Featured payment was cancelled. Your listing is still saved, and you can feature it later for $1.");
+      setPageMessage("Featured payment was cancelled. Your listing is still saved, and you can feature it later for $5.");
       window.history.replaceState({}, "", "/seller/listings");
       return;
     }
@@ -178,7 +178,7 @@ export default function SellerListingsPage() {
     if (featurePayment === "setup-failed") {
       // Checkout setup failure is surfaced as guidance instead of a hard stop.
       setPageError("");
-      setPageMessage("Your listing was saved, but Stripe could not open automatically. Use the Feature for $1 button below when you are ready.");
+      setPageMessage("Your listing was saved, but Stripe could not open automatically. Use the Feature for $5 button below when you are ready.");
       window.history.replaceState({}, "", "/seller/listings");
     }
   }, [searchParams, setData]);
@@ -488,7 +488,7 @@ export default function SellerListingsPage() {
                         aria-label={`Feature ${row.title} for one dollar`}
                         onClick={() => handleFeatureCheckout(row)}
                       >
-                        <span>{busyId === row.listingId ? "Opening..." : "Feature for $1"}</span>
+                        <span>{busyId === row.listingId ? "Opening..." : "Feature for $5"}</span>
                       </button>
                     ) : null}
                     {canManageBeforeApproval ? (

@@ -118,6 +118,9 @@ export default function SellerDashboardPage() {
             <Link href="/seller/auctions" className={shared.darkButton}>
               Manage Auctions
             </Link>
+            <Link href="/seller/auctions" className={shared.darkButton}>
+              Manage Auctions
+            </Link>
             <Link href="/seller/listings/new" className={shared.primaryCta}>
               <PlusIcon />
               <span>Create Listing</span>

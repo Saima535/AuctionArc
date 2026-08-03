@@ -17,6 +17,7 @@ const primaryNavItems = [
 ];
 
 const accountMenuItems = [
+  { href: "/contact-us", label: "Become a Seller" },
   { href: "/bidder/notifications", label: "Notifications" },
   { href: "/bidder/profile", label: "Profile" },
 ];
